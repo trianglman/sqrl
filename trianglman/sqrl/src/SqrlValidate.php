@@ -35,4 +35,28 @@ namespace trianglman\sqrl\src;
  * @author johnj
  */
 class SqrlValidate implements \trianglman\sqrl\interfaces\SqrlValidate{
+
+    public function loadConfigFromJSON($filePath) {
+        
+    }
+
+    public function setCryptoSignature($signature) {
+        
+    }
+
+    public function setNonce($nonce) {
+        
+    }
+
+    public function setPublicKey($publicKey) {
+        
+    }
+
+    public function storePublicKey() {
+        
+    }
+
+    public function validate() {
+        
+    }
 }

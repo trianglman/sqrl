@@ -1,0 +1,13 @@
+{
+    "path":"sqrl://example.com/sqrl",
+            
+    "dsn":"mysql:host=localhost;dbname=sqrl",
+    "username":"foo",
+    "password":"bar",
+    "nonce_table":"sqrl_nonce",
+    "pubkey_table":"sqrl_pubkey",
+    
+    "height":"300",
+    "padding":"10",
+    "nonce_salt":"B;{,!4z)<U5^@JZw1t'#[)%R!NI@Dj*\'fm62C@nbB^=:P,hWPu(e;)pbP:B1;Z"
+}

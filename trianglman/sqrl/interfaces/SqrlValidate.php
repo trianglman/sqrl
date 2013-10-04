@@ -35,4 +35,63 @@ namespace trianglman\sqrl\interfaces;
  * @author johnj
  */
 interface SqrlValidate {
+    
+    /**
+     * Loads a configuration file from the supplied path
+     * 
+     * @param string $filePath Path to a JSON formatted configuration file
+     * 
+     * @return void
+     * 
+     * @throws \InvalidArgumentException If the file does not exist
+     * @throws \InvalidArgumentException If the file is not JSON formatted
+     */
+    public function loadConfigFromJSON($filePath);
+    
+    /**
+     * Sets the public key to be used to verify the signature
+     * 
+     * @param string $publicKey
+     * 
+     * @return void
+     */
+    public function setPublicKey($publicKey);
+    
+    /**
+     * Sets the nonce that the signature is being validated against
+     * 
+     * @param string $nonce
+     * 
+     * @return void
+     */
+    public function setNonce($nonce);
+    
+    /**
+     * Sets the signature to be verified
+     * 
+     * @param string $signature
+     * 
+     * @return void
+     */
+    public function setCryptoSignature($signature);
+    
+    /**
+     * Validates that the supplied signature matches the public key
+     * 
+     * @return boolean
+     */
+    public function validate();
+    
+    /**
+     * Stores the public key into the database
+     * 
+     * If the key is already in the database, this will just return the already
+     * generated ID
+     * 
+     * @return int The databases unique identifier for the public key
+     * 
+     * @throws \RuntimeException If no database has been configured
+     */
+    public function storePublicKey();
+    
 }

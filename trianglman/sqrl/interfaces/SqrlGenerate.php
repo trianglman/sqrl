@@ -31,4 +31,72 @@ namespace trianglman\sqrl\interfaces;
  * @author johnj
  */
 interface SqrlGenerate {
+    
+    /**
+     * Loads a configuration file from the supplied path
+     * 
+     * @param string $filePath Path to a JSON formatted configuration file
+     * 
+     * @return void
+     * 
+     * @throws \InvalidArgumentException If the file does not exist
+     * @throws \InvalidArgumentException If the file is not JSON formatted
+     */
+    public function loadConfigFromJSON($filePath);
+    
+    /**
+     * Sets the path to the file that will process SQRL validations
+     * 
+     * According to the current proposal, this path should use the sqrl:// protocol.
+     * 
+     * @param string $sqrlPath
+     * 
+     * @return void
+     */
+    public function setPath($sqrlPath);
+    
+    /**
+     * Sets the height of the QR image that will be generatated
+     * 
+     * @param int $height The height in pixels
+     * 
+     * @return void
+     */
+    public function setHeight($height);
+    
+    /**
+     * Sets the internal padding between the edge of the image and the QR code
+     * 
+     * @param int $pad The size of the padding in pixels
+     * 
+     * @return void
+     */
+    public function setPadding($pad);
+    
+    /**
+     * Sets the salt to be used as part of generating the nonce
+     * 
+     * @param string $salt
+     * 
+     * @return void
+     */
+    public function setSalt($salt);
+    
+    /**
+     * Generates the QR code image
+     * 
+     * If no output file is supplied, the image is output into stdout
+     * 
+     * @param string $outputFile
+     * 
+     * @return void
+     */
+    public function render($outputFile = null);
+
+    /**
+     * Returns the generated nonce
+     * 
+     * @return string The one time use number for the QR link
+     */
+    public function getNonce();
 }

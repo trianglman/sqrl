@@ -30,4 +30,32 @@ namespace trianglman\sqrl\src;
  * @author johnj
  */
 class SqrlGenerate implements \trianglman\sqrl\interfaces\SqrlGenerate {
+
+    public function getNonce() {
+        
+    }
+
+    public function loadConfigFromJSON($filePath) {
+        
+    }
+
+    public function render($outputFile = null) {
+        
+    }
+
+    public function setHeight($height) {
+        
+    }
+
+    public function setPadding($pad) {
+        
+    }
+
+    public function setPath($sqrlPath) {
+        
+    }
+
+    public function setSalt($salt) {
+        
+    }
 }
