@@ -1,0 +1,10 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<phpunit colors="true" bootstrap="./bootstrap.php">
+    <testsuites>
+      <testsuite name="sqrl">
+        <file>./SqrlGenerateTest.php</file>
+        <file>./SqrlValidateTest.php</file>
+      </testsuite>
+    </testsuites>
+</phpunit>
