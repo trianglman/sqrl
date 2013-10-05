@@ -2,7 +2,7 @@
 
 function autoload($className)
 {
-    $base = dirname(__FILE__).DIRECTORY_SEPARATOR.'..'.DIRECTORY_SEPARATOR.'..';
+    $base = dirname(__FILE__).DIRECTORY_SEPARATOR.'..'.DIRECTORY_SEPARATOR.'..'.DIRECTORY_SEPARATOR.'..';
     $className = ltrim($className, '\\');
     $fileName  = '';
     $namespace = '';
@@ -13,6 +13,8 @@ function autoload($className)
     }
     $fileName .= str_replace('_', DIRECTORY_SEPARATOR, $className) . '.php';
 
-    require $base.DIRECTORY_SEPARATOR.$fileName;
+    if(file_exists($base.DIRECTORY_SEPARATOR.$fileName)){
+        require $base.DIRECTORY_SEPARATOR.$fileName;
+    }
 }
 spl_autoload_register('autoload');

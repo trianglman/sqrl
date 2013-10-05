@@ -3,6 +3,11 @@ sqrl
 
 PHP Server side implementation of a SQRL generator/listener
 
+This project is in pre-alpha until there is a defined reference implementation.
+
+Follow the conversation at https://www.grc.com/groups/sqrl for updates on the 
+standard.
+
 
 Software Requirements
 ====

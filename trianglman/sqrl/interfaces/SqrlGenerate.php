@@ -83,6 +83,30 @@ interface SqrlGenerate {
     public function setSalt($salt);
     
     /**
+     * Sets the database configuration details
+     * 
+     * @param string $dsn A connection string that PDO can parse
+     * @param string $username The connection user name to use
+     * @param string $pass The connection password
+     * @param string $nonceTable The table to store nonces in. It must have a nonce column and generate a unique ID on insert
+     * 
+     * @return void
+     * 
+     * @link http://us2.php.net/manual/en/pdo.connections.php Details for the $dsn variable configuration
+     */
+    public function configureDatabase($dsn,$username,$pass,$nonceTable);
+    
+    /**
+     * Sets the database connection directly
+     * 
+     * @param \PDO $db The database connection
+     * @param string $nonceTable The table to store the nonce in
+     * 
+     * @return void
+     */
+    public function setDatabaseConnection(\PDO $db,$nonceTable);
+    
+    /**
      * Generates the QR code image
      * 
      * If no output file is supplied, the image is output into stdout
@@ -99,4 +123,11 @@ interface SqrlGenerate {
      * @return string The one time use number for the QR link
      */
     public function getNonce();
+    
+    /**
+     * Gets the validation URL including the nonce
+     * 
+     * @return string
+     */
+    public function getUrl();
 }
