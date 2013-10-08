@@ -36,27 +36,128 @@ namespace trianglman\sqrl\src;
  */
 class SqrlValidate implements \trianglman\sqrl\interfaces\SqrlValidate{
 
+    protected $_dsn='';
+    
+    protected $_dbUserName='';
+    
+    protected $_dbPass='';
+    
+    protected $_nonceTable='';
+    
+    protected $_pubKeyTable='';
+    
+    protected $_sig='';
+    
+    protected $_nonce='';
+    
+    protected $_key='';
+    
+    protected $_db=null;
+    
     public function loadConfigFromJSON($filePath) {
+        if(!file_exists($filePath)){
+            throw new \InvalidArgumentException('Configuration file not found');
+        }
+        $data = file_get_contents($filePath);
+        $decoded = json_decode($data);
+        if(is_null($decoded)){
+            throw new \InvalidArgumentException('Configuration data could not be parsed. Is it JSON formatted?');
+        }
+        if(!empty($decoded->dsn)
+                && !empty($decoded->username)){
+            $this->configureDatabase($decoded->dsn, $decoded->username, $decoded->password);
+            if(!empty($decoded->nonce_table)){
+                $this->setNonceTable($decoded->nonce_table);
+            }
+            if(!empty($decoded->pubkey_table)){
+                $this->setPublicKeyTable($decoded->pubkey_table);
+            }
+        }
         
     }
 
     public function setCryptoSignature($signature) {
-        
+        $this->_sig = $signature;
     }
 
     public function setNonce($nonce) {
-        
+        if(!is_null($this->_connectToDatabase())){
+            //verify the nonce exists, otherwise we have to trust it was already done
+        }
+        $this->_nonce = $nonce;
     }
 
     public function setPublicKey($publicKey) {
-        
+        $this->_key = $publicKey;
     }
 
     public function storePublicKey() {
-        
+        if(is_null($this->_connectToDatabase())){
+            throw new \RuntimeException('No database connection has been configured.');
+        }
+        if(empty($this->_pubKeyTable)){
+            throw new \RuntimeException('No public key table has been configured.');
+        }
+        $checkSql = 'SELECT id FROM `'.$this->_pubKeyTable.'` WHERE `public_key` = ?';
+        $checkStmt = $this->_connectToDatabase()->prepare($checkSql);
+        $checkStmt->execute(array($this->_key));
+        $id = $checkStmt->fetchColumn();
+        if($id === false){
+            $insertSql = 'INSERT INTO `'.$this->_pubKeyTable.'` (`public_key`) VALUES (?)';
+            $insertStmt = $this->_connectToDatabase()->prepare($insertSql);
+            $insertStmt->execute(array($this->_key));
+            $id = $this->_connectToDatabase()->lastInsertId();
+        }
+        return $id;
     }
 
     public function validate() {
-        
+        if(empty($this->_sig) || empty($this->_key) || empty($this->_nonce)){
+            return false;
+        }
     }
+    
+    public function configureDatabase($dsn,$username,$pass)
+    {
+        $this->_dsn = $dsn;
+        $this->_dbUserName = $username;
+        $this->_dbPass = $pass;
+    }
+    
+    public function setDatabaseConnection(\PDO $db)
+    {
+        $this->_db = $db;
+    }
+    
+    public function setPublicKeyTable($table)
+    {
+        $this->_pubKeyTable = $table;
+    }
+    
+    public function setNonceTable($table)
+    {
+        $this->_nonceTable = $table;
+    }
+    
+    /**
+     * A wrapper function to either get an existing or generate a new database connection
+     * 
+     * @return \PDO
+     */
+    protected function _connectToDatabase()
+    {
+        if(!is_null($this->_db)){
+            return $this->_db;
+        }
+        if(empty($this->_dsn)){
+            return null;
+        }
+        try{
+            $this->_db = new \PDO($this->_dsn,$this->_dbUserName,$this->_dbPass);
+        } catch (\PDOException $ex) {
+            return null;
+        }
+        return $this->_db;
+    }
+    
 }
