@@ -53,7 +53,7 @@ class CryptoTest extends \PHPUnit_Framework_TestCase{
             
             $obj = new Crypto();
             $pk = $obj->publickey($sk);
-            $this->assertEquals($skconcat,  bin2hex($sk).$pk);
+            $this->assertEquals($skconcat,  bin2hex($sk.$pk));
         }
     }
 }

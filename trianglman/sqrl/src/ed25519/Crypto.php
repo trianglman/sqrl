@@ -43,30 +43,41 @@ class Crypto implements \trianglman\sqrl\interfaces\ed25519\Crypto{
     protected $B;
     
     public function __construct() {
-        $this->b = 255;
+        $this->b = 256;
         $this->q = "57896044618658097711785492504343953926634992332820282019728792003956564819949";//bcsub(bcpow(2, 255),19);
-        $this->l = "7237005577332262213973186563042994240829374041602535252466099000494570602496";//bcadd(bcpow(2,252),27742317777372353535851937790883648493);
-        $this->d = "-2412002500205643740163293893873104449252336231509255826590736182645207578106868355";//bcmul(-121665,$this->inv(121666));
-        $this->I = "25418358934029606749985806358096902613962102590680832505260377150198452456287";//$this->expmod(2,  bcdiv((bcsub($this->q,1)),4),$this->q);
-        $this->By = "76293945312500";//bcmul(4,$this->inv(5));
-        $this->Bx = "91223544677139905557058234613620631313076257731888553244725450088484129695438";//$this->xrecover($this->By);
-        $this->B = array("33327500058481807845272742109276677386441265399068271224996658084527564875489", "76293945312500");//array(bcmod($this->Bx,$this->q),bcmod($this->By,$this->q));
+        $this->l = "7237005577332262213973186563042994240857116359379907606001950938285454250989";//bcadd(bcpow(2,252),27742317777372353535851937790883648493);
+        $this->d = "-4513249062541557337682894930092624173785641285191125241628941591882900924598840740";//bcmul(-121665,$this->inv(121666));
+        $this->I = "19681161376707505956807079304988542015446066515923890162744021073123829784752";//$this->expmod(2,  bcdiv((bcsub($this->q,1)),4),$this->q);
+        $this->By = "46316835694926478169428394003475163141307993866256225615783033603165251855960";//bcmul(4,$this->inv(5));
+        $this->Bx = "15112221349535400772501151409588531511454012693041857206046113283949847762202";//$this->xrecover($this->By);
+        $this->B = array("15112221349535400772501151409588531511454012693041857206046113283949847762202", "46316835694926478169428394003475163141307993866256225615783033603165251855960");//array(bcmod($this->Bx,$this->q),bcmod($this->By,$this->q));
     }
     
     protected function H($m)
     {
-        return hash('sha512', $m);
+        return hash('sha512', $m,true);
     }
     
-    protected function expmod($b,$e,$m)
+    //((n % M) + M) % M //python modulus craziness
+    protected function pymod($x,$m)
+    {
+        return bcmod(bcadd(bcmod($x,$m),$m),$m);
+    }
+    
+    public function expmod($b,$e,$m)
     {
         if($e==0){return 1;}
-        $t = bcmod(bcpow($this->expmod($b,bcdiv($e,2,0),$m),2),$m);
-        if($e&1){$t = bcmod(bcmul($t,$b),$m);}
+        $recurs = $this->expmod($b,bcdiv($e,2,0),$m);//t = expmod(b,e/2,m)**2 % m
+        $powered = bcpow($recurs,2);
+        $t = $this->pymod($powered,$m);
+        if(bcmod($e,2)==1){
+            $bmult = bcmul($t,$b);
+            $t = $this->pymod($bmult,$m);
+        }
         return $t;
     }
     
-    protected function inv($x)
+    public function inv($x)
     {
         return $this->expmod($x, bcsub($this->q,2), $this->q);
     }
@@ -75,33 +86,42 @@ class Crypto implements \trianglman\sqrl\interfaces\ed25519\Crypto{
     {
         $xx = bcmul(bcsub(bcpow($y,2),1),$this->inv( bcadd(bcmul($this->d,bcpow($y,2)),1)));
         $x = $this->expmod($xx,bcdiv(bcadd($this->q,3),8,0),$this->q);
-        if( bcmod(bcsub(bcpow($x,2),$xx),$this->q) != 0){$x=bcsub($this->q,$x);}
+        if( $this->pymod(bcsub(bcpow($x,2),$xx),$this->q) != 0){$x=bcsub($this->q,$x);}
         if(bcmod($x,2) !=0){$x=bcsub($this->q,$x);}
         return $x;
     }
-    
     protected function edwards($P,$Q)
     {
         list($x1,$y1) = $P;
         list($x2,$y2) = $Q;
-        $x3 = bcmul(bcadd(bcmul($x1,$y2),bcmul($x2,$y1)),$this->inv(bcadd(1,bcmul($this->d,bcmul($x1,bcmul($x2,bcmul($y1,$y2)))))));
-        $y3 = bcmul(bcadd(bcmul($y1,$y2),bcmul($x1,$x2)),$this->inv(bcsub(1,bcmul($this->d,bcmul($x1,bcmul($x2,bcmul($y1,$y2)))))));
-        return array(bcmod($x3,$this->q), bcmod($y3,$this->q));
+        $com = bcmul($this->d,bcmul(bcmul($x1,$x2),bcmul($y1,$y2)));
+        $xl = bcadd(bcmul($x1,$y2),bcmul($x2,$y1));
+        $xr = $this->inv(bcadd(1,$com));
+        $x3 = bcmul($xl,$xr);
+        $yl = bcadd(bcmul($y1,$y2),bcmul($x1,$x2));
+        $yr = $this->inv(bcsub(1,$com));
+        $y3 = bcmul($yl,$yr);
+        return array($this->pymod($x3,$this->q), $this->pymod($y3,$this->q));
     }
     
     protected function scalarmult($P,$e)
     {
         if($e == 0){return array(0,1);}
         $Q = $this->scalarmult($P, bcdiv($e,2,0));
-        return ((bcmod($e,2)==1)?$this->edwards($Q, $P):$this->edwards($Q, $Q));
+        if(bcmod($e,2)==1){
+            return $this->edwards($Q, $P);
+        }
+        else{
+            return $this->edwards($Q, $Q);
+        }
     }
     
     protected function bitsToString($bits)
     {
         $string = '';
-        for($bytePos = 0;$bytePos<strlen($bits)/16;$bytePos++){
-            $binchar = substr($bits, $bytePos*16, 16);
-            $string.=bin2hex($binchar);
+        for($bytePos = 0;$bytePos<strlen($bits)/8;$bytePos++){
+            $binchar = substr($bits, $bytePos*8, 8);
+            $string.=chr(bindec($binchar));
         }
         return $string;
     }
@@ -149,8 +169,9 @@ class Crypto implements \trianglman\sqrl\interfaces\ed25519\Crypto{
         for($i=3;$i<$this->b-2;$i++){
             $sum=bcadd($sum,bcmul(bcpow(2,$i),$this->bit($h,$i)));
         }
-        $a = bcadd(bcpow(3,$this->b-2),$sum);
+        $a = bcadd(bcpow(2,$this->b-2),$sum);
         $A = $this->scalarmult($this->B, $a);
+        var_dump($A);return;
         return $this->encodePoint($A);
     }
     
