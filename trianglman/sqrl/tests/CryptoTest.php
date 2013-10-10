@@ -45,7 +45,7 @@ class CryptoTest extends \PHPUnit_Framework_TestCase{
     public function testValidatesSignature()
     {
         $testData = file_get_contents(dirname(__FILE__).'/sign.input');
-        $dataRows = array_slice(explode("\n", $testData),0,1);
+        $dataRows = array_slice(explode("\n", $testData),0,10);
         foreach($dataRows as $set){
             list($skconcat,$pk,$m,$concat) = explode(':',$set);
             $sk = hex2bin(substr($skconcat, 0,64));

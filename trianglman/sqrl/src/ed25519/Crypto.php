@@ -64,7 +64,7 @@ class Crypto implements \trianglman\sqrl\interfaces\ed25519\Crypto{
         return bcmod(bcadd(bcmod($x,$m),$m),$m);
     }
     
-    public function expmod($b,$e,$m)
+    protected function expmod($b,$e,$m)
     {
         if($e==0){return 1;}
         $recurs = $this->expmod($b,bcdiv($e,2,0),$m);//t = expmod(b,e/2,m)**2 % m
@@ -77,7 +77,7 @@ class Crypto implements \trianglman\sqrl\interfaces\ed25519\Crypto{
         return $t;
     }
     
-    public function inv($x)
+    protected function inv($x)
     {
         return $this->expmod($x, bcsub($this->q,2), $this->q);
     }
@@ -108,20 +108,23 @@ class Crypto implements \trianglman\sqrl\interfaces\ed25519\Crypto{
     {
         if($e == 0){return array(0,1);}
         $Q = $this->scalarmult($P, bcdiv($e,2,0));
+        $Q = $this->edwards($Q, $Q);
         if(bcmod($e,2)==1){
-            return $this->edwards($Q, $P);
+            $Q = $this->edwards($Q, $P);
         }
-        else{
-            return $this->edwards($Q, $Q);
-        }
+        return $Q;
     }
     
     protected function bitsToString($bits)
     {
         $string = '';
-        for($bytePos = 0;$bytePos<strlen($bits)/8;$bytePos++){
-            $binchar = substr($bits, $bytePos*8, 8);
-            $string.=chr(bindec($binchar));
+        for($i=0;$i<$this->b/8;$i++){
+            $sum = 0;
+            for($j=0;$j<8;$j++){
+                $bit = $bits[$i*8 + $j];
+                $sum+=(int)$bit << $j;
+            }
+            $string.=chr($sum);
         }
         return $string;
     }
@@ -139,14 +142,14 @@ class Crypto implements \trianglman\sqrl\interfaces\ed25519\Crypto{
     }    
     protected function encodeint($y)
     {
-        $bits = str_pad($this->dec2bin_i($y), $this->b, '0', STR_PAD_LEFT);
+        $bits = substr(str_pad(strrev($this->dec2bin_i($y)), $this->b, '0', STR_PAD_RIGHT),0,$this->b);
         return $this->bitsToString($bits);
     }
     
     protected function encodepoint($P)
     {
         list($x,$y) = $P;
-        $bits = str_pad($this->dec2bin_i(substr($y, 0,$this->b-1)), $this->b-1, '0', STR_PAD_LEFT);
+        $bits = substr(str_pad(strrev($this->dec2bin_i($y)), $this->b-1, '0', STR_PAD_RIGHT),0,$this->b-1);
         $bits.=(bcmod($x,2)==1?'1':'0');
         return $this->bitsToString($bits);
     }
@@ -155,7 +158,6 @@ class Crypto implements \trianglman\sqrl\interfaces\ed25519\Crypto{
     {
         return (ord($h[(int)bcdiv($i,8,0)]) >> bcmod($i,8) ) &1;
     }
-    
     /**
      * Generates the public key of a given private key
      * 
@@ -171,8 +173,8 @@ class Crypto implements \trianglman\sqrl\interfaces\ed25519\Crypto{
         }
         $a = bcadd(bcpow(2,$this->b-2),$sum);
         $A = $this->scalarmult($this->B, $a);
-        var_dump($A);return;
-        return $this->encodePoint($A);
+        $data = $this->encodePoint($A);
+        return $data;
     }
     
     protected function Hint($m)
