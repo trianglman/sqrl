@@ -30,11 +30,14 @@ namespace trianglman\sqrl\src\ed25519;
  *
  * @author johnj
  */
-class CryptoTest extends \PHPUnit_Framework_TestCase{
-    
+class CryptoTest extends \PHPUnit_Framework_TestCase
+{
+    protected $dataRows = array();
+
     public function setup()
     {
-        
+        $testData = file_get_contents(dirname(__FILE__).'/sign.input');
+        $this->dataRows = array_slice(explode("\n", $testData),0,1);
     }
     
     public function teardown()
@@ -42,18 +45,55 @@ class CryptoTest extends \PHPUnit_Framework_TestCase{
         
     }
     
-    public function testValidatesSignature()
+    public function testCheckSignature()
     {
-        $testData = file_get_contents(dirname(__FILE__).'/sign.input');
-        $dataRows = array_slice(explode("\n", $testData),0,10);
-        foreach($dataRows as $set){
+        foreach($this->dataRows as $set){
             list($skconcat,$pk,$m,$concat) = explode(':',$set);
-            $sk = hex2bin(substr($skconcat, 0,64));
-            
+            // Public key
+            $pk = hex2bin($pk);
+            // Message
+            $m = hex2bin($m);
+            // Signed message is 64 bytes long with message appended
+            $sig = hex2bin(substr($concat, 0, 128));
+
+            $obj = new Crypto();
+
+            $this->assertEquals(true, $obj->checkValid($sig, $m, $pk), 'checkValid failed');
+        }
+    }
+
+    public function testGenerateSignature()
+    {
+        foreach($this->dataRows as $set){
+            list($skconcat,$pk,$m,$concat) = explode(':',$set);
+            // Secret key is 32 bytes long with public key appended
+            $sk = hex2bin(substr($skconcat, 0, 64));
+            // Public key
+            $pk = hex2bin($pk);
+            // Message
+            $m = hex2bin($m);
+            // Signed message is 64 bytes long with message appended
+            $sig = hex2bin(substr($concat, 0, 128));
             
             $obj = new Crypto();
-            $pk = $obj->publickey($sk);
-            $this->assertEquals($skconcat,  bin2hex($sk.$pk));
+
+            $this->assertEquals(bin2hex($sig), bin2hex(substr($obj->signature($m, $sk, $pk), 0, 64)), 'Generating Signature failed');
+        }
+    }
+
+    public function testGeneratePublicKey()
+    {
+        foreach($this->dataRows as $set){
+            list($skconcat,$pk,$m,$concat) = explode(':',$set);
+            // Secret key is 32 bytes long with public key appended
+            $sk = hex2bin(substr($skconcat, 0, 64));
+            // Public key
+            $pk = hex2bin($pk);
+            
+            $obj = new Crypto();
+
+            $genpk = $obj->publickey($sk);
+            $this->assertEquals(bin2hex($pk), bin2hex($genpk), 'Generating Public key failed');
         }
     }
 }
