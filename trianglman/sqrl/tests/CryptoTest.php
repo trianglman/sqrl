@@ -90,12 +90,11 @@ class CryptoTest extends \PHPUnit_Framework_TestCase{
         echo "Starting test set at row $startofTestSet\n";
         $dataRows = array_slice($fullDataSet,$startofTestSet,10);
         foreach($dataRows as $set){
-            list($skconcat,$pktest,$m) = explode(':',$set);
-            $sk = hex2bin(substr($skconcat, 0,64));
+            list($skconcat,$pktest,$m,$sigConcat) = explode(':',$set);
             $binM = hex2bin($m);
+            $sig = hex2bin(substr($sigConcat, 0, 128));
             $obj = new Crypto();
-            $sig = $obj->signature($binM, $sk, hex2bin($pktest));
-            $this->assertTrue($obj->checkvalid($sig, $m, hex2bin($pktest)));
+            $this->assertTrue($obj->checkvalid($sig, $binM, hex2bin($pktest)));
         }
     }
 }
