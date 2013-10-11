@@ -5,6 +5,7 @@
       <testsuite name="sqrl">
         <file>./SqrlGenerateTest.php</file>
         <file>./SqrlValidateTest.php</file>
+        <file>./CryptoTest.php</file>
       </testsuite>
     </testsuites>
 </phpunit>

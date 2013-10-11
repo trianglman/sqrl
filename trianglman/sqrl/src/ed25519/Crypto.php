@@ -55,24 +55,26 @@ class Crypto implements \trianglman\sqrl\interfaces\ed25519\Crypto{
     
     protected function H($m)
     {
-        return hash('sha512', $m,true);
+        return hash('sha512', $m, true);
     }
     
     //((n % M) + M) % M //python modulus craziness
     protected function pymod($x,$m)
     {
-        return bcmod(bcadd(bcmod($x,$m),$m),$m);
+        $mod = bcmod($x, $m);
+        if ($mod[0] === '-') {
+            $mod = bcadd($mod, $m);
+        }
+
+        return $mod;
     }
-    
+
     protected function expmod($b,$e,$m)
     {
         if($e==0){return 1;}
-        $recurs = $this->expmod($b,bcdiv($e,2,0),$m);//t = expmod(b,e/2,m)**2 % m
-        $powered = bcpow($recurs,2);
-        $t = $this->pymod($powered,$m);
-        if(bcmod($e,2)==1){
-            $bmult = bcmul($t,$b);
-            $t = $this->pymod($bmult,$m);
+        $t = bcpowmod($b, $e, $m);
+        if ($t[0] === '-') {
+            $t = bcadd($t, $m);
         }
         return $t;
     }
@@ -84,12 +86,18 @@ class Crypto implements \trianglman\sqrl\interfaces\ed25519\Crypto{
     
     protected function xrecover($y)
     {
-        $xx = bcmul(bcsub(bcpow($y,2),1),$this->inv( bcadd(bcmul($this->d,bcpow($y,2)),1)));
+        $y2 = bcpow($y,2);
+        $xx = bcmul(bcsub($y2,1),$this->inv(bcadd(bcmul($this->d,$y2),1)));
         $x = $this->expmod($xx,bcdiv(bcadd($this->q,3),8,0),$this->q);
-        if( $this->pymod(bcsub(bcpow($x,2),$xx),$this->q) != 0){$x=bcsub($this->q,$x);}
-        if(bcmod($x,2) !=0){$x=bcsub($this->q,$x);}
+        if($this->pymod(bcsub(bcpow($x,2),$xx),$this->q)){
+            $x = $this->pymod(bcmul($x, $this->I), $this->q);
+        }
+        if(bcmod($x,2)){
+            $x=bcsub($this->q,$x);
+        }
         return $x;
     }
+
     protected function edwards($P,$Q)
     {
         list($x1,$y1) = $P;
@@ -109,7 +117,7 @@ class Crypto implements \trianglman\sqrl\interfaces\ed25519\Crypto{
         if($e == 0){return array(0,1);}
         $Q = $this->scalarmult($P, bcdiv($e,2,0));
         $Q = $this->edwards($Q, $Q);
-        if(bcmod($e,2)==1){
+        if(bcmod($e,2)){
             $Q = $this->edwards($Q, $P);
         }
         return $Q;
@@ -129,35 +137,41 @@ class Crypto implements \trianglman\sqrl\interfaces\ed25519\Crypto{
         return $string;
     }
     
-    protected function dec2bin_i($decimal_i)
+    protected function dec2bin_i_rev($decimal_i, $length)
     {
-
         $binary_i = '';
-        do{
-            $binary_i = bcmod($decimal_i,'2') . $binary_i;
-            $decimal_i = bcdiv($decimal_i,'2',0);
-         } while (bccomp($decimal_i,'0'));
+        do {
+            $binary_i .= bcmod($decimal_i,2);
+            $decimal_i = bcdiv($decimal_i,2,0);
+            $length--;
+        } while ($length && bccomp($decimal_i,'0'));
+
+        if ($length) {
+            $binary_i = str_pad($binary_i, strlen($binary_i)+$length, '0', STR_PAD_RIGHT);
+        }
 
         return($binary_i);
     }    
+
     protected function encodeint($y)
     {
-        $bits = substr(str_pad(strrev($this->dec2bin_i($y)), $this->b, '0', STR_PAD_RIGHT),0,$this->b);
+        $bits = $this->dec2bin_i_rev($y, $this->b);
         return $this->bitsToString($bits);
     }
     
     protected function encodepoint($P)
     {
         list($x,$y) = $P;
-        $bits = substr(str_pad(strrev($this->dec2bin_i($y)), $this->b-1, '0', STR_PAD_RIGHT),0,$this->b-1);
-        $bits.=(bcmod($x,2)==1?'1':'0');
+        $bits = $this->dec2bin_i_rev($y, $this->b-1);
+        $bits.= $this->pymod($x,2);
         return $this->bitsToString($bits);
     }
     
     protected function bit($h,$i)
     {
-        return (ord($h[(int)bcdiv($i,8,0)]) >> bcmod($i,8) ) &1;
+        return (ord($h[(int)bcdiv($i,8,0)]) >> bcmod($i,8)) & 1;
     }
+
     /**
      * Generates the public key of a given private key
      * 
@@ -167,13 +181,12 @@ class Crypto implements \trianglman\sqrl\interfaces\ed25519\Crypto{
     public function publickey($sk)
     {
         $h = $this->H($sk);
-        $sum = 0;
+        $a = bcpow(2,$this->b-2);
         for($i=3;$i<$this->b-2;$i++){
-            $sum=bcadd($sum,bcmul(bcpow(2,$i),$this->bit($h,$i)));
+            $a=bcadd($a,bcmul(bcpow(2,$i),$this->bit($h,$i)));
         }
-        $a = bcadd(bcpow(2,$this->b-2),$sum);
         $A = $this->scalarmult($this->B, $a);
-        $data = $this->encodePoint($A);
+        $data = $this->encodepoint($A);
         return $data;
     }
     
@@ -182,35 +195,47 @@ class Crypto implements \trianglman\sqrl\interfaces\ed25519\Crypto{
         $h = $this->H($m);
         $sum = 0;
         for($i=0;$i<$this->b*2;$i++){
-            $sum+=pow(2,$i)*$this->bit($h,$i);
+            $sum = bcadd($sum, bcmul(bcpow(2, $i), $this->bit($h, $i)));
         }
         return $sum;
     }
     
+    /**
+     * Generates a signature of a message
+     * 
+     * @param string $m the message
+     * @param string $sk the secret key
+     * @param string $pk the public key
+     * @return string
+     */
     public function signature($m,$sk,$pk)
     {
         $h = $this->H($sk);
-        $a = pow(2,($this->b-2));
+        $a = bcpow(2,$this->b-2);
         for($i=3;$i<$this->b-2;$i++){
-            $a+=pow(2,$i)*$this->bit($h, $i);
+            $a = bcadd($a, bcmul(bcpow(2, $i), $this->bit($h, $i)));
         }
-        $r = $this->Hint(substr($h, $this->b/8, ($this->b/4-$this->b/8))).$m;
+        $r = $this->Hint(substr($h, $this->b/8, ($this->b/4-$this->b/8)).$m);
         $R = $this->scalarmult($this->B, $r);
-        $S = ($r.$this->Hint($this->encodepoint($R).$pk.$m) *$a)%$this->l;
-        return $this->encodepoint($R).$this->encodeint($S);
+        $encR = $this->encodepoint($R);
+        $S = $this->pymod($r.bcmul($this->Hint($encR.$pk.$m),$a), $this->l);
+        return $encR.$this->encodeint($S);
     }
     
     protected function isoncurve($P)
     {
         list($x,$y) = $P;
-        return((-$x*$x) + ($y*y) - 1 - $this->d*$x*$x*$y*$y) % $this->q == 0;
+        $x2 = bcpow($x, 2);
+        $y2 = bcpow($y, 2);
+
+        return bcmod(bcsub(bcsub(bcsub($y2, $x2), 1), bcmul($this->d, bcmul($x2, $y2))), $this->q) == 0;
     }
     
     protected function decodeint($s)
     {
         $sum = 0;
         for($i=0;$i<$this->b;$i++){
-            $sum+=pow(2,$i)*$this->bit($s,$i);
+            $sum = bcadd($sum, bcmul(bcpow(2, $i), $this->bit($s, $i)));
         }
         return $sum;
     }
@@ -219,11 +244,11 @@ class Crypto implements \trianglman\sqrl\interfaces\ed25519\Crypto{
     {
         $y = 0;
         for($i=0;$i<$this->b-1;$i++){
-            $y+=pow(2,$i)*$this->bit($s,$i);
+            $y = bcadd($y, bcmul(bcpow(2, $i), $this->bit($s, $i)));
         }
         $x = $this->xrecover($y);
-        if($x&1 !=$this->bit($s,$this->b-1)){
-            $x = $this->q-$x;
+        if($this->pymod($x, 2) != $this->bit($s, $this->b-1)){
+            $x = bcsub($this->q, $x);
         }
         $P = array($x,$y);
         if(!$this->isoncurve($P)){
@@ -232,13 +257,25 @@ class Crypto implements \trianglman\sqrl\interfaces\ed25519\Crypto{
         return $P;
     }
     
+    /**
+     * Checks the signature of a message
+     * 
+     * @param string $s the message signature
+     * @param string $m the message
+     * @param string $pk the public key
+     * @return boolean
+     */
     public function checkvalid($s,$m,$pk)
     {
-        if(strlen($s)!=$this->b/4){ throw new \Exception('Signature length is wrong');}
-        if(strlen($pk)!=$this->b/4){throw new \Exception('Public key length is wrong');}
-        $R = $this->decodepoint(substring($s,0,$this->b/8));
+        if(strlen($s)!=$this->b/4){
+            throw new \Exception('Signature length is wrong');
+        }
+        if(strlen($pk)!=$this->b/8){
+            throw new \Exception('Public key length is wrong');
+        }
+        $R = $this->decodepoint(substr($s,0,$this->b/8));
         $A = $this->decodepoint($pk);
-        $S = $this->decodeint(substr($s, $this->b/8, $this->b/4));
+        $S = $this->decodeint(substr($s, $this->b/8, ($this->b/4 - $this->b/8)));
         $h = $this->Hint($this->encodepoint($R).$pk.$m);
         return $this->scalarmult($this->B, $S) == $this->edwards($R, $this->scalarmult($A, $h));
     }
