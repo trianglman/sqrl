@@ -218,7 +218,7 @@ class Crypto implements \trianglman\sqrl\interfaces\ed25519\Crypto{
         $r = $this->Hint(substr($h, $this->b/8, ($this->b/4-$this->b/8)).$m);
         $R = $this->scalarmult($this->B, $r);
         $encR = $this->encodepoint($R);
-        $S = $this->pymod($r.bcmul($this->Hint($encR.$pk.$m),$a), $this->l);
+        $S = $this->pymod(bcadd($r, bcmul($this->Hint($encR.$pk.$m),$a)), $this->l);
         return $encR.$this->encodeint($S);
     }
     

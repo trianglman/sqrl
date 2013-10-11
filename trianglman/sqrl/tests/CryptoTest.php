@@ -37,7 +37,7 @@ class CryptoTest extends \PHPUnit_Framework_TestCase
     public function setup()
     {
         $testData = file_get_contents(dirname(__FILE__).'/sign.input');
-        $this->dataRows = array_slice(explode("\n", $testData),0,1);
+        $this->dataRows = array_slice(explode("\n", $testData),0,10);
     }
     
     public function teardown()
