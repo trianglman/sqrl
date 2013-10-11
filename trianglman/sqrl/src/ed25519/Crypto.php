@@ -90,7 +90,7 @@ class Crypto implements \trianglman\sqrl\interfaces\ed25519\Crypto{
         $xx = bcmul(bcsub($y2,1),$this->inv(bcadd(bcmul($this->d,$y2),1)));
         $x = $this->expmod($xx,bcdiv(bcadd($this->q,3),8,0),$this->q);
         if( $this->pymod( bcsub( bcpow($x,2) ,$xx), $this->q) != 0){$x = $this->pymod(bcmul($x,$this->I),$this->q);}
-        if(bcmod($x,2) !=0){$x=bcsub($this->q,$x);}
+        if(substr($x, -1)%2 !=0){$x=bcsub($this->q,$x);}
         return $x;
     }
     protected function edwards($P,$Q)
@@ -112,7 +112,7 @@ class Crypto implements \trianglman\sqrl\interfaces\ed25519\Crypto{
         if($e == 0){return array(0,1);}
         $Q = $this->scalarmult($P, bcdiv($e,2,0));
         $Q = $this->edwards($Q, $Q);
-        if(bcmod($e,2)==1){
+        if(substr($e, -1)%2==1){
             $Q = $this->edwards($Q, $P);
         }
         return $Q;
@@ -137,7 +137,7 @@ class Crypto implements \trianglman\sqrl\interfaces\ed25519\Crypto{
 
         $binary_i = '';
         do{
-            $binary_i = bcmod($decimal_i,'2') . $binary_i;
+            $binary_i = substr($decimal_i, -1)%2 . $binary_i;
             $decimal_i = bcdiv($decimal_i,'2',0);
          } while (bccomp($decimal_i,'0'));
 
@@ -153,13 +153,13 @@ class Crypto implements \trianglman\sqrl\interfaces\ed25519\Crypto{
     {
         list($x,$y) = $P;
         $bits = substr(str_pad(strrev($this->dec2bin_i($y)), $this->b-1, '0', STR_PAD_RIGHT),0,$this->b-1);
-        $bits.=(bcmod($x,2)==1?'1':'0');
+        $bits.=(substr($x, -1)%2==1?'1':'0');
         return $this->bitsToString($bits);
     }
     
     protected function bit($h,$i)
     {
-        return (ord($h[(int)bcdiv($i,8,0)]) >> bcmod($i,8) ) &1;
+        return (ord($h[(int)bcdiv($i,8,0)]) >> substr($i,-3)%8 ) &1;
     }
     /**
      * Generates the public key of a given private key
@@ -250,7 +250,7 @@ class Crypto implements \trianglman\sqrl\interfaces\ed25519\Crypto{
             $y = bcadd($y,bcmul(bcpow(2,$i),$this->bit($s,$i)));
         }
         $x = $this->xrecover($y);
-        if(bcmod($x,2) != $this->bit($s,$this->b-1)){
+        if(substr($x, -1)%2 != $this->bit($s,$this->b-1)){
             $x = bcsub($this->q,$x);
         }
         $P = array($x,$y);
