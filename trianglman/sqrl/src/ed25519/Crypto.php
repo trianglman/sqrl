@@ -61,18 +61,20 @@ class Crypto implements \trianglman\sqrl\interfaces\ed25519\Crypto{
     //((n % M) + M) % M //python modulus craziness
     protected function pymod($x,$m)
     {
-        return bcmod(bcadd(bcmod($x,$m),$m),$m);
+        $mod = bcmod($x, $m);
+        if ($mod[0] === '-') {
+            $mod = bcadd($mod, $m);
+        }
+
+        return $mod;
     }
-    
+
     protected function expmod($b,$e,$m)
     {
         if($e==0){return 1;}
-        $recurs = $this->expmod($b,bcdiv($e,2,0),$m);//t = expmod(b,e/2,m)**2 % m
-        $powered = bcpow($recurs,2);
-        $t = $this->pymod($powered,$m);
-        if(bcmod($e,2)==1){
-            $bmult = bcmul($t,$b);
-            $t = $this->pymod($bmult,$m);
+        $t = bcpowmod($b, $e, $m);
+        if ($t[0] === '-') {
+            $t = bcadd($t, $m);
         }
         return $t;
     }
@@ -84,7 +86,8 @@ class Crypto implements \trianglman\sqrl\interfaces\ed25519\Crypto{
     
     protected function xrecover($y)
     {
-        $xx = bcmul(bcsub(bcpow($y,2),1),$this->inv( bcadd(bcmul($this->d,bcpow($y,2)),1)));
+        $y2 = bcpow($y,2);
+        $xx = bcmul(bcsub($y2,1),$this->inv(bcadd(bcmul($this->d,$y2),1)));
         $x = $this->expmod($xx,bcdiv(bcadd($this->q,3),8,0),$this->q);
         if( $this->pymod( bcsub( bcpow($x,2) ,$xx), $this->q) != 0){$x = $this->pymod(bcmul($x,$this->I),$this->q);}
         if(bcmod($x,2) !=0){$x=bcsub($this->q,$x);}
@@ -173,7 +176,7 @@ class Crypto implements \trianglman\sqrl\interfaces\ed25519\Crypto{
         }
         $a = bcadd(bcpow(2,$this->b-2),$sum);
         $A = $this->scalarmult($this->B, $a);
-        $data = $this->encodePoint($A);
+        $data = $this->encodepoint($A);
         return $data;
     }
     
@@ -207,14 +210,18 @@ class Crypto implements \trianglman\sqrl\interfaces\ed25519\Crypto{
         }
         $r = $this->Hint( substr($h, $this->b/8, ($this->b/4-$this->b/8)).$m );
         $R = $this->scalarmult($this->B, $r);
-        $S = $this->pymod(bcadd($r,bcmul($this->Hint($this->encodepoint($R).$pk.$m),$a)),$this->l);
-        return $this->encodepoint($R).$this->encodeint($S);
+        $encR = $this->encodepoint($R);
+        $S = $this->pymod(bcadd($r, bcmul($this->Hint($encR.$pk.$m),$a)), $this->l);
+        return $encR.$this->encodeint($S);
     }
     
     protected function isoncurve($P)
     {
         list($x,$y) = $P;
-        return $this->pymod(( bcmul(bcmul(-1,$x),$x) + bcmul($y,$y) - 1 - bcmul(bcmul(bcmul($this->d,$x),bcmul($x,$y)),$y) ),$this->q) == 0;
+        $x2 = bcpow($x, 2);
+        $y2 = bcpow($y, 2);
+
+        return $this->pymod(bcsub(bcsub(bcsub($y2, $x2), 1), bcmul($this->d, bcmul($x2, $y2))), $this->q) == 0;
     }
     
     protected function decodeint($s)
