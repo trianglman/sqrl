@@ -86,7 +86,7 @@ class Crypto implements \trianglman\sqrl\interfaces\ed25519\Crypto{
     {
         $xx = bcmul(bcsub(bcpow($y,2),1),$this->inv( bcadd(bcmul($this->d,bcpow($y,2)),1)));
         $x = $this->expmod($xx,bcdiv(bcadd($this->q,3),8,0),$this->q);
-        if( $this->pymod(bcsub(bcpow($x,2),$xx),$this->q) != 0){$x=bcsub($this->q,$x);}
+        if( $this->pymod( bcsub( bcpow($x,2) ,$xx), $this->q) != 0){$x = $this->pymod(bcmul($x,$this->I),$this->q);}
         if(bcmod($x,2) !=0){$x=bcsub($this->q,$x);}
         return $x;
     }
@@ -182,62 +182,84 @@ class Crypto implements \trianglman\sqrl\interfaces\ed25519\Crypto{
         $h = $this->H($m);
         $sum = 0;
         for($i=0;$i<$this->b*2;$i++){
-            $sum+=pow(2,$i)*$this->bit($h,$i);
+            $sum = bcadd($sum,bcmul(bcpow(2,$i),$this->bit($h,$i)));
         }
         return $sum;
     }
     
+/**
+ * def signature(m,sk,pk):
+  h = H(sk)
+  a = 2**(b-2) + sum(2**i * bit(h,i) for i in range(3,b-2))
+ * 
+  r = Hint( ''.join( [h[i] for i in range(b/8,b/4)] ) + m )
+  R = scalarmult(B,r)
+  S = (r + Hint(encodepoint(R) + pk + m) * a) % l
+  return encodepoint(R) + encodeint(S)
+
+ */
     public function signature($m,$sk,$pk)
     {
         $h = $this->H($sk);
-        $a = pow(2,($this->b-2));
+        $a = bcpow(2,(bcsub($this->b,2)));
         for($i=3;$i<$this->b-2;$i++){
-            $a+=pow(2,$i)*$this->bit($h, $i);
+            $a = bcadd($a,bcmul(bcpow(2,$i),$this->bit($h, $i)));
         }
-        $r = $this->Hint(substr($h, $this->b/8, ($this->b/4-$this->b/8))).$m;
+        $r = $this->Hint( substr($h, $this->b/8, ($this->b/4-$this->b/8)).$m );
         $R = $this->scalarmult($this->B, $r);
-        $S = ($r.$this->Hint($this->encodepoint($R).$pk.$m) *$a)%$this->l;
+        $S = $this->pymod(bcadd($r,bcmul($this->Hint($this->encodepoint($R).$pk.$m),$a)),$this->l);
         return $this->encodepoint($R).$this->encodeint($S);
     }
     
     protected function isoncurve($P)
     {
         list($x,$y) = $P;
-        return((-$x*$x) + ($y*y) - 1 - $this->d*$x*$x*$y*$y) % $this->q == 0;
+        return $this->pymod(( bcmul(bcmul(-1,$x),$x) + bcmul($y,$y) - 1 - bcmul(bcmul(bcmul($this->d,$x),bcmul($x,$y)),$y) ),$this->q) == 0;
     }
     
     protected function decodeint($s)
     {
         $sum = 0;
         for($i=0;$i<$this->b;$i++){
-            $sum+=pow(2,$i)*$this->bit($s,$i);
+            $sum = bcadd($sum,bcmul(bcpow(2,$i),$this->bit($s,$i)));
         }
         return $sum;
     }
     
+/*
+ * def decodepoint(s):
+  y = sum(2**i * bit(s,i) for i in range(0,b-1))
+  x = xrecover(y)
+  if x & 1 != bit(s,b-1): x = q-x
+  P = [x,y]
+  if not isoncurve(P): raise Exception("decoding point that is not on curve")
+  return P
+
+ */
     protected function decodepoint($s)
     {
         $y = 0;
         for($i=0;$i<$this->b-1;$i++){
-            $y+=pow(2,$i)*$this->bit($s,$i);
+            $y = bcadd($y,bcmul(bcpow(2,$i),$this->bit($s,$i)));
         }
         $x = $this->xrecover($y);
-        if($x&1 !=$this->bit($s,$this->b-1)){
-            $x = $this->q-$x;
+        if(bcmod($x,2) != $this->bit($s,$this->b-1)){
+            $x = bcsub($this->q,$x);
         }
         $P = array($x,$y);
-        if(!$this->isoncurve($P)){
-            throw new \Exception("Decoding point that is not on curve");
-        }
+        if(!$this->isoncurve($P)){ throw new \Exception("Decoding point that is not on curve");}
         return $P;
     }
     
     public function checkvalid($s,$m,$pk)
     {
         if(strlen($s)!=$this->b/4){ throw new \Exception('Signature length is wrong');}
-        if(strlen($pk)!=$this->b/4){throw new \Exception('Public key length is wrong');}
-        $R = $this->decodepoint(substring($s,0,$this->b/8));
-        $A = $this->decodepoint($pk);
+        if(strlen($pk)!=$this->b/8){throw new \Exception('Public key length is wrong: '.strlen($pk));}
+        $R = $this->decodepoint(substr($s,0,$this->b/8));
+        try{
+            $A = $this->decodepoint($pk);
+        }
+        catch (\Exception $e){ return false; }
         $S = $this->decodeint(substr($s, $this->b/8, $this->b/4));
         $h = $this->Hint($this->encodepoint($R).$pk.$m);
         return $this->scalarmult($this->B, $S) == $this->edwards($R, $this->scalarmult($A, $h));
