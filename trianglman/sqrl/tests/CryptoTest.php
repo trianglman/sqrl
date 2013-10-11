@@ -77,7 +77,7 @@ class CryptoTest extends \PHPUnit_Framework_TestCase{
             $binM = hex2bin($m);
             $obj = new Crypto();
             $sig = $obj->signature($binM, $sk, hex2bin($pktest));
-            $this->assertEquals($sigConcat,  bin2hex($sig.$m));
+            $this->assertEquals(hex2bin(substr($sigConcat, 0, 128)), $sig);
         }
     }
     
