@@ -41,7 +41,13 @@ class SqrlGenerate implements \trianglman\sqrl\interfaces\SqrlGenerate {
     
     protected $_db=null;
     
-    protected $_sqrlPath='';
+    protected $_secure=false;
+    
+    protected $_domain='';
+    
+    protected $_authPath='';
+    
+    protected $_d = 0;
     
     protected $_qrHeight=300;
     
@@ -74,8 +80,14 @@ class SqrlGenerate implements \trianglman\sqrl\interfaces\SqrlGenerate {
         if(is_null($decoded)){
             throw new \InvalidArgumentException('Configuration data could not be parsed. Is it JSON formatted?');
         }
-        if(!empty($decoded->path)){
-            $this->setPath($decoded->path);
+        if(!empty($decoded->secure)){
+            $this->setSecure($decoded->secure>0);
+        }
+        if(!empty($decoded->key_domain)){
+            $this->setKeyDomain($decoded->key_domain);
+        }
+        if(!empty($decoded->authentication_path)){
+            $this->setAuthenticationPath($decoded->authentication_path);
         }
         if(!empty($decoded->height)){
             $this->setHeight($decoded->height);
@@ -93,7 +105,7 @@ class SqrlGenerate implements \trianglman\sqrl\interfaces\SqrlGenerate {
         }
     }
 
-    public function render($outputFile = null) 
+    public function render($outputFile) 
     {
         $qrCode = new \Endroid\QrCode\QrCode();
         $qrCode->setText($this->getUrl());
@@ -114,11 +126,6 @@ class SqrlGenerate implements \trianglman\sqrl\interfaces\SqrlGenerate {
         if(is_numeric($pad)){
             $this->_qrPad = $pad;
         }
-    }
-
-    public function setPath($sqrlPath) 
-    {
-        $this->_sqrlPath = $sqrlPath;
     }
 
     public function setSalt($salt) 
@@ -210,13 +217,31 @@ class SqrlGenerate implements \trianglman\sqrl\interfaces\SqrlGenerate {
      */
     protected function _buildUrl()
     {
-        $currentPathParts = parse_url($this->_sqrlPath);
+        $url = ($this->_secure?'s':'').'qrl://'.$this->_domain.$this->_authPath;
+        $currentPathParts = parse_url($url);
         if(!empty($currentPathParts['query'])){
-            $pathAppend = '&';
+            $pathAppend = '&nut=';
         }
         else{
-            $pathAppend = '?';
+            $pathAppend = '?nut=';
         }
-        return $this->_sqrlPath.$pathAppend.$this->getNonce();
+        return $url.$pathAppend.$this->getNonce().($this->_d>0?'&d='.$this->_d:'');
+    }
+
+    public function setAuthenticationPath($path) 
+    {
+        $this->_authPath = $path;
+    }
+
+    public function setKeyDomain($domain) {
+        $this->_domain = $domain;
+        $slashPos = strpos($domain, '/');
+        if($slashPos!==false){
+            $this->_d = strlen($domain)-$slashPos;
+        }
+    }
+
+    public function setSecure($sec) {
+        $this->_secure = (bool)$sec;
     }
 }

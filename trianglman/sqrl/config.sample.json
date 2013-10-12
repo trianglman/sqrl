@@ -1,5 +1,7 @@
 {
-    "path":"sqrl://example.com/sqrl",
+    "secure":1,
+    "key_domain":"domain.com",
+    "authentication_path":"/login/sqrlauth.php",
             
     "dsn":"mysql:host=localhost;dbname=sqrl",
     "username":"foo",
@@ -9,5 +11,5 @@
     
     "height":"300",
     "padding":"10",
-    "nonce_salt":"B;{,!4z)<U5^@JZw1t'#[)%R!NI@Dj*\'fm62C@nbB^=:P,hWPu(e;)pbP:B1;Z"
+    "nonce_salt":"replace this with some unique random data"
 }

@@ -45,15 +45,35 @@ interface SqrlGenerate {
     public function loadConfigFromJSON($filePath);
     
     /**
-     * Sets the path to the file that will process SQRL validations
+     * Sets whether to require an HTTPS response
      * 
-     * According to the current proposal, this path should use the sqrl:// protocol.
+     * Switches the URL scheme between sqrl:// and qrl://
      * 
-     * @param string $sqrlPath
+     * @param boolean $sec
      * 
      * @return void
      */
-    public function setPath($sqrlPath);
+    public function setSecure($sec);
+    
+    /**
+     * Sets the domain the client should use to generate it's private/public key pair
+     * 
+     * If the domain includes a /, this will cause the final URL to include d=
+     * 
+     * @param string $domain
+     * 
+     * @return void
+     */
+    public function setKeyDomain($domain);
+    
+    /**
+     * Sets the path to the file that will authenticate client responses
+     * 
+     * @param string $path
+     * 
+     * @return void
+     */
+    public function setAuthenticationPath($path);
     
     /**
      * Sets the height of the QR image that will be generatated
@@ -109,13 +129,11 @@ interface SqrlGenerate {
     /**
      * Generates the QR code image
      * 
-     * If no output file is supplied, the image is output into stdout
-     * 
      * @param string $outputFile
      * 
      * @return void
      */
-    public function render($outputFile = null);
+    public function render($outputFile);
 
     /**
      * Returns the generated nonce

@@ -85,10 +85,12 @@ class SqrlGenerateTest extends \PHPUnit_Framework_TestCase{
     public function testGeneratesUrlNoQueryString()
     {
         $obj = new SqrlGenerate();
-        $obj->setPath('sqrl://example.com/sqrl');
+        $obj->setSecure(true);
+        $obj->setKeyDomain('example.com');
+        $obj->setAuthenticationPath('/sqrl');
         $nonce = $obj->getNonce();
         
-        $this->assertEquals('sqrl://example.com/sqrl?'.$nonce,$obj->getUrl());
+        $this->assertEquals('sqrl://example.com/sqrl?nut='.$nonce,$obj->getUrl());
     }
     
     /**
@@ -97,10 +99,26 @@ class SqrlGenerateTest extends \PHPUnit_Framework_TestCase{
     public function testGeneratesUrlQueryString()
     {
         $obj = new SqrlGenerate();
-        $obj->setPath('sqrl://example.com/sqrl?foo=bar');
+        $obj->setSecure(false);
+        $obj->setKeyDomain('example.com');
+        $obj->setAuthenticationPath('/sqrl?foo=bar');
         $nonce = $obj->getNonce();
         
-        $this->assertEquals('sqrl://example.com/sqrl?foo=bar&'.$nonce,$obj->getUrl());
+        $this->assertEquals('qrl://example.com/sqrl?foo=bar&nut='.$nonce,$obj->getUrl());
+    }
+    
+    /**
+     * @depends testGeneratesUrlNoQueryString
+     */
+    public function testGeneratesUrlExpandedDomain()
+    {
+        $obj = new SqrlGenerate();
+        $obj->setSecure(true);
+        $obj->setKeyDomain('example.com/unique');
+        $obj->setAuthenticationPath('/sqrl');
+        $nonce = $obj->getNonce();
+        
+        $this->assertEquals('sqrl://example.com/unique/sqrl?nut='.$nonce.'&d=7',$obj->getUrl());
     }
     
     /**
@@ -114,7 +132,7 @@ class SqrlGenerateTest extends \PHPUnit_Framework_TestCase{
         $nonce = $obj->getNonce();
         
         $expected = new \Endroid\QrCode\QrCode();
-        $expected->setText('sqrl://example.com/sqrl?'.$nonce);
+        $expected->setText('sqrl://domain.com/login/sqrlauth.php?nut='.$nonce);
         $expected->setSize(30);
         $expected->setPadding(1);
         $expected->render(dirname(__FILE__).'/expected.png');

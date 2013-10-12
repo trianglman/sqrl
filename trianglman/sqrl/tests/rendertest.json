@@ -1,5 +1,8 @@
 {
-    "path":"sqrl://example.com/sqrl",
+    "secure":1,
+    "key_domain":"domain.com",
+    "authentication_path":"/login/sqrlauth.php",
+            
     "height":"30",
     "padding":"1",
     "nonce_salt":"testdata"
