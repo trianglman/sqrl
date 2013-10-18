@@ -49,31 +49,26 @@ interface SqrlValidate {
     public function loadConfigFromJSON($filePath);
     
     /**
-     * Sets the public key to be used to verify the signature
+     * Parses out the SQRL authentication request into the key(s), signature(s) and other meta data required for validation
      * 
-     * @param string $publicKey
+     * @param array $getParam The _GET request array
+     * @param array $postParam The _POST request array
+     * @param array $headers The request headers (_SERVER)
      * 
      * @return void
+     * 
+     * @throws \InvalidArgumentException if the required SQRL parameters are not found
      */
-    public function setPublicKey($publicKey);
+    public function parseSQRLRequest($getParam,$postParam,$headers);
     
     /**
-     * Sets the nonce that the signature is being validated against
+     * Sets the class that will handle the validation
      * 
-     * @param string $nonce
-     * 
-     * @return void
-     */
-    public function setNonce($nonce);
-    
-    /**
-     * Sets the signature to be verified
-     * 
-     * @param string $signature
+     * @param \trianglman\sqrl\interfaces\NonceValidator $validator
      * 
      * @return void
      */
-    public function setCryptoSignature($signature);
+    public function setValidator(\trianglman\sqrl\interfaces\NonceValidator $validator);
     
     /**
      * Validates that the supplied signature matches the public key
@@ -93,5 +88,23 @@ interface SqrlValidate {
      * @throws \RuntimeException If no database has been configured
      */
     public function storePublicKey();
+    
+    /**
+     * Gets the public key parsed from the request
+     * 
+     * @return string
+     * 
+     * @throws \RuntimeException if no request information has been parsed
+     */
+    public function getPublicKey();
+    
+    /**
+     * Gets the nonce being returned in the request
+     * 
+     * @return string
+     * 
+     * @throws \RuntimeException if no request information has been parsed
+     */
+    public function getNonce();
     
 }

@@ -52,7 +52,13 @@ class SqrlValidate implements \trianglman\sqrl\interfaces\SqrlValidate{
     
     protected $_key='';
     
+    protected $_clientVer = 1;
+    
+    protected $_enforceIP = false;
+    
     protected $_db=null;
+    
+    protected $_validator = null;
     
     public function loadConfigFromJSON($filePath) {
         if(!file_exists($filePath)){
@@ -158,6 +164,56 @@ class SqrlValidate implements \trianglman\sqrl\interfaces\SqrlValidate{
             return null;
         }
         return $this->_db;
+    }
+
+    public function getPublicKey() {
+        if(empty($this->_key)){
+            throw new \RuntimeException('No request information has been parsed');
+        }
+        return $this->_key;
+    }
+
+    public function parseSQRLRequest($getParam, $postParam, $headers) {
+        if(isset($postParam['sqrlsig'])){
+            $this->setCryptoSignature($postParam['sqrlsig']);
+        }
+        else{
+            throw new \IllegalArgumentException('No signature was included in the request');
+        }
+        if(isset($getParam['nut'])){
+            $this->setNonce($getParam['nut']);
+        }
+        else{
+            throw new \IllegalArgumentException('No nonce was included in the request');
+        }
+        if(isset($getParam['sqrlkey'])){
+            $this->_clientVer = $getParam['sqrlkey'];
+        }
+        else{
+            throw new \IllegalArgumentException('No public key was included in the request');
+        }
+        if(isset($getParam['sqrlver'])){
+            $this->_clientVer = $getParam['sqrlver'];
+        }
+        if(isset($getParam['sqrlopt'])){
+            $options = explode(',', $getParam['sqrlopt']);
+            if(in_array('enforce', $options)){
+                $this->_enforceIP = true;
+            }
+        }
+        
+    }
+
+    public function setValidator(\trianglman\sqrl\interfaces\NonceValidator $validator) {
+        $this->_validator = $validator;
+    }
+    
+    public function getNonce()
+    {
+        if(empty($this->_nonce)){
+            throw new \RuntimeException('No request information has been parsed');
+        }
+        return $this->_nonce;
     }
     
 }
