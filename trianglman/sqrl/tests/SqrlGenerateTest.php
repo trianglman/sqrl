@@ -87,7 +87,7 @@ class SqrlGenerateTest extends \PHPUnit_Framework_TestCase{
         $obj = new SqrlGenerate();
         $obj->setSecure(true);
         $obj->setKeyDomain('example.com');
-        $obj->setAuthenticationPath('/sqrl');
+        $obj->setAuthenticationPath('sqrl');
         $nonce = $obj->getNonce();
         
         $this->assertEquals('sqrl://example.com/sqrl?nut='.$nonce,$obj->getUrl());
@@ -101,7 +101,7 @@ class SqrlGenerateTest extends \PHPUnit_Framework_TestCase{
         $obj = new SqrlGenerate();
         $obj->setSecure(false);
         $obj->setKeyDomain('example.com');
-        $obj->setAuthenticationPath('/sqrl?foo=bar');
+        $obj->setAuthenticationPath('sqrl?foo=bar');
         $nonce = $obj->getNonce();
         
         $this->assertEquals('qrl://example.com/sqrl?foo=bar&nut='.$nonce,$obj->getUrl());
@@ -115,10 +115,10 @@ class SqrlGenerateTest extends \PHPUnit_Framework_TestCase{
         $obj = new SqrlGenerate();
         $obj->setSecure(true);
         $obj->setKeyDomain('example.com/unique');
-        $obj->setAuthenticationPath('/sqrl');
+        $obj->setAuthenticationPath('sqrl');
         $nonce = $obj->getNonce();
         
-        $this->assertEquals('sqrl://example.com/unique/sqrl?nut='.$nonce.'&d=7',$obj->getUrl());
+        $this->assertEquals('sqrl://example.com/unique|sqrl?nut='.$nonce,$obj->getUrl());
     }
     
     /**

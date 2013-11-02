@@ -47,8 +47,6 @@ class SqrlGenerate implements \trianglman\sqrl\interfaces\SqrlGenerate {
     
     protected $_authPath='';
     
-    protected $_d = 0;
-    
     protected $_qrHeight=300;
     
     protected $_qrPad=10;
@@ -217,7 +215,7 @@ class SqrlGenerate implements \trianglman\sqrl\interfaces\SqrlGenerate {
      */
     protected function _buildUrl()
     {
-        $url = ($this->_secure?'s':'').'qrl://'.$this->_domain.$this->_authPath;
+        $url = ($this->_secure?'s':'').'qrl://'.$this->_domain.(strpos($this->_domain,'/')!==false?'|':'/').$this->_authPath;
         $currentPathParts = parse_url($url);
         if(!empty($currentPathParts['query'])){
             $pathAppend = '&nut=';
@@ -225,7 +223,7 @@ class SqrlGenerate implements \trianglman\sqrl\interfaces\SqrlGenerate {
         else{
             $pathAppend = '?nut=';
         }
-        return $url.$pathAppend.$this->getNonce().($this->_d>0?'&d='.$this->_d:'');
+        return $url.$pathAppend.$this->getNonce();
     }
 
     public function setAuthenticationPath($path) 
@@ -235,10 +233,6 @@ class SqrlGenerate implements \trianglman\sqrl\interfaces\SqrlGenerate {
 
     public function setKeyDomain($domain) {
         $this->_domain = $domain;
-        $slashPos = strpos($domain, '/');
-        if($slashPos!==false){
-            $this->_d = strlen($domain)-$slashPos;
-        }
     }
 
     public function setSecure($sec) {
