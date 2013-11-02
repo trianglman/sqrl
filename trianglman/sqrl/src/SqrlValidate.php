@@ -60,6 +60,8 @@ class SqrlValidate implements \trianglman\sqrl\interfaces\SqrlValidate{
     
     protected $_validator = null;
     
+    
+    
     public function loadConfigFromJSON($filePath) {
         if(!file_exists($filePath)){
             throw new \InvalidArgumentException('Configuration file not found');
@@ -214,6 +216,31 @@ class SqrlValidate implements \trianglman\sqrl\interfaces\SqrlValidate{
             throw new \RuntimeException('No request information has been parsed');
         }
         return $this->_nonce;
+    }
+
+    public function getIdentityLockKey() {
+        
+    }
+
+    public function getKeyVerifier() {
+        
+    }
+
+    /**
+     * Sets the IP of the user who requested the SQRL image
+     * 
+     * @param string $ip
+     * 
+     * @return void
+     */
+    public function setRequestorIp($ip)
+    {
+        if(!filter_var($ip,FILTER_VALIDATE_IP,FILTER_FLAG_IPV4)){throw new \InvalidArgumentException('Not a valid IPv4');}
+        $this->_requestorIP = ip2long($ip);
+    }
+
+    public function verifyIdentityUnlock() {
+        
     }
     
 }

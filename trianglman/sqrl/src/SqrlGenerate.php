@@ -54,6 +54,8 @@ class SqrlGenerate implements \trianglman\sqrl\interfaces\SqrlGenerate {
     protected $_salt='asWB^<O]3>H*`a`h_b$XX6r*^6WkNV!;hAgL,X}:#mag"pq)lpUFuj^d5R3i?;X';
     
     protected $_nonce='';
+    
+    protected $_requestorIP='';
 
     public function getNonce()
     {
@@ -131,6 +133,19 @@ class SqrlGenerate implements \trianglman\sqrl\interfaces\SqrlGenerate {
         $this->_salt = $salt;
     }
     
+    /**
+     * Sets the IP of the user who requested the SQRL image
+     * 
+     * @param string $ip
+     * 
+     * @return void
+     */
+    public function setRequestorIp($ip)
+    {
+        if(!filter_var($ip,FILTER_VALIDATE_IP,FILTER_FLAG_IPV4)){throw new \InvalidArgumentException('Not a valid IPv4');}
+        $this->_requestorIP = ip2long($ip);
+    }
+    
     public function configureDatabase($dsn,$username,$pass,$nonceTable)
     {
         $this->_dsn = $dsn;
@@ -196,9 +211,9 @@ class SqrlGenerate implements \trianglman\sqrl\interfaces\SqrlGenerate {
                 $this->_generateNonce($recursion+1);
             }
             $stmt->fetchAll();//clean up
-            $insert = 'INSERT INTO `'.$this->_nonceTable.'` (`nonce`) VALUES (?)';
+            $insert = 'INSERT INTO `'.$this->_nonceTable.'` (`nonce`,`ip`) VALUES (?,?)';
             $insertStmt = $this->_connectToDatabase()->prepare($insert);
-            $insertStmt->execute(array($this->_nonce));
+            $insertStmt->execute(array($this->_nonce,$this->_requestorIP));
         }
         return $this->_nonce;
     }

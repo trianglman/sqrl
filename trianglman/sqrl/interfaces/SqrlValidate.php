@@ -107,4 +107,38 @@ interface SqrlValidate {
      */
     public function getNonce();
     
+    /**
+     * Gets the Identity Lock protocol's Key Verfier
+     * 
+     * @return string
+     * 
+     * @throws \RuntimeException if no request information has been parsed
+     */
+    public function getKeyVerifier();
+    
+    /**
+     * Gets the Identity Lock protocol's Server Unlock key
+     * 
+     * @return string
+     * 
+     * @throws \RuntimeException if no request information has been parsed
+     */
+    public function getIdentityLockKey();
+    
+    /**
+     * Verifies that an identity unlock request is from a the valid user
+     * 
+     * @return boolean
+     */
+    public function verifyIdentityUnlock();
+    
+    /**
+     * Sets the IP of the user who requested the SQRL image
+     * 
+     * @param string $ip
+     * 
+     * @return void
+     */
+    public function setRequestorIp($ip);
+    
 }

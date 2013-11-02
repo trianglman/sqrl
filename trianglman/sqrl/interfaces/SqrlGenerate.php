@@ -103,6 +103,15 @@ interface SqrlGenerate {
     public function setSalt($salt);
     
     /**
+     * Sets the IP of the user who requested the SQRL image
+     * 
+     * @param string $ip
+     * 
+     * @return void
+     */
+    public function setRequestorIp($ip);
+    
+    /**
      * Sets the database configuration details
      * 
      * @param string $dsn A connection string that PDO can parse
