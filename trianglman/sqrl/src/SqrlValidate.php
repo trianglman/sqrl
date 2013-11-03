@@ -50,6 +50,10 @@ class SqrlValidate implements \trianglman\sqrl\interfaces\SqrlValidate{
     
     protected $_nonce='';
     
+    protected $nonceIp=0;
+    
+    protected $_requestorIP=0;
+    
     protected $_key='';
     
     protected $_clientVer = 1;
@@ -60,7 +64,13 @@ class SqrlValidate implements \trianglman\sqrl\interfaces\SqrlValidate{
     
     protected $_validator = null;
     
+    protected $signedUrl = '';
     
+    protected $_secure=false;
+    
+    protected $_domain='';
+    
+    protected $_authPath='';
     
     public function loadConfigFromJSON($filePath) {
         if(!file_exists($filePath)){
@@ -70,6 +80,15 @@ class SqrlValidate implements \trianglman\sqrl\interfaces\SqrlValidate{
         $decoded = json_decode($data);
         if(is_null($decoded)){
             throw new \InvalidArgumentException('Configuration data could not be parsed. Is it JSON formatted?');
+        }
+        if(!empty($decoded->secure)){
+            $this->setSecure($decoded->secure>0);
+        }
+        if(!empty($decoded->key_domain)){
+            $this->setKeyDomain($decoded->key_domain);
+        }
+        if(!empty($decoded->authentication_path)){
+            $this->setAuthenticationPath($decoded->authentication_path);
         }
         if(!empty($decoded->dsn)
                 && !empty($decoded->username)){
@@ -91,8 +110,23 @@ class SqrlValidate implements \trianglman\sqrl\interfaces\SqrlValidate{
     public function setNonce($nonce) {
         if(!is_null($this->_connectToDatabase())){
             //verify the nonce exists, otherwise we have to trust it was already done
+            //if(!$this->verifyNonceExists()){
+            //    throw new SqrlException('Nonce could not be found.',SqrlException::NONCE_NOT_FOUND);
+            //}
+            //set the nonce IP at the same time
         }
         $this->_nonce = $nonce;
+    }
+    
+    public function setNonceIp($ip)
+    {
+        if(is_int($ip)){
+            $this->nonceIp = $ip;
+        }
+        $this->nonceIp = ip2long($ip);
+        if($this->nonceIp ===false){
+            throw new \InvalidArgumentException('Not a valid IP address.');
+        }
     }
 
     public function setPublicKey($publicKey) {
@@ -120,9 +154,19 @@ class SqrlValidate implements \trianglman\sqrl\interfaces\SqrlValidate{
     }
 
     public function validate() {
-        if(empty($this->_sig) || empty($this->_key) || empty($this->_nonce)){
-            return false;
+        if(is_null($this->_validator)){throw new \RuntimeException('No validator has been set.');}
+        if(empty($this->_sig) || empty($this->_key) || empty($this->_nonce)){return false;}
+        $expectedURL = $this->generateUrl($this->_nonce);
+        if(substr($this->signedUrl, 0,  strlen($expectedURL)) !== $expectedURL){
+            throw new SqrlException('Requested URL doesn\'t match expected URL',SqrlException::SIGNED_URL_DOESNT_MATCH);
         }
+        if($this->_enforceIP && $this->nonceIp !== $this->_requestorIP){
+            throw new SqrlException('IPs do not match',SqrlException::ENFORCE_IP_FAIL);
+        }
+        if(!$this->_validator->validateSignature($this->signedUrl,$this->_sig,$this->_key)){
+            throw new SqrlException('Signature not valid.',SqrlException::SIGNATURE_NOT_VALID);
+        }
+        return true;
     }
     
     public function configureDatabase($dsn,$username,$pass)
@@ -179,31 +223,28 @@ class SqrlValidate implements \trianglman\sqrl\interfaces\SqrlValidate{
         if(isset($postParam['sqrlsig'])){
             $this->setCryptoSignature($postParam['sqrlsig']);
         }
-        else{
-            throw new \IllegalArgumentException('No signature was included in the request');
-        }
+        else{throw new SqrlException('No signature was included in the request',  SqrlException::MISSING_SIGNATURE);}
         if(isset($getParam['nut'])){
             $this->setNonce($getParam['nut']);
         }
-        else{
-            throw new \IllegalArgumentException('No nonce was included in the request');
-        }
+        else{ throw new SqrlException('No nonce was included in the request',  SqrlException::MISSING_NUT);}
         if(isset($getParam['sqrlkey'])){
-            $this->_clientVer = $getParam['sqrlkey'];
+            $this->setPublicKey($getParam['sqrlkey']);
         }
-        else{
-            throw new \IllegalArgumentException('No public key was included in the request');
-        }
-        if(isset($getParam['sqrlver'])){
-            $this->_clientVer = $getParam['sqrlver'];
-        }
+        else{throw new SqrlException('No public key was included in the request',  SqrlException::MISSING_PUWK); }
+        if(isset($getParam['sqrlver'])){$this->_clientVer = $getParam['sqrlver'];}
         if(isset($getParam['sqrlopt'])){
             $options = explode(',', $getParam['sqrlopt']);
             if(in_array('enforce', $options)){
                 $this->_enforceIP = true;
             }
         }
-        
+        $isSecureRequest = !empty($headers['HTTPS']);
+        $host = $headers['SERVER_NAME'];
+        $request = $headers['REQUEST_URI'];
+        $qs = $headers[ 'QUERY_STRING' ];
+        $this->signedUrl = ($isSecureRequest?'s':'').'qrl://'.$host.$request.'?'.$qs;
+        $this->setRequestorIp($headers['REMOTE_ADDR']);
     }
 
     public function setValidator(\trianglman\sqrl\interfaces\NonceValidator $validator) {
@@ -243,4 +284,29 @@ class SqrlValidate implements \trianglman\sqrl\interfaces\SqrlValidate{
         
     }
     
+    public function setAuthenticationPath($path) 
+    {
+        $this->_authPath = $path;
+    }
+
+    public function setKeyDomain($domain) {
+        $this->_domain = $domain;
+    }
+
+    public function setSecure($sec) {
+        $this->_secure = (bool)$sec;
+    }
+    
+    protected function generateUrl($nonce)
+    {
+        $url = ($this->_secure?'s':'').'qrl://'.$this->_domain.(strpos($this->_domain,'/')!==false?'|':'/').$this->_authPath;
+        $currentPathParts = parse_url($url);
+        if(!empty($currentPathParts['query'])){
+            $pathAppend = '&nut=';
+        }
+        else{
+            $pathAppend = '?nut=';
+        }
+        return $url.$pathAppend.$nonce;
+    }
 }
