@@ -99,7 +99,7 @@ class SqrlValidateTest extends \PHPUnit_Framework_TestCase{
              'QUERY_STRING' =>'nut=a valid nut&sqrlver=1&sqrlopt=&sqrlkey=some key&ilk=some identity lock key&kv=key verifier');
         
         $obj = new SqrlValidate();
-        $obj->loadConfigFromJSON(dirname(__FILE__).'/rendertest.json');
+        $obj->loadConfigFromJSON(dirname(__FILE__).'/../resources/rendertest.json');
         $obj->parseSQRLRequest($requestGET, $requestPOST, $requestHEADERS);
         $obj->setValidator(new testValidator());
         $obj->validate();
@@ -113,7 +113,7 @@ class SqrlValidateTest extends \PHPUnit_Framework_TestCase{
              'QUERY_STRING' =>'nut=a valid nut&sqrlver=1&sqrlopt=&sqrlkey=some key&ilk=some identity lock key&kv=key verifier');
         
         $obj = new SqrlValidate();
-        $obj->loadConfigFromJSON(dirname(__FILE__).'/rendertest.json');
+        $obj->loadConfigFromJSON(dirname(__FILE__).'/../resources/rendertest.json');
         $obj->parseSQRLRequest($requestGET, $requestPOST, $requestHEADERS);
         $obj->setValidator(new testValidator());
         $this->assertTrue($obj->validate());
@@ -131,7 +131,7 @@ class SqrlValidateTest extends \PHPUnit_Framework_TestCase{
              'QUERY_STRING' =>'nut=a valid nut&sqrlver=1&sqrlopt=enforce&sqrlkey=some key&ilk=some identity lock key&kv=key verifier');
         
         $obj = new SqrlValidate();
-        $obj->loadConfigFromJSON(dirname(__FILE__).'/rendertest.json');
+        $obj->loadConfigFromJSON(dirname(__FILE__).'/../resources/rendertest.json');
         $obj->parseSQRLRequest($requestGET, $requestPOST, $requestHEADERS);
         $obj->setNonceIp('192.168.0.1');
         $obj->setValidator(new testValidator());
@@ -146,7 +146,7 @@ class SqrlValidateTest extends \PHPUnit_Framework_TestCase{
              'QUERY_STRING' =>'nut=a valid nut&sqrlver=1&sqrlopt=enforce&sqrlkey=some key&ilk=some identity lock key&kv=key verifier');
         
         $obj = new SqrlValidate();
-        $obj->loadConfigFromJSON(dirname(__FILE__).'/rendertest.json');
+        $obj->loadConfigFromJSON(dirname(__FILE__).'/../resources/rendertest.json');
         $obj->parseSQRLRequest($requestGET, $requestPOST, $requestHEADERS);
         $obj->setNonceIp('127.0.0.1');
         $obj->setValidator(new testValidator());
@@ -165,33 +165,12 @@ class SqrlValidateTest extends \PHPUnit_Framework_TestCase{
              'QUERY_STRING' =>'nut=a valid nut&sqrlver=1&sqrlopt=&sqrlkey=some key&ilk=some identity lock key&kv=key verifier');
         
         $obj = new SqrlValidate();
-        $obj->loadConfigFromJSON(dirname(__FILE__).'/rendertest.json');
+        $obj->loadConfigFromJSON(dirname(__FILE__).'/../resources/rendertest.json');
         $obj->parseSQRLRequest($requestGET, $requestPOST, $requestHEADERS);
         $obj->setValidator(new testValidator());
         $this->assertTrue($obj->validate());
     }
     
-}
-
-
-class testDB extends \PDO{
-    public $expectations = array();
-    public function __construct($dsn,$user='',$pass=''){
-        //don't actually do anything
-    }
-    
-    public function setPrepareExpectation($sql,$returnObj){
-        $this->expectations[$sql] = $returnObj;
-    }
-    
-    public function prepare($sql,$options=null){
-        if(isset($this->expectations[$sql])){
-            return $this->expectations[$sql];
-        }
-        else{
-            throw new Exception('No prepare handler for '.$sql);
-        }
-    }
 }
 
 class testValidator implements \trianglman\sqrl\interfaces\NonceValidator{

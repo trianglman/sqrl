@@ -2,9 +2,12 @@
 
 <phpunit colors="true" bootstrap="./bootstrap.php">
     <testsuites>
-      <testsuite name="sqrl">
-        <file>./SqrlGenerateTest.php</file>
-        <file>./SqrlValidateTest.php</file>
+      <testsuite name="sqrl_unit_tests">
+        <file>./unittests/SqrlGenerateTest.php</file>
+        <file>./unittests/SqrlValidateTest.php</file>
+      </testsuite>
+      <testsuite name="sqrl_integration_tests">
+        <file>./integrationtests/SqrlValidateTest.php</file>
       </testsuite>
     </testsuites>
 </phpunit>

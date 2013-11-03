@@ -44,7 +44,7 @@ class CryptoTest extends \PHPUnit_Framework_TestCase{
     
     public function testGeneratesPublicKey()
     {
-        $testData = file_get_contents(dirname(__FILE__).'/sign.input');
+        $testData = file_get_contents(dirname(__FILE__).'/../../resources/sign.input');
         //use only a subset of the total data because of how long it takes to run each test
         $fullDataSet = explode("\n", $testData);
         $startofTestSet = rand(0, count($fullDataSet)-10);
@@ -65,7 +65,7 @@ class CryptoTest extends \PHPUnit_Framework_TestCase{
     
     public function testSigns()
     {
-        $testData = file_get_contents(dirname(__FILE__).'/sign.input');
+        $testData = file_get_contents(dirname(__FILE__).'/../../resources/sign.input');
         //use only a subset of the total data because of how long it takes to run each test
         $fullDataSet = explode("\n", $testData);
         $startofTestSet = rand(0, count($fullDataSet)-10);
@@ -83,7 +83,7 @@ class CryptoTest extends \PHPUnit_Framework_TestCase{
     
     public function testVerify()
     {
-        $testData = file_get_contents(dirname(__FILE__).'/sign.input');
+        $testData = file_get_contents(dirname(__FILE__).'/../../resources/sign.input');
         //use only a subset of the total data because of how long it takes to run each test
         $fullDataSet = explode("\n", $testData);
         $startofTestSet = rand(0, count($fullDataSet)-10);

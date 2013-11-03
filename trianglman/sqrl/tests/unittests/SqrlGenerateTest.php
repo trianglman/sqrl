@@ -58,27 +58,6 @@ class SqrlGenerateTest extends \PHPUnit_Framework_TestCase{
         $this->assertEquals($createdNonces[0],$obj->getNonce());
     }
     
-    public function testChecksNonceDb()
-    {
-        $this->markTestIncomplete('Database mock issues');
-        $chkStmt = $this->getMock('\PDOStatement',array('execute','fetchColumn','fetchAll'));
-        $chkStmt->expects($this->once())->method('execute')->with($this->anything());
-        $chkStmt->expects($this->once())->method('fetchColumn')->will($this->returnValue(0));
-        $chkStmt->expects($this->once())->method('fetchAll');
-        
-        $insStmt = $this->getMock('\PDOStatement',array('execute'));
-        $insStmt->expects($this->once())->method('execute')->with($this->anything());
-        
-        $db = new testDB('');
-        $db->setPrepareExpectation('SELECT COUNT(*) FROM `testtable` WHERE `nonce` = ?',
-                $this->returnValue($chkStmt));
-        $db->setPrepareExpectation('INSERT INTO `testtable` (`nonce`) VALUES (?)',
-                $this->returnValue($insStmt));
-        $obj = new SqrlGenerate();
-        $obj->setDatabaseConnection($db,'testtable');
-        $obj->getNonce();
-    }
-    
     /**
      * @depends testGeneratesUniqueNonce
      */
@@ -126,9 +105,9 @@ class SqrlGenerateTest extends \PHPUnit_Framework_TestCase{
      */
     public function testRenders()
     {
-        require dirname(__FILE__).'/../../../vendor/autoload.php';
+        require dirname(__FILE__).'/../../../../vendor/autoload.php';
         $obj = new SQRLGenerate();
-        $obj->loadConfigFromJSON(dirname(__FILE__).'/rendertest.json');
+        $obj->loadConfigFromJSON(dirname(__FILE__).'/../resources/rendertest.json');
         $nonce = $obj->getNonce();
         
         $expected = new \Endroid\QrCode\QrCode();
@@ -141,26 +120,5 @@ class SqrlGenerateTest extends \PHPUnit_Framework_TestCase{
                 file_get_contents(dirname(__FILE__).'/test.png'));
         unlink(dirname(__FILE__).'/expected.png');
         unlink(dirname(__FILE__).'/test.png');
-    }
-}
-
-
-class testDB extends \PDO{
-    public $expectations = array();
-    public function __construct($dsn,$user='',$pass=''){
-        //don't actually do anything
-    }
-    
-    public function setPrepareExpectation($sql,$returnObj){
-        $this->expectations[$sql] = $returnObj;
-    }
-    
-    public function prepare($sql,$options=null){
-        if(isset($this->expectations[$sql])){
-            return $this->expectations[$sql];
-        }
-        else{
-            throw new Exception('No prepare handler for '.$sql);
-        }
     }
 }
