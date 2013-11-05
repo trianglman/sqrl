@@ -1,0 +1,39 @@
+<?xml version="1.0" ?>
+<dataset>
+    <table name="sqrl_nonce">
+        <column>id</column>
+        <column>nonce</column>
+        <column>created</column>
+        <column>ip</column>
+        <row>
+            <value>1</value>
+            <value>some localhost delivered nonce</value>
+            <value>NOW()</value>
+            <value>2130706433</value>
+        </row>
+        <row>
+            <value>2</value>
+            <value>some 192 delivered nonce</value>
+            <value>NOW()</value>
+            <value>3232235521</value>
+        </row>
+        <row>
+            <value>3</value>
+            <value>some stale nonce</value>
+            <value>2011-01-01 00:00:00</value>
+            <value>3232235521</value>
+        </row>
+    </table>
+    <table name="sqrl_pubkey">
+        <column>id</column>
+        <column>public_key</column>
+        <row>
+            <value>1</value>
+            <value>xLOjlTKNdYFkCx+OMQT7hSoK7Ta54ioKZgWrh2ig0Fs=</value>
+        </row>
+        <row>
+            <value>2</value>
+            <value>another public key value</value>
+        </row>
+    </table>
+</dataset>

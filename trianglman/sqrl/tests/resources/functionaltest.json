@@ -1,0 +1,13 @@
+{
+    "secure":1,
+    "key_domain":"domain.com",
+    "authentication_path":"login/sqrlauth.php",
+            
+    "dsn":"sqlite:/tmp/sqrl_test_db.db",
+    "nonce_table":"sqrl_nonce",
+    "pubkey_table":"sqrl_pubkey",
+    
+    "height":"30",
+    "padding":"1",
+    "nonce_salt":"testdata"
+}

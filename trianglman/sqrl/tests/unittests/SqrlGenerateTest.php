@@ -107,7 +107,7 @@ class SqrlGenerateTest extends \PHPUnit_Framework_TestCase{
     {
         require dirname(__FILE__).'/../../../../vendor/autoload.php';
         $obj = new SQRLGenerate();
-        $obj->loadConfigFromJSON(dirname(__FILE__).'/../resources/rendertest.json');
+        $obj->loadConfigFromJSON(dirname(__FILE__).'/../resources/unittest.json');
         $nonce = $obj->getNonce();
         
         $expected = new \Endroid\QrCode\QrCode();

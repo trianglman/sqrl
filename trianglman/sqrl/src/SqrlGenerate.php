@@ -99,8 +99,11 @@ class SqrlGenerate implements \trianglman\sqrl\interfaces\SqrlGenerate {
             $this->setSalt($decoded->nonce_salt);
         }
         if(!empty($decoded->dsn)
-                && !empty($decoded->username)
                 && !empty($decoded->nonce_table)){
+            if(empty($decoded->username)){//sqlite doesn't use usernames and passwords
+                $decoded->username = '';
+                $decoded->password = '';
+            }
             $this->configureDatabase($decoded->dsn, $decoded->username, $decoded->password, $decoded->nonce_table);
         }
     }
