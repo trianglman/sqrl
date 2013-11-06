@@ -107,8 +107,8 @@ class SqrlValidateTest extends \PHPUnit_Framework_TestCase{
     
     public function testValidatesWithoutEnforceFlagAndNoDatabase()
     {
-        $requestGET = array('sqrlver'=>'1','sqrlopt'=>'','sqrlkey'=>'some key','ilk'=>'some identity lock key','kv'=>'key verifier','nut'=>'a valid nut');
-        $requestPOST = array('sqrlsig'=>'valid signature');
+        $requestGET = array('sqrlver'=>'1','sqrlopt'=>'','sqrlkey'=>str_replace(array('+','/','='), array('-','_',''), base64_encode('some key')),'ilk'=>'some identity lock key','kv'=>'key verifier','nut'=>'a valid nut');
+        $requestPOST = array('sqrlsig'=>str_replace(array('+','/','='), array('-','_',''), base64_encode('valid signature')));
         $requestHEADERS = array('SERVER_NAME'=>'domain.com','REQUEST_URI'=>'/login/sqrlauth.php','REMOTE_ADDR'=>'127.0.0.1','HTTPS'=>'1',
              'QUERY_STRING' =>'nut=a valid nut&sqrlver=1&sqrlopt=&sqrlkey=some key&ilk=some identity lock key&kv=key verifier');
         
@@ -140,8 +140,8 @@ class SqrlValidateTest extends \PHPUnit_Framework_TestCase{
     
     public function testValidatesEnforceFlagGoodAndNoDatabase()
     {
-        $requestGET = array('sqrlver'=>'1','sqrlopt'=>'enforce','sqrlkey'=>'some key','ilk'=>'some identity lock key','kv'=>'key verifier','nut'=>'a valid nut');
-        $requestPOST = array('sqrlsig'=>'valid signature');
+        $requestGET = array('sqrlver'=>'1','sqrlopt'=>'enforce','sqrlkey'=>str_replace(array('+','/','='), array('-','_',''), base64_encode('some key')),'ilk'=>'some identity lock key','kv'=>'key verifier','nut'=>'a valid nut');
+        $requestPOST = array('sqrlsig'=>str_replace(array('+','/','='), array('-','_',''), base64_encode('valid signature')));
         $requestHEADERS = array('SERVER_NAME'=>'domain.com','REQUEST_URI'=>'/login/sqrlauth.php','REMOTE_ADDR'=>'127.0.0.1','HTTPS'=>'1',
              'QUERY_STRING' =>'nut=a valid nut&sqrlver=1&sqrlopt=enforce&sqrlkey=some key&ilk=some identity lock key&kv=key verifier');
         
@@ -176,6 +176,9 @@ class SqrlValidateTest extends \PHPUnit_Framework_TestCase{
 class testValidator implements \trianglman\sqrl\interfaces\NonceValidator{
     
     public function validateSignature($orig, $sig, $pk) {
+        var_dump($orig);
+        var_dump($sig);
+        var_dump($pk);
         return (($orig=='sqrl://domain.com/login/sqrlauth.php?nut=a valid nut&sqrlver=1&sqrlopt=&sqrlkey=some key&ilk=some identity lock key&kv=key verifier'
                     || $orig=='sqrl://domain.com/login/sqrlauth.php?nut=a valid nut&sqrlver=1&sqrlopt=enforce&sqrlkey=some key&ilk=some identity lock key&kv=key verifier')
                 && $sig == 'valid signature'
