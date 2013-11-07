@@ -24,6 +24,9 @@
  */
 
 namespace trianglman\sqrl\src;
+require_once "PHPUnit/Extensions/Database/TestCase.php";
+require_once dirname(__FILE__).'/../DbUnit_Array_DataSet.php';
+use \trianglman\sqrl\DbUnit_Array_DataSet;
 
 require_once "PHPUnit/Extensions/Database/TestCase.php";
 /**
@@ -51,8 +54,7 @@ class SqrlValidateIntegrationTest extends \PHPUnit_Extensions_Database_TestCase{
      */
     public function getDataSet()
     {
-        
-        return $this->createXMLDataSet(dirname(__FILE__).'/../databaseStructure/SqrlIntegrationInitialState.xml');
+        return new DbUnit_Array_DataSet(include dirname(__FILE__).'/../databaseStructure/SqrlIntegrationInitialState.php');
     }
     
     /**
