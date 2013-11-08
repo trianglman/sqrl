@@ -9,6 +9,8 @@
     "nonce_table":"sqrl_nonce",
     "pubkey_table":"sqrl_pubkey",
     
+    "nonce_max_age":"5",
+    
     "height":"300",
     "padding":"10",
     "nonce_salt":"replace this with some unique random data"

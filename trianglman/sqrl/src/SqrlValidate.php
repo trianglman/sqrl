@@ -72,6 +72,8 @@ class SqrlValidate implements \trianglman\sqrl\interfaces\SqrlValidate{
     
     protected $_authPath='';
     
+    protected $nonceExpirationDate=null;
+    
     public function loadConfigFromJSON($filePath) {
         if(!file_exists($filePath)){
             throw new \InvalidArgumentException('Configuration file not found');
@@ -90,6 +92,9 @@ class SqrlValidate implements \trianglman\sqrl\interfaces\SqrlValidate{
         if(!empty($decoded->authentication_path)){
             $this->setAuthenticationPath($decoded->authentication_path);
         }
+        if(!empty($decoded->nonce_max_age)){
+            $this->setNonceMaxAge($decoded->nonce_max_age);
+        }
         if(!empty($decoded->dsn)){
             if(empty($decoded->username)){//sqlite doesn't use usernames and passwords
                 $decoded->username = '';
@@ -104,6 +109,16 @@ class SqrlValidate implements \trianglman\sqrl\interfaces\SqrlValidate{
             }
         }
         
+    }
+    
+    public function setNonceMaxAge($minutes)
+    {
+        if(is_null($minutes)){
+            $this->nonceExpirationDate = null;
+        }
+        else{
+            $this->nonceExpirationDate = new \DateTime('-'.$minutes.' Minutes');
+        }
     }
 
     public function setCryptoSignature($signature) {
@@ -120,6 +135,13 @@ class SqrlValidate implements \trianglman\sqrl\interfaces\SqrlValidate{
             $stmt->fetchAll();//clean up;
             if(empty($rs)){
                 throw new SqrlException('Nonce not found',  SqrlException::NONCE_NOT_FOUND);
+            }
+            if(!is_null($this->nonceExpirationDate)){
+                $created = new \DateTime($rs['created']);
+                $interval = $this->nonceExpirationDate->diff($created);
+                if($interval->format('%r')=='-'){
+                    throw new SqrlException('Nonce has expired',  SqrlException::EXPIRED_NONCE);
+                }
             }
             $this->setNonceIp($rs['ip']);
         }

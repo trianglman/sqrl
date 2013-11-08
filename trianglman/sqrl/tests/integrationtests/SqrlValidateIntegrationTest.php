@@ -134,12 +134,25 @@ class SqrlValidateIntegrationTest extends \PHPUnit_Extensions_Database_TestCase{
         $obj->loadConfigFromJSON(dirname(__FILE__).'/../resources/functionaltest.json');
         $obj->parseSQRLRequest($requestGET, $requestPOST, $requestHEADERS);
         $obj->setValidator(new Ed25519NonceValidator());
-        $this->assertTrue($obj->validate());
+        $obj->validate();
     }
     
+    /**
+     * @expectedException \trianglman\sqrl\src\SqrlException
+     * @expectedExceptionCode 8
+     */
     public function testChecksStaleNonce()
     {
-        $this->markTestIncomplete();
+        $requestGET = array('sqrlver'=>'1','sqrlopt'=>'enforce','sqrlkey'=>'W_yg-zTXTp_9fGnkMfRYYpNZLTD-0TDmFcLK7r3fyZg','ilk'=>'some identity lock key','kv'=>'key verifier','nut'=>'some stale nonce');
+        $requestPOST = array('sqrlsig'=>'wRd-ihDitG8m-_vcciWZii2bFd28VfXxtFG0H3xHs4avqrutZedQ4ZgMc6tYirborQYkiuVFDOxY6bnlEbKZBg');
+        $requestHEADERS = array('SERVER_NAME'=>'domain.com','REQUEST_URI'=>'/login/sqrlauth.php','REMOTE_ADDR'=>'192.168.0.1','HTTPS'=>'1',
+             'QUERY_STRING' =>'nut=some stale nonce&sqrlver=1&sqrlopt=enforce&sqrlkey=W_yg-zTXTp_9fGnkMfRYYpNZLTD-0TDmFcLK7r3fyZg&ilk=some identity lock key&kv=key verifier');
+        
+        $obj = new SqrlValidate();
+        $obj->loadConfigFromJSON(dirname(__FILE__).'/../resources/functionaltest.json');
+        $obj->parseSQRLRequest($requestGET, $requestPOST, $requestHEADERS);
+        $obj->setValidator(new Ed25519NonceValidator());
+        $obj->validate();
     }
     
     public function testChecksExistingPublicKey()

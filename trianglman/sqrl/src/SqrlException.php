@@ -38,4 +38,5 @@ class SqrlException extends \Exception{
     const SIGNED_URL_DOESNT_MATCH=5;
     const NONCE_NOT_FOUND=6;
     const SIGNATURE_NOT_VALID=7;
+    const EXPIRED_NONCE=8;
 }

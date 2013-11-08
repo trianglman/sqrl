@@ -7,6 +7,8 @@
     "nonce_table":"sqrl_nonce",
     "pubkey_table":"sqrl_pubkey",
     
+    "nonce_max_age":"5",
+    
     "height":"30",
     "padding":"1",
     "nonce_salt":"testdata"
