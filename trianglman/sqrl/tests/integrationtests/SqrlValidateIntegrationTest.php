@@ -105,6 +105,9 @@ class SqrlValidateIntegrationTest extends \PHPUnit_Extensions_Database_TestCase{
         $this->assertTrue($obj->validate());
     }
     
+    /**
+     * @depends testValidatesSignature
+     */
     public function testValidatesSignature2()
     {
         $requestGET = array('sqrlver'=>'1','sqrlopt'=>'enforce','sqrlkey'=>'W_yg-zTXTp_9fGnkMfRYYpNZLTD-0TDmFcLK7r3fyZg','ilk'=>'some identity lock key','kv'=>'key verifier','nut'=>'some 192 delivered nonce');
@@ -155,14 +158,22 @@ class SqrlValidateIntegrationTest extends \PHPUnit_Extensions_Database_TestCase{
         $obj->validate();
     }
     
+    /**
+     * @depends testValidatesSignature
+     */
     public function testChecksExistingPublicKey()
     {
-        $this->markTestIncomplete();
-    }
-    
-    public function testSavesNewPublicKey()
-    {
-        $this->markTestIncomplete();
+        $requestGET = array('sqrlver'=>'1','sqrlopt'=>'enforce','sqrlkey'=>'xLOjlTKNdYFkCx-OMQT7hSoK7Ta54ioKZgWrh2ig0Fs','ilk'=>'some identity lock key','kv'=>'key verifier','nut'=>'some 192 delivered nonce');
+        $requestPOST = array('sqrlsig'=>'G-jZkH9_aOZ8_giAZrlxqZJkS0zlUJHx5xb6F_btl2XeOpQlLedXYIfqseJvfOywRdM_a7uHqh2OcXY094mZAw');
+        $requestHEADERS = array('SERVER_NAME'=>'domain.com','REQUEST_URI'=>'/login/sqrlauth.php','REMOTE_ADDR'=>'192.168.0.1','HTTPS'=>'1',
+             'QUERY_STRING' =>'nut=some 192 delivered nonce&sqrlver=1&sqrlopt=enforce&sqrlkey=xLOjlTKNdYFkCx-OMQT7hSoK7Ta54ioKZgWrh2ig0Fs&ilk=some identity lock key&kv=key verifier');
+        
+        $obj = new SqrlValidate();
+        $obj->loadConfigFromJSON(dirname(__FILE__).'/../resources/functionaltest.json');
+        $obj->parseSQRLRequest($requestGET, $requestPOST, $requestHEADERS);
+        $obj->setValidator(new Ed25519NonceValidator());
+        $obj->validate();
+        $this->assertEquals(1,$obj->storePublicKey());
     }
     
 }

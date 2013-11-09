@@ -75,14 +75,10 @@ class SqrlValidate implements \trianglman\sqrl\interfaces\SqrlValidate{
     protected $nonceExpirationDate=null;
     
     public function loadConfigFromJSON($filePath) {
-        if(!file_exists($filePath)){
-            throw new \InvalidArgumentException('Configuration file not found');
-        }
+        if(!file_exists($filePath)){throw new \InvalidArgumentException('Configuration file not found');}
         $data = file_get_contents($filePath);
         $decoded = json_decode($data);
-        if(is_null($decoded)){
-            throw new \InvalidArgumentException('Configuration data could not be parsed. Is it JSON formatted?');
-        }
+        if(is_null($decoded)){throw new \InvalidArgumentException('Configuration data could not be parsed. Is it JSON formatted?');}
         if(!empty($decoded->secure)){
             $this->setSecure($decoded->secure>0);
         }
@@ -174,12 +170,12 @@ class SqrlValidate implements \trianglman\sqrl\interfaces\SqrlValidate{
         }
         $checkSql = 'SELECT id FROM `'.$this->_pubKeyTable.'` WHERE `public_key` = ?';
         $checkStmt = $this->_connectToDatabase()->prepare($checkSql);
-        $checkStmt->execute(array($this->_key));
+        $checkStmt->execute(array(base64_encode($this->_key)));
         $id = $checkStmt->fetchColumn();
         if($id === false){
             $insertSql = 'INSERT INTO `'.$this->_pubKeyTable.'` (`public_key`) VALUES (?)';
             $insertStmt = $this->_connectToDatabase()->prepare($insertSql);
-            $insertStmt->execute(array($this->_key));
+            $insertStmt->execute(array(base64_encode($this->_key)));
             $id = $this->_connectToDatabase()->lastInsertId();
         }
         return $id;
@@ -296,14 +292,6 @@ class SqrlValidate implements \trianglman\sqrl\interfaces\SqrlValidate{
         return $this->_nonce;
     }
 
-    public function getIdentityLockKey() {
-        
-    }
-
-    public function getKeyVerifier() {
-        
-    }
-
     /**
      * Sets the IP of the user who requested the SQRL image
      * 
@@ -321,6 +309,14 @@ class SqrlValidate implements \trianglman\sqrl\interfaces\SqrlValidate{
         
     }
     
+    public function getIdentityLockKey() {
+        
+    }
+
+    public function getKeyVerifier() {
+        
+    }
+
     public function setAuthenticationPath($path) 
     {
         $this->_authPath = $path;
@@ -338,12 +334,8 @@ class SqrlValidate implements \trianglman\sqrl\interfaces\SqrlValidate{
     {
         $url = ($this->_secure?'s':'').'qrl://'.$this->_domain.(strpos($this->_domain,'/')!==false?'|':'/').$this->_authPath;
         $currentPathParts = parse_url($url);
-        if(!empty($currentPathParts['query'])){
-            $pathAppend = '&nut=';
-        }
-        else{
-            $pathAppend = '?nut=';
-        }
+        if(!empty($currentPathParts['query'])){$pathAppend = '&nut=';}
+        else{$pathAppend = '?nut=';}
         return $url.$pathAppend.$nonce;
     }
 }
