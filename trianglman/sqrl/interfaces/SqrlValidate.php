@@ -57,9 +57,20 @@ interface SqrlValidate {
      * 
      * @return void
      * 
-     * @throws \InvalidArgumentException if the required SQRL parameters are not found
+     * @throws \trianglman\sqrl\src\SqrlException If the required SQRL parameters are not found
      */
     public function parseSQRLRequest($getParam,$postParam,$headers);
+    
+    /**
+     * Sets the nonce being validated
+     * 
+     * @param string $nonce
+     * 
+     * @return void
+     * 
+     * @throws \trianglman\sqrl\src\SqrlException If the nonce is not valid (either expired or not found in the database)
+     */
+    public function setNonce($nonce);
     
     /**
      * Sets the class that will handle the validation
@@ -78,16 +89,16 @@ interface SqrlValidate {
     public function validate();
     
     /**
-     * Stores the public key into the database
+     * Checks to see if the public key has already been used on this site.
      * 
-     * If the key is already in the database, this will just return the already
-     * generated ID
+     * If it matches, the matching identifier will be returned, otherwise null will
+     * be stored.
      * 
-     * @return int The databases unique identifier for the public key
+     * @return int|NULL The databases unique identifier for the public key
      * 
      * @throws \RuntimeException If no database has been configured
      */
-    public function storePublicKey();
+    public function getPublicKeyIdentifier();
     
     /**
      * Gets the public key parsed from the request
@@ -108,31 +119,6 @@ interface SqrlValidate {
     public function getNonce();
     
     /**
-     * Gets the Identity Lock protocol's Key Verfier
-     * 
-     * @return string
-     * 
-     * @throws \RuntimeException if no request information has been parsed
-     */
-    public function getKeyVerifier();
-    
-    /**
-     * Gets the Identity Lock protocol's Server Unlock key
-     * 
-     * @return string
-     * 
-     * @throws \RuntimeException if no request information has been parsed
-     */
-    public function getIdentityLockKey();
-    
-    /**
-     * Verifies that an identity unlock request is from a the valid user
-     * 
-     * @return boolean
-     */
-    public function verifyIdentityUnlock();
-    
-    /**
      * Sets the IP of the user who requested the SQRL image
      * 
      * @param string $ip
@@ -141,4 +127,4 @@ interface SqrlValidate {
      */
     public function setRequestorIp($ip);
     
-}
+ }

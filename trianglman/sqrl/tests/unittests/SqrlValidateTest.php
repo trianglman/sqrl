@@ -98,10 +98,12 @@ class SqrlValidateTest extends \PHPUnit_Framework_TestCase{
         $requestHEADERS = array('SERVER_NAME'=>'domain.com','REQUEST_URI'=>'/login/sqrlauth.php','REMOTE_ADDR'=>'127.0.0.1','HTTPS'=>'',
              'QUERY_STRING' =>'nut=a valid nut&sqrlver=1&sqrlopt=&sqrlkey=some key&ilk=some identity lock key&kv=key verifier');
         
+        $validator = $this->getMock('\trianglman\sqrl\interfaces\NonceValidator');
+        
         $obj = new SqrlValidate();
         $obj->loadConfigFromJSON(dirname(__FILE__).'/../resources/unittest.json');
         $obj->parseSQRLRequest($requestGET, $requestPOST, $requestHEADERS);
-        $obj->setValidator(new testValidator());
+        $obj->setValidator($validator);
         $obj->validate();
     }
     
@@ -112,10 +114,16 @@ class SqrlValidateTest extends \PHPUnit_Framework_TestCase{
         $requestHEADERS = array('SERVER_NAME'=>'domain.com','REQUEST_URI'=>'/login/sqrlauth.php','REMOTE_ADDR'=>'127.0.0.1','HTTPS'=>'1',
              'QUERY_STRING' =>'nut=a valid nut&sqrlver=1&sqrlopt=&sqrlkey=some key&ilk=some identity lock key&kv=key verifier');
         
+        $validator = $this->getMock('\trianglman\sqrl\interfaces\NonceValidator');
+        $orig='sqrl://domain.com/login/sqrlauth.php?nut=a valid nut&sqrlver=1&sqrlopt=&sqrlkey=some key&ilk=some identity lock key&kv=key verifier';
+        $sig = 'valid signature';
+        $pk = 'some key';
+        $validator->expects($this->once())->method('validateSignature')->with($orig,$sig,$pk)->will($this->returnValue(true));
+        
         $obj = new SqrlValidate();
         $obj->loadConfigFromJSON(dirname(__FILE__).'/../resources/unittest.json');
         $obj->parseSQRLRequest($requestGET, $requestPOST, $requestHEADERS);
-        $obj->setValidator(new testValidator());
+        $obj->setValidator($validator);
         $this->assertTrue($obj->validate());
     }
     
@@ -130,11 +138,13 @@ class SqrlValidateTest extends \PHPUnit_Framework_TestCase{
         $requestHEADERS = array('SERVER_NAME'=>'domain.com','REQUEST_URI'=>'/login/sqrlauth.php','REMOTE_ADDR'=>'127.0.0.1','HTTPS'=>'1',
              'QUERY_STRING' =>'nut=a valid nut&sqrlver=1&sqrlopt=enforce&sqrlkey=some key&ilk=some identity lock key&kv=key verifier');
         
+        $validator = $this->getMock('\trianglman\sqrl\interfaces\NonceValidator');
+        
         $obj = new SqrlValidate();
         $obj->loadConfigFromJSON(dirname(__FILE__).'/../resources/unittest.json');
         $obj->parseSQRLRequest($requestGET, $requestPOST, $requestHEADERS);
         $obj->setNonceIp('192.168.0.1');
-        $obj->setValidator(new testValidator());
+        $obj->setValidator($validator);
         $obj->validate();
     }
     
@@ -145,11 +155,17 @@ class SqrlValidateTest extends \PHPUnit_Framework_TestCase{
         $requestHEADERS = array('SERVER_NAME'=>'domain.com','REQUEST_URI'=>'/login/sqrlauth.php','REMOTE_ADDR'=>'127.0.0.1','HTTPS'=>'1',
              'QUERY_STRING' =>'nut=a valid nut&sqrlver=1&sqrlopt=enforce&sqrlkey=some key&ilk=some identity lock key&kv=key verifier');
         
+        $validator = $this->getMock('\trianglman\sqrl\interfaces\NonceValidator');
+        $orig='sqrl://domain.com/login/sqrlauth.php?nut=a valid nut&sqrlver=1&sqrlopt=enforce&sqrlkey=some key&ilk=some identity lock key&kv=key verifier';
+        $sig = 'valid signature';
+        $pk = 'some key';
+        $validator->expects($this->once())->method('validateSignature')->with($orig,$sig,$pk)->will($this->returnValue(true));
+        
         $obj = new SqrlValidate();
         $obj->loadConfigFromJSON(dirname(__FILE__).'/../resources/unittest.json');
         $obj->parseSQRLRequest($requestGET, $requestPOST, $requestHEADERS);
         $obj->setNonceIp('127.0.0.1');
-        $obj->setValidator(new testValidator());
+        $obj->setValidator($validator);
         $obj->validate();
     }
     
@@ -159,29 +175,22 @@ class SqrlValidateTest extends \PHPUnit_Framework_TestCase{
      */
     public function testValidatesInvalidSignature()
     {
-        $requestGET = array('sqrlver'=>'1','sqrlopt'=>'','sqrlkey'=>'some key','ilk'=>'some identity lock key','kv'=>'key verifier','nut'=>'a valid nut');
-        $requestPOST = array('sqrlsig'=>'invalid signature');
+        $requestGET = array('sqrlver'=>'1','sqrlopt'=>'','sqrlkey'=>str_replace(array('+','/','='), array('-','_',''), base64_encode('some key')),'ilk'=>'some identity lock key','kv'=>'key verifier','nut'=>'a valid nut');
+        $requestPOST = array('sqrlsig'=>str_replace(array('+','/','='), array('-','_',''), base64_encode('invalid signature')));
         $requestHEADERS = array('SERVER_NAME'=>'domain.com','REQUEST_URI'=>'/login/sqrlauth.php','REMOTE_ADDR'=>'127.0.0.1','HTTPS'=>'1',
              'QUERY_STRING' =>'nut=a valid nut&sqrlver=1&sqrlopt=&sqrlkey=some key&ilk=some identity lock key&kv=key verifier');
+        
+        $validator = $this->getMock('\trianglman\sqrl\interfaces\NonceValidator');
+        $orig='sqrl://domain.com/login/sqrlauth.php?nut=a valid nut&sqrlver=1&sqrlopt=&sqrlkey=some key&ilk=some identity lock key&kv=key verifier';
+        $sig = 'invalid signature';
+        $pk = 'some key';
+        $validator->expects($this->once())->method('validateSignature')->with($orig,$sig,$pk)->will($this->returnValue(false));
         
         $obj = new SqrlValidate();
         $obj->loadConfigFromJSON(dirname(__FILE__).'/../resources/unittest.json');
         $obj->parseSQRLRequest($requestGET, $requestPOST, $requestHEADERS);
-        $obj->setValidator(new testValidator());
+        $obj->setValidator($validator);
         $this->assertTrue($obj->validate());
     }
     
-}
-
-class testValidator implements \trianglman\sqrl\interfaces\NonceValidator{
-    
-    public function validateSignature($orig, $sig, $pk) {
-        var_dump($orig);
-        var_dump($sig);
-        var_dump($pk);
-        return (($orig=='sqrl://domain.com/login/sqrlauth.php?nut=a valid nut&sqrlver=1&sqrlopt=&sqrlkey=some key&ilk=some identity lock key&kv=key verifier'
-                    || $orig=='sqrl://domain.com/login/sqrlauth.php?nut=a valid nut&sqrlver=1&sqrlopt=enforce&sqrlkey=some key&ilk=some identity lock key&kv=key verifier')
-                && $sig == 'valid signature'
-                && $pk == 'some key');
-    }    
 }
