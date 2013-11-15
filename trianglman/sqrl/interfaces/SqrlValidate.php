@@ -49,17 +49,49 @@ interface SqrlValidate {
     public function loadConfigFromJSON($filePath);
     
     /**
-     * Parses out the SQRL authentication request into the key(s), signature(s) and other meta data required for validation
+     * Sets the authenticating key
      * 
-     * @param array $getParam The _GET request array
-     * @param array $postParam The _POST request array
-     * @param array $headers The request headers (_SERVER)
+     * @param string $key The base64 encoded key
      * 
      * @return void
-     * 
-     * @throws \trianglman\sqrl\src\SqrlException If the required SQRL parameters are not found
      */
-    public function parseSQRLRequest($getParam,$postParam,$headers);
+    public function setAuthenticateKey($key);
+    
+    /**
+     * Sets the signature of the authenticating key
+     * 
+     * @param string $sig The base64 encoded signature
+     * 
+     * @return void
+     */
+    public function setAuthenticateSignature($sig);
+    
+    /**
+     * Sets the URL that was signed by the key(s)
+     * 
+     * @param string $url
+     * 
+     * @return void
+     */
+    public function setSignedUrl($url);
+    
+    /**
+     * Sets the clientval value that was signed by the key(s)
+     * 
+     * @param string $val
+     * 
+     * @return void
+     */
+    public function setSignedClientVal($val);
+    
+    /**
+     * Sets the client's SQRL version
+     * 
+     * @param int $version The client's version
+     * 
+     * @return void
+     */
+    public function setClientVer($version);
     
     /**
      * Sets the nonce being validated
@@ -118,6 +150,15 @@ interface SqrlValidate {
      */
     public function getNonce();
     
+    /**
+     * Sets whether to enforce the same IP check
+     * 
+     * @param boolean $bool
+     * 
+     * @return void
+     */
+    public function setEnforceIP($bool);
+            
     /**
      * Sets the IP of the user who requested the SQRL image
      * 

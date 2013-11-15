@@ -59,48 +59,69 @@ class SqrlValidateIntegrationTest extends \PHPUnit_Extensions_Database_TestCase{
     
     /**
      * @expectedException \trianglman\sqrl\src\SqrlException
-     * @expectedExceptionCode 6
+     * @expectedExceptionCode 3
      */
     public function testChecksNonceDb()
     {
-        $requestGET = array('sqrlver'=>'1','sqrlopt'=>'enforce','sqrlkey'=>'xLOjlTKNdYFkCx-OMQT7hSoK7Ta54ioKZgWrh2ig0Fs','ilk'=>'some identity lock key','kv'=>'key verifier','nut'=>'not a valid nut');
-        $requestPOST = array('sqrlsig'=>'G-jZkH9_aOZ8_giAZrlxqZJkS0zlUJHx5xb6F_btl2XeOpQlLedXYIfqseJvfOywRdM_a7uHqh2OcXY094mZAw');
-        $requestHEADERS = array('SERVER_NAME'=>'domain.com','REQUEST_URI'=>'/login/sqrlauth.php','REMOTE_ADDR'=>'127.0.0.1','HTTPS'=>'1',
-             'QUERY_STRING' =>'nut=not a valid nut&sqrlver=1&sqrlopt=enforce&sqrlkey=xLOjlTKNdYFkCx-OMQT7hSoK7Ta54ioKZgWrh2ig0Fs=&ilk=some identity lock key&kv=key verifier');
-        
         $obj = new SqrlValidate();
         $obj->loadConfigFromJSON(dirname(__FILE__).'/../resources/functionaltest.json');
-        $obj->parseSQRLRequest($requestGET, $requestPOST, $requestHEADERS);
+        $obj->setSignedClientVal('ver=1&opt=enforce&authkey=xLOjlTKNdYFkCx-OMQT7hSoK7Ta54ioKZgWrh2ig0Fs');
+        $obj->setClientVer('1');
+        $obj->setNonce('not a valid nut');
+    }
+    
+    /**
+     * @depends testChecksNonceDb
+     * @expectedException \trianglman\sqrl\src\SqrlException
+     * @expectedExceptionCode 5
+     */
+    public function testChecksStaleNonce()
+    {
+        $obj = new SqrlValidate();
+        $obj->loadConfigFromJSON(dirname(__FILE__).'/../resources/functionaltest.json');
+        
+        $obj->setSignedClientVal('ver=1&opt=enforce&authkey=W_yg-zTXTp_9fGnkMfRYYpNZLTD-0TDmFcLK7r3fyZg');
+        $obj->setClientVer('1');
+        $obj->setNonce('some stale nonce');
+        
     }
     
     /**
      * @expectedException \trianglman\sqrl\src\SqrlException
-     * @expectedExceptionCode 4
+     * @expectedExceptionCode 1
      */
     public function testChecksEnforceDb()
     {
-        $requestGET = array('sqrlver'=>'1','sqrlopt'=>'enforce','sqrlkey'=>'xLOjlTKNdYFkCx-OMQT7hSoK7Ta54ioKZgWrh2ig0Fs','ilk'=>'some identity lock key','kv'=>'key verifier','nut'=>'some 192 delivered nonce');
-        $requestPOST = array('sqrlsig'=>'G-jZkH9_aOZ8_giAZrlxqZJkS0zlUJHx5xb6F_btl2XeOpQlLedXYIfqseJvfOywRdM_a7uHqh2OcXY094mZAw');
-        $requestHEADERS = array('SERVER_NAME'=>'domain.com','REQUEST_URI'=>'/login/sqrlauth.php','REMOTE_ADDR'=>'127.0.0.1','HTTPS'=>'1',
-             'QUERY_STRING' =>'nut=some 192 delivered nonce&sqrlver=1&sqrlopt=enforce&sqrlkey=xLOjlTKNdYFkCx-OMQT7hSoK7Ta54ioKZgWrh2ig0Fs=&ilk=some identity lock key&kv=key verifier');
-        
         $obj = new SqrlValidate();
         $obj->loadConfigFromJSON(dirname(__FILE__).'/../resources/functionaltest.json');
-        $obj->parseSQRLRequest($requestGET, $requestPOST, $requestHEADERS);
+        
+        $obj->setSignedClientVal('ver=1&opt=enforce&authkey=xLOjlTKNdYFkCx-OMQT7hSoK7Ta54ioKZgWrh2ig0Fs');
+        $obj->setClientVer('1');
+        $obj->setNonce('some 192 delivered nonce');
+        $obj->setAuthenticateKey('xLOjlTKNdYFkCx+OMQT7hSoK7Ta54ioKZgWrh2ig0Fs=');
+        $obj->setSignedUrl('sqrl://domain.com/login/sqrlauth.php?nut=some 192 delivered nonce');
+        $obj->setAuthenticateSignature('G+jZkH9/aOZ8/giAZrlxqZJkS0zlUJHx5xb6F/btl2XeOpQlLedXYIfqseJvfOywRdM/a7uHqh2OcXY094mZAw==');
+        $obj->setRequestorIp('127.0.0.1');
+        $obj->setEnforceIP(true);
+        
         $obj->setValidator(new Ed25519NonceValidator());
         $obj->validate();
     }
     
     public function testValidatesSignature()
     {
-        $requestGET = array('sqrlver'=>'1','sqrlopt'=>'enforce','sqrlkey'=>'xLOjlTKNdYFkCx-OMQT7hSoK7Ta54ioKZgWrh2ig0Fs','ilk'=>'some identity lock key','kv'=>'key verifier','nut'=>'some 192 delivered nonce');
-        $requestPOST = array('sqrlsig'=>'G-jZkH9_aOZ8_giAZrlxqZJkS0zlUJHx5xb6F_btl2XeOpQlLedXYIfqseJvfOywRdM_a7uHqh2OcXY094mZAw');
-        $requestHEADERS = array('SERVER_NAME'=>'domain.com','REQUEST_URI'=>'/login/sqrlauth.php','REMOTE_ADDR'=>'192.168.0.1','HTTPS'=>'1',
-             'QUERY_STRING' =>'nut=some 192 delivered nonce&sqrlver=1&sqrlopt=enforce&sqrlkey=xLOjlTKNdYFkCx-OMQT7hSoK7Ta54ioKZgWrh2ig0Fs&ilk=some identity lock key&kv=key verifier');
-        
         $obj = new SqrlValidate();
         $obj->loadConfigFromJSON(dirname(__FILE__).'/../resources/functionaltest.json');
-        $obj->parseSQRLRequest($requestGET, $requestPOST, $requestHEADERS);
+        
+        $obj->setSignedClientVal('ver=1&opt=enforce&authkey=xLOjlTKNdYFkCx-OMQT7hSoK7Ta54ioKZgWrh2ig0Fs');
+        $obj->setClientVer('1');
+        $obj->setNonce('some 192 delivered nonce');
+        $obj->setAuthenticateKey('xLOjlTKNdYFkCx+OMQT7hSoK7Ta54ioKZgWrh2ig0Fs=');
+        $obj->setSignedUrl('sqrl://domain.com/login/sqrlauth.php?nut=some 192 delivered nonce');
+        $obj->setAuthenticateSignature('FdmG45+Rkx25y5qTbOU1LWTKG4/pqD2UnBRywqNJ+O0BitxFU1ZC2EggAEXvJqx85+iP6QL+eLAFoK6Q6C43Ag==');
+        $obj->setRequestorIp('192.168.0.1');
+        $obj->setEnforceIP(true);
+        
         $obj->setValidator(new Ed25519NonceValidator());
         $this->assertTrue($obj->validate());
     }
@@ -110,50 +131,39 @@ class SqrlValidateIntegrationTest extends \PHPUnit_Extensions_Database_TestCase{
      */
     public function testValidatesSignature2()
     {
-        $requestGET = array('sqrlver'=>'1','sqrlopt'=>'enforce','sqrlkey'=>'W_yg-zTXTp_9fGnkMfRYYpNZLTD-0TDmFcLK7r3fyZg','ilk'=>'some identity lock key','kv'=>'key verifier','nut'=>'some 192 delivered nonce');
-        $requestPOST = array('sqrlsig'=>'UCWHuHe6WhCLIE9xoiN3J-3d0nQ2GsWxNvifR1dOIzSRLhiQlfpLVjNesXhRDsA1SNycaXxkKQ3eYKWEvZIXAg');
-        $requestHEADERS = array('SERVER_NAME'=>'domain.com','REQUEST_URI'=>'/login/sqrlauth.php','REMOTE_ADDR'=>'192.168.0.1','HTTPS'=>'1',
-             'QUERY_STRING' =>'nut=some 192 delivered nonce&sqrlver=1&sqrlopt=enforce&sqrlkey=W_yg-zTXTp_9fGnkMfRYYpNZLTD-0TDmFcLK7r3fyZg&ilk=some identity lock key&kv=key verifier');
-        
         $obj = new SqrlValidate();
         $obj->loadConfigFromJSON(dirname(__FILE__).'/../resources/functionaltest.json');
-        $obj->parseSQRLRequest($requestGET, $requestPOST, $requestHEADERS);
+        
+        $obj->setSignedClientVal('ver=1&opt=enforce&authkey=W_yg-zTXTp_9fGnkMfRYYpNZLTD-0TDmFcLK7r3fyZg');
+        $obj->setClientVer('1');
+        $obj->setNonce('some 192 delivered nonce');
+        $obj->setAuthenticateKey('W/yg+zTXTp/9fGnkMfRYYpNZLTD+0TDmFcLK7r3fyZg=');
+        $obj->setSignedUrl('sqrl://domain.com/login/sqrlauth.php?nut=some 192 delivered nonce');
+        $obj->setAuthenticateSignature('ZBL2xqxJHl/CvxtLlqkUG/2hgoslS1G4SGpslReW68EN6xLo0vFdoPFSz/hTFt3sJQI56RsfpMGhTEu9UtOPDQ==');
+        $obj->setRequestorIp('192.168.0.1');
+        $obj->setEnforceIP(true);
+        
         $obj->setValidator(new Ed25519NonceValidator());
         $this->assertTrue($obj->validate());
     }
     
     /**
      * @expectedException \trianglman\sqrl\src\SqrlException
-     * @expectedExceptionCode 7
+     * @expectedExceptionCode 4
      */
     public function testChecksInvalidSignature()
     {
-        $requestGET = array('sqrlver'=>'1','sqrlopt'=>'enforce','sqrlkey'=>'xLOjlTKNdYFkCx-OMQT7hSoK7Ta54ioKZgWrh2ig0Fs','ilk'=>'some identity lock key','kv'=>'key verifier','nut'=>'some 192 delivered nonce');
-        $requestPOST = array('sqrlsig'=>'G-jZkH9_aOZ8_giAZrlxqZJkS0zlUJHx5xb6F_btl2XeOpQlLedXYIfqseJvfOywRdM_a7uHqh3OcXY094mZAw');
-        $requestHEADERS = array('SERVER_NAME'=>'domain.com','REQUEST_URI'=>'/login/sqrlauth.php','REMOTE_ADDR'=>'192.168.0.1','HTTPS'=>'1',
-             'QUERY_STRING' =>'nut=some 192 delivered nonce&sqrlver=1&sqrlopt=enforce&sqrlkey=xLOjlTKNdYFkCx-OMQT7hSoK7Ta54ioKZgWrh2ig0Fs&ilk=some identity lock key&kv=key verifier');
-        
         $obj = new SqrlValidate();
         $obj->loadConfigFromJSON(dirname(__FILE__).'/../resources/functionaltest.json');
-        $obj->parseSQRLRequest($requestGET, $requestPOST, $requestHEADERS);
-        $obj->setValidator(new Ed25519NonceValidator());
-        $obj->validate();
-    }
-    
-    /**
-     * @expectedException \trianglman\sqrl\src\SqrlException
-     * @expectedExceptionCode 8
-     */
-    public function testChecksStaleNonce()
-    {
-        $requestGET = array('sqrlver'=>'1','sqrlopt'=>'enforce','sqrlkey'=>'W_yg-zTXTp_9fGnkMfRYYpNZLTD-0TDmFcLK7r3fyZg','ilk'=>'some identity lock key','kv'=>'key verifier','nut'=>'some stale nonce');
-        $requestPOST = array('sqrlsig'=>'wRd-ihDitG8m-_vcciWZii2bFd28VfXxtFG0H3xHs4avqrutZedQ4ZgMc6tYirborQYkiuVFDOxY6bnlEbKZBg');
-        $requestHEADERS = array('SERVER_NAME'=>'domain.com','REQUEST_URI'=>'/login/sqrlauth.php','REMOTE_ADDR'=>'192.168.0.1','HTTPS'=>'1',
-             'QUERY_STRING' =>'nut=some stale nonce&sqrlver=1&sqrlopt=enforce&sqrlkey=W_yg-zTXTp_9fGnkMfRYYpNZLTD-0TDmFcLK7r3fyZg&ilk=some identity lock key&kv=key verifier');
         
-        $obj = new SqrlValidate();
-        $obj->loadConfigFromJSON(dirname(__FILE__).'/../resources/functionaltest.json');
-        $obj->parseSQRLRequest($requestGET, $requestPOST, $requestHEADERS);
+        $obj->setSignedClientVal('ver=1&opt=&authkey=xLOjlTKNdYFkCx-OMQT7hSoK7Ta54ioKZgWrh2ig0Fs');
+        $obj->setClientVer('1');
+        $obj->setNonce('some 192 delivered nonce');
+        $obj->setAuthenticateKey('xLOjlTKNdYFkCx+OMQT7hSoK7Ta54ioKZgWrh2ig0Fs=');
+        $obj->setSignedUrl('sqrl://domain.com/login/sqrlauth.php?nut=some 192 delivered nonce');
+        $obj->setAuthenticateSignature('FdmG45+Rkx25y5qTbOU1LWTKG4/pqD2UnBRywqNJ+O0BitxFU1ZC2EggAEXvJqx85+iP6QL+eLAFoK6Q6C43Ag==');
+        $obj->setRequestorIp('192.168.0.1');
+        
         $obj->setValidator(new Ed25519NonceValidator());
         $obj->validate();
     }
@@ -163,17 +173,21 @@ class SqrlValidateIntegrationTest extends \PHPUnit_Extensions_Database_TestCase{
      */
     public function testChecksExistingPublicKey()
     {
-        $requestGET = array('sqrlver'=>'1','sqrlopt'=>'enforce','sqrlkey'=>'xLOjlTKNdYFkCx-OMQT7hSoK7Ta54ioKZgWrh2ig0Fs','ilk'=>'some identity lock key','kv'=>'key verifier','nut'=>'some 192 delivered nonce');
-        $requestPOST = array('sqrlsig'=>'G-jZkH9_aOZ8_giAZrlxqZJkS0zlUJHx5xb6F_btl2XeOpQlLedXYIfqseJvfOywRdM_a7uHqh2OcXY094mZAw');
-        $requestHEADERS = array('SERVER_NAME'=>'domain.com','REQUEST_URI'=>'/login/sqrlauth.php','REMOTE_ADDR'=>'192.168.0.1','HTTPS'=>'1',
-             'QUERY_STRING' =>'nut=some 192 delivered nonce&sqrlver=1&sqrlopt=enforce&sqrlkey=xLOjlTKNdYFkCx-OMQT7hSoK7Ta54ioKZgWrh2ig0Fs&ilk=some identity lock key&kv=key verifier');
-        
         $obj = new SqrlValidate();
         $obj->loadConfigFromJSON(dirname(__FILE__).'/../resources/functionaltest.json');
-        $obj->parseSQRLRequest($requestGET, $requestPOST, $requestHEADERS);
+        
+        $obj->setSignedClientVal('ver=1&opt=enforce&authkey=xLOjlTKNdYFkCx-OMQT7hSoK7Ta54ioKZgWrh2ig0Fs');
+        $obj->setClientVer('1');
+        $obj->setNonce('some 192 delivered nonce');
+        $obj->setAuthenticateKey('xLOjlTKNdYFkCx+OMQT7hSoK7Ta54ioKZgWrh2ig0Fs=');
+        $obj->setSignedUrl('sqrl://domain.com/login/sqrlauth.php?nut=some 192 delivered nonce');
+        $obj->setAuthenticateSignature('FdmG45+Rkx25y5qTbOU1LWTKG4/pqD2UnBRywqNJ+O0BitxFU1ZC2EggAEXvJqx85+iP6QL+eLAFoK6Q6C43Ag==');
+        $obj->setRequestorIp('192.168.0.1');
+        $obj->setEnforceIP(true);
+        
         $obj->setValidator(new Ed25519NonceValidator());
         $obj->validate();
-        $this->assertEquals(1,$obj->storePublicKey());
+        $this->assertEquals(1,$obj->getPublicKeyIdentifier());
     }
     
 }

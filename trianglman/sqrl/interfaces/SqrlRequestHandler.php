@@ -88,6 +88,15 @@ interface SqrlRequestHandler {
     const RELOCK_REQUEST=8;
     
     /**
+     * Initializes the Request Handler
+     * 
+     * @param \trianglman\sqrl\interfaces\SqrlValidate $val
+     * 
+     * @return void
+     */
+    public function __construct(SqrlValidate $val);
+    
+    /**
      * Parses a user request
      * 
      * This will determine what type of request is being performed and set values

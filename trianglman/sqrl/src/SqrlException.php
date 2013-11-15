@@ -31,12 +31,9 @@ namespace trianglman\sqrl\src;
  * @author johnj
  */
 class SqrlException extends \Exception{
-    const MISSING_SIGNATURE=1;
-    const MISSING_NUT=2;
-    const MISSING_PUWK=3;
-    const ENFORCE_IP_FAIL=4;
-    const SIGNED_URL_DOESNT_MATCH=5;
-    const NONCE_NOT_FOUND=6;
-    const SIGNATURE_NOT_VALID=7;
-    const EXPIRED_NONCE=8;
+    const ENFORCE_IP_FAIL=1;
+    const SIGNED_URL_DOESNT_MATCH=2;
+    const NONCE_NOT_FOUND=3;
+    const SIGNATURE_NOT_VALID=4;
+    const EXPIRED_NONCE=5;
 }

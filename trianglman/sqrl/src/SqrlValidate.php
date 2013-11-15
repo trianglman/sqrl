@@ -66,6 +66,8 @@ class SqrlValidate implements \trianglman\sqrl\interfaces\SqrlValidate{
     
     protected $signedUrl = '';
     
+    protected $clientVal = '';
+    
     protected $_secure=false;
     
     protected $_domain='';
@@ -185,40 +187,21 @@ class SqrlValidate implements \trianglman\sqrl\interfaces\SqrlValidate{
     
     /**************************
      * 
-     * Request handling
+     * Request parameters
      * 
      **************************/
     
-    public function parseSQRLRequest($getParam, $postParam, $headers) {
-        if(isset($postParam['sqrlsig'])){
-            $this->setCryptoSignature($postParam['sqrlsig']);
-        }
-        else{throw new SqrlException('No signature was included in the request',  SqrlException::MISSING_SIGNATURE);}
-        if(isset($getParam['nut'])){
-            $this->setNonce($getParam['nut']);
-        }
-        else{ throw new SqrlException('No nonce was included in the request',  SqrlException::MISSING_NUT);}
-        if(isset($getParam['sqrlkey'])){
-            $this->setPublicKey($getParam['sqrlkey']);
-        }
-        else{throw new SqrlException('No public key was included in the request',  SqrlException::MISSING_PUWK); }
-        if(isset($getParam['sqrlver'])){$this->_clientVer = $getParam['sqrlver'];}
-        if(isset($getParam['sqrlopt'])){
-            $options = explode(',', $getParam['sqrlopt']);
-            if(in_array('enforce', $options)){
-                $this->_enforceIP = true;
-            }
-        }
-        $isSecureRequest = !empty($headers['HTTPS']);
-        $host = $headers['SERVER_NAME'];
-        $request = $headers['REQUEST_URI'];
-        $qs = $headers[ 'QUERY_STRING' ];
-        $this->signedUrl = ($isSecureRequest?'s':'').'qrl://'.$host.$request.'?'.$qs;
-        $this->setRequestorIp($headers['REMOTE_ADDR']);
+    public function setAuthenticateKey($publicKey) {
+        $this->_key = base64_decode( $publicKey);
     }
 
-    public function setCryptoSignature($signature) {
-        $this->_sig = base64_decode(str_replace(array('-','_'), array('+','/'), $signature).'==');
+    public function setAuthenticateSignature($signature) {
+        $this->_sig = base64_decode($signature);
+    }
+    
+    public function setSignedUrl($url)
+    {
+        $this->signedUrl = $url;
     }
 
     public function setNonce($nonce) {
@@ -244,6 +227,19 @@ class SqrlValidate implements \trianglman\sqrl\interfaces\SqrlValidate{
         $this->_nonce = $nonce;
     }
     
+    public function setClientVer($version) {
+        $this->_clientVer = $version;
+    }
+
+    public function setSignedClientVal($val) {
+        $this->clientVal = $val;
+    }
+    
+    public function setEnforceIP($bool)
+    {
+        $this->_enforceIP = $bool;
+    }
+    
     public function setNonceIp($ip)
     {
         if(filter_var($ip,FILTER_VALIDATE_INT)){
@@ -253,10 +249,6 @@ class SqrlValidate implements \trianglman\sqrl\interfaces\SqrlValidate{
             $this->nonceIp = ip2long($ip);
         }
         if($this->nonceIp ===false){ throw new \InvalidArgumentException('Not a valid IP address.'); }
-    }
-
-    public function setPublicKey($publicKey) {
-        $this->_key = base64_decode(str_replace(array('-','_'), array('+','/'), $publicKey).'=');
     }
 
     public function getPublicKey() {
@@ -306,13 +298,14 @@ class SqrlValidate implements \trianglman\sqrl\interfaces\SqrlValidate{
             throw new SqrlException('IPs do not match: '.$this->nonceIp.' vs. '.$this->_requestorIP,SqrlException::ENFORCE_IP_FAIL);
         }
         try{
-            if(!$this->_validator->validateSignature($this->signedUrl,$this->_sig,$this->_key)){
+            $signedValue = 'clientval='.$this->clientVal.'&serverurl='.$this->signedUrl;
+            if(!$this->_validator->validateSignature($signedValue,$this->_sig,$this->_key)){
                 throw new SqrlException('Signature not valid.',SqrlException::SIGNATURE_NOT_VALID);
             }
             return true;
         }
         catch(\Exception $e){
-            throw new SqrlException('Signature not valid.',SqrlException::SIGNATURE_NOT_VALID);
+            throw new SqrlException('Signature not valid.',SqrlException::SIGNATURE_NOT_VALID,$e);
         }
     }
     
@@ -324,5 +317,5 @@ class SqrlValidate implements \trianglman\sqrl\interfaces\SqrlValidate{
         else{$pathAppend = '?nut=';}
         return $url.$pathAppend.$nonce;
     }
-    
+
 }
