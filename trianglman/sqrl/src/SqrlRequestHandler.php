@@ -66,7 +66,7 @@ class SqrlRequestHandler implements \trianglman\sqrl\interfaces\SqrlRequestHandl
      */
     protected $clientVer=1;
     
-    public function __construct(SqrlValidate $val)
+    public function __construct(\trianglman\sqrl\interfaces\SqrlValidate $val)
     {
         $this->validator = $val;
     }
@@ -111,7 +111,7 @@ class SqrlRequestHandler implements \trianglman\sqrl\interfaces\SqrlRequestHandl
                     $this->requestType = $reqType;
                 }
             }
-            catch(trianglman\sqrl\src\SqrlException $e){
+            catch(SqrlException $e){
                 if($e->getCode() == SqrlException::NONCE_NOT_FOUND){
                     $this->message = 'No nonce was included in the request';//do we want to be more explicit?
                 }
