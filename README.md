@@ -14,8 +14,6 @@ Software Requirements
 
 * Composer - http://getcomposer.org
   * Endroid/qrcode Loaded automatically by Composer - https://github.com/endroid/QrCode
-* libsodium - https://github.com/jedisct1/libsodium
-* PHP-Sodium - https://github.com/alethia7/php-sodium
 
 Purpose
 ====
@@ -52,12 +50,20 @@ provided in trianglman/sqrl/config.sample.json. You can then configure the
 generator or validator by calling the appropriate `loadConfigFromJSON($filepath);`
 method.
 
-If you would rather manage storage of this information in your own tables, the 
-only configuration necessary is to set the SQRL path for the nonce generator:
+If you would rather manage storage of this information in your own tables, you can
+configure the generator manually:
 
 ```php
-$generator = new \trianglman\sqrl\SqrlGenerate();
-$generator->setPath('sqrl://example.com/sqrl');
+$generator = new \trianglman\sqrl\src\SqrlGenerate();
+//whether SQRL responses should come back over SSL (sqrl://)
+$generator->setSecure(true);
+//the domain sqrl clients should generate their key off of
+$generator->setKeyDomain('www.example.com');
+//the path to the SQRL authentication script relative to the key domain
+$generator->setAuthenticationPath('sqrl/login.php');
+
+//The above would generate a SQRL URL pointing to 
+//sqrl://www.example.com/sqrl/login.php
 //...
 ```
 
@@ -81,7 +87,7 @@ Usage
 **Generate a nonce**
 ```php
 //Initialize the generator
-$generator = new \trianglman\sqrl\SqrlGenerate();
+$generator = new \trianglman\sqrl\src\SqrlGenerate();
 $generator->loadConfigFromJSON('/path/to/config');
 
 //output the QR file to stdout
@@ -94,21 +100,20 @@ $nonce = $generator->getNonce();
 **Verify a user's input**
 ```php
 //initialize the validator
-$validator = new \trianglman\sqrl\SqrlValidate();
+$validator = new \trianglman\sqrl\src\SqrlValidate();
 $validator->loadConfigFromJSON('/path/to/config');
+$validator->setValidator(new \trianglman\sqrl\src\ed25519\Crypto());
 
-//supply the user input
-$validator->setPublicKey($inputPublicKey);
-$validator->setNonce($inputNonce);
-$validator->setCryptoSignature($inputSignedNonce);
+//initialize the request handler
+$requestResponse = new \trianglman\sqrl\src\SqrlRequestHandler($validator);
+$requestResponse->parseRequest($_GET, $_POST, $_SERVER);
 
 //check validation
-if($validator->validate()){
-  //do something...
-  
-  //get an identifier for the public key 
-  //you can then connect this to a user database.
-  //If a public key matching this user's already exists, that ID is returned
-  $keyId = $validator->storePublicKey();
-}
+$requestResponse = $obj->getResponseMessage();
+$requestResponseCode = $obj->getResponseCode();
+
+//OR
+
+//Let the request handler also handle the response
+$reqHandler->sendResponse();
 ```
