@@ -36,44 +36,93 @@ namespace trianglman\sqrl\src;
  */
 class SqrlValidate implements \trianglman\sqrl\interfaces\SqrlValidate{
 
-    protected $_dsn='';
+    /**
+     * @var \trianglman\sqrl\interfaces\SqrlStore
+     */
+    protected $store=null;
     
-    protected $_dbUserName='';
-    
-    protected $_dbPass='';
-    
-    protected $_nonceTable='';
-    
-    protected $_pubKeyTable='';
-    
+    /**
+     *
+     * @var string
+     */
     protected $_sig='';
     
+    /**
+     *
+     * @var string
+     */
     protected $_nonce='';
     
+    /**
+     *
+     * @var int
+     */
     protected $nonceIp=0;
     
+    /**
+     *
+     * @var int
+     */
     protected $_requestorIP=0;
     
+    /**
+     *
+     * @var string
+     */
     protected $_key='';
     
+    /**
+     *
+     * @var int
+     */
     protected $_clientVer = 1;
     
+    /**
+     *
+     * @var boolean
+     */
     protected $_enforceIP = false;
     
-    protected $_db=null;
-    
+    /**
+     *
+     * @var \trianglman\sqrl\interfaces\NonceValidator
+     */
     protected $_validator = null;
     
+    /**
+     *
+     * @var string
+     */
     protected $signedUrl = '';
     
+    /**
+     *
+     * @var string
+     */
     protected $clientVal = '';
     
+    /**
+     *
+     * @var boolean
+     */
     protected $_secure=false;
     
+    /**
+     *
+     * @var string
+     */
     protected $_domain='';
     
+    /**
+     *
+     * @var string
+     */
     protected $_authPath='';
     
+    /**
+     *
+     * @var \DateTime
+     */
     protected $nonceExpirationDate=null;
     
     /**************************
@@ -99,65 +148,14 @@ class SqrlValidate implements \trianglman\sqrl\interfaces\SqrlValidate{
         if(!empty($decoded->nonce_max_age)){
             $this->setNonceMaxAge($decoded->nonce_max_age);
         }
-        if(!empty($decoded->dsn)){
-            if(empty($decoded->username)){//sqlite doesn't use usernames and passwords
-                $decoded->username = '';
-                $decoded->password = '';
-            }
-            $this->configureDatabase($decoded->dsn, $decoded->username, $decoded->password);
-            if(!empty($decoded->nonce_table)){
-                $this->setNonceTable($decoded->nonce_table);
-            }
-            if(!empty($decoded->pubkey_table)){
-                $this->setPublicKeyTable($decoded->pubkey_table);
-            }
-        }
         
     }
     
-    public function configureDatabase($dsn,$username,$pass)
+    public function setStorage(\trianglman\sqrl\interfaces\SqrlStore $storage)
     {
-        $this->_dsn = $dsn;
-        $this->_dbUserName = $username;
-        $this->_dbPass = $pass;
+        $this->store = $storage;
     }
     
-    public function setDatabaseConnection(\PDO $db)
-    {
-        $this->_db = $db;
-    }
-    
-    public function setPublicKeyTable($table)
-    {
-        $this->_pubKeyTable = $table;
-    }
-    
-    public function setNonceTable($table)
-    {
-        $this->_nonceTable = $table;
-    }
-    
-    /**
-     * A wrapper function to either get an existing or generate a new database connection
-     * 
-     * @return \PDO
-     */
-    protected function _connectToDatabase()
-    {
-        if(!is_null($this->_db)){
-            return $this->_db;
-        }
-        if(empty($this->_dsn)){
-            return null;
-        }
-        try{
-            $this->_db = new \PDO($this->_dsn,$this->_dbUserName,$this->_dbPass);
-        } catch (\PDOException $ex) {
-            return null;
-        }
-        return $this->_db;
-    }
-
     public function setNonceMaxAge($minutes)
     {
         if(is_null($minutes)){
@@ -205,26 +203,22 @@ class SqrlValidate implements \trianglman\sqrl\interfaces\SqrlValidate{
     }
 
     public function setNonce($nonce) {
-        if(!is_null($this->_connectToDatabase())){
-            //verify the nonce exists, otherwise we have to trust it was already done
-            $sql = 'SELECT created, ip FROM `'.$this->_nonceTable.'` WHERE nonce = ?';
-            $stmt = $this->_connectToDatabase()->prepare($sql);
-            $stmt->execute(array($nonce));
-            $rs = $stmt->fetch(\PDO::FETCH_ASSOC);
-            $stmt->fetchAll();//clean up;
-            if(empty($rs)){
+        if(!is_null($this->store)){
+            $nonceData = $this->store->retrieveNutRecord($nonce);
+            if(empty($nonceData)){
                 throw new SqrlException('Nonce not found',  SqrlException::NONCE_NOT_FOUND);
             }
             if(!is_null($this->nonceExpirationDate)){
-                $created = new \DateTime($rs['created']);
+                $created = new \DateTime($nonceData['created']);
                 $interval = $this->nonceExpirationDate->diff($created);
                 if($interval->format('%r')=='-'){
                     throw new SqrlException('Nonce has expired',  SqrlException::EXPIRED_NONCE);
                 }
             }
-            $this->setNonceIp($rs['ip']);
+            $this->setNonceIp($nonceData['ip']);
         }
         $this->_nonce = $nonce;
+        return empty($nonceData)?null:$nonceData['action'];
     }
     
     public function setClientVer($version) {
@@ -273,18 +267,6 @@ class SqrlValidate implements \trianglman\sqrl\interfaces\SqrlValidate{
     {
         if(!filter_var($ip,FILTER_VALIDATE_IP,FILTER_FLAG_IPV4)){throw new \InvalidArgumentException('Not a valid IPv4');}
         $this->_requestorIP = ip2long($ip);
-    }
-
-    public function getPublicKeyIdentifier() {
-        if(is_null($this->_connectToDatabase())){
-            throw new \RuntimeException('No database connection has been configured.');
-        }
-        if(empty($this->_pubKeyTable)){ throw new \RuntimeException('No public key table has been configured.'); }
-        $checkSql = 'SELECT id FROM `'.$this->_pubKeyTable.'` WHERE `public_key` = ?';
-        $checkStmt = $this->_connectToDatabase()->prepare($checkSql);
-        $checkStmt->execute(array(base64_encode($this->_key)));
-        $id = $checkStmt->fetchColumn();
-        return $id;
     }
 
     public function validate() {

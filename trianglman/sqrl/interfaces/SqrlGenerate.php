@@ -45,6 +45,15 @@ interface SqrlGenerate {
     public function loadConfigFromJSON($filePath);
     
     /**
+     * Sets an object to be used to store and retrieve SQRL information
+     * 
+     * @param \trianglman\sqrl\interfaces\SqrlStore $storage 
+     * 
+     * @return void
+     */
+    public function setStorage(\trianglman\sqrl\interfaces\SqrlStore $storage);
+    
+    /**
      * Sets whether to require an HTTPS response
      * 
      * Switches the URL scheme between sqrl:// and qrl://
@@ -110,30 +119,6 @@ interface SqrlGenerate {
      * @return void
      */
     public function setRequestorIp($ip);
-    
-    /**
-     * Sets the database configuration details
-     * 
-     * @param string $dsn A connection string that PDO can parse
-     * @param string $username The connection user name to use
-     * @param string $pass The connection password
-     * @param string $nonceTable The table to store nonces in. It must have a nonce column and generate a unique ID on insert
-     * 
-     * @return void
-     * 
-     * @link http://us2.php.net/manual/en/pdo.connections.php Details for the $dsn variable configuration
-     */
-    public function configureDatabase($dsn,$username,$pass,$nonceTable);
-    
-    /**
-     * Sets the database connection directly
-     * 
-     * @param \PDO $db The database connection
-     * @param string $nonceTable The table to store the nonce in
-     * 
-     * @return void
-     */
-    public function setDatabaseConnection(\PDO $db,$nonceTable);
     
     /**
      * Generates the QR code image

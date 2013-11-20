@@ -36,4 +36,6 @@ class SqrlException extends \Exception{
     const NONCE_NOT_FOUND=3;
     const SIGNATURE_NOT_VALID=4;
     const EXPIRED_NONCE=5;
+    const DATABASE_NOT_CONFIGURED=6;
+    const DATABASE_EXCEPTION=7;
 }

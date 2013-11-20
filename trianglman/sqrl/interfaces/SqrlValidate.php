@@ -49,6 +49,15 @@ interface SqrlValidate {
     public function loadConfigFromJSON($filePath);
     
     /**
+     * Sets an object to be used to store and retrieve SQRL information
+     * 
+     * @param \trianglman\sqrl\interfaces\SqrlStore $storage 
+     * 
+     * @return void
+     */
+    public function setStorage(\trianglman\sqrl\interfaces\SqrlStore $storage);
+    
+    /**
      * Sets the authenticating key
      * 
      * @param string $key The base64 encoded key
@@ -119,18 +128,6 @@ interface SqrlValidate {
      * @return boolean
      */
     public function validate();
-    
-    /**
-     * Checks to see if the public key has already been used on this site.
-     * 
-     * If it matches, the matching identifier will be returned, otherwise null will
-     * be stored.
-     * 
-     * @return int|NULL The databases unique identifier for the public key
-     * 
-     * @throws \RuntimeException If no database has been configured
-     */
-    public function getPublicKeyIdentifier();
     
     /**
      * Gets the public key parsed from the request

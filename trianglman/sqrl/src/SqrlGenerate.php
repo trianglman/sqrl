@@ -31,15 +31,10 @@ namespace trianglman\sqrl\src;
  */
 class SqrlGenerate implements \trianglman\sqrl\interfaces\SqrlGenerate {
     
-    protected $_dsn='';
-    
-    protected $_dbUserName='';
-    
-    protected $_dbPass='';
-    
-    protected $_nonceTable='';
-    
-    protected $_db=null;
+    /**
+     * @var \trianglman\sqrl\interfaces\SqrlStore
+     */
+    protected $store=null;
     
     protected $_secure=false;
     
@@ -55,7 +50,7 @@ class SqrlGenerate implements \trianglman\sqrl\interfaces\SqrlGenerate {
     
     protected $_nonce='';
     
-    protected $_requestorIP='';
+    protected $_requestorIP=0;
 
     public function getNonce()
     {
@@ -98,16 +93,13 @@ class SqrlGenerate implements \trianglman\sqrl\interfaces\SqrlGenerate {
         if(!empty($decoded->nonce_salt)){
             $this->setSalt($decoded->nonce_salt);
         }
-        if(!empty($decoded->dsn)
-                && !empty($decoded->nonce_table)){
-            if(empty($decoded->username)){//sqlite doesn't use usernames and passwords
-                $decoded->username = '';
-                $decoded->password = '';
-            }
-            $this->configureDatabase($decoded->dsn, $decoded->username, $decoded->password, $decoded->nonce_table);
-        }
     }
 
+    public function setStorage(\trianglman\sqrl\interfaces\SqrlStore $storage)
+    {
+        $this->store = $storage;
+    }
+    
     public function render($outputFile) 
     {
         $qrCode = new \Endroid\QrCode\QrCode();
@@ -149,41 +141,6 @@ class SqrlGenerate implements \trianglman\sqrl\interfaces\SqrlGenerate {
         $this->_requestorIP = ip2long($ip);
     }
     
-    public function configureDatabase($dsn,$username,$pass,$nonceTable)
-    {
-        $this->_dsn = $dsn;
-        $this->_dbUserName = $username;
-        $this->_dbPass = $pass;
-        $this->_nonceTable = $nonceTable;
-    }
-    
-    public function setDatabaseConnection(\PDO $db,$nonceTable)
-    {
-        $this->_db = $db;
-        $this->_nonceTable = $nonceTable;
-    }
-    
-    /**
-     * A wrapper function to either get an existing or generate a new database connection
-     * 
-     * @return \PDO
-     */
-    protected function _connectToDatabase()
-    {
-        if(!is_null($this->_db)){
-            return $this->_db;
-        }
-        if(empty($this->_dsn)){
-            return null;
-        }
-        try{
-            $this->_db = new \PDO($this->_dsn,$this->_dbUserName,$this->_dbPass);
-        } catch (\PDOException $ex) {
-            return null;
-        }
-        return $this->_db;
-    }
-    
     /**
      * Generates a random, one time use key to be used in the sqrl validation
      * 
@@ -192,31 +149,17 @@ class SqrlGenerate implements \trianglman\sqrl\interfaces\SqrlGenerate {
      * make this library more (or less) secure should override this function 
      * to strengthen (or weaken) the randomness of the generation.
      * 
-     * If there is a database connection available, this function will also 
-     * verify the uniqueness of the nonce.
-     * 
-     * @param int $recursion [Optional] Tracks how often this function has been recursively called to prevent a DOS
+     * @param int $action [Optional] The type of action this nonce is being generated for
+     * @see SqrlRequestHandler
+     * @param string $key [Optional] The public key associated with the nonce
      * 
      * @return string
      */
-    protected function _generateNonce($recursion=0)
+    protected function _generateNonce($action = SqrlRequestHandler::AUTHENTICATION_REQUEST,$key='')
     {
-        if($recursion>10){
-            throw new \LogicException('Unable to generate unique nonce for this user');
-        }
         $this->_nonce = hash_hmac('sha256', uniqid('',true), $this->_salt);
-        if(!is_null($this->_connectToDatabase())){
-            $check = 'SELECT COUNT(*) FROM `'.$this->_nonceTable.'` WHERE `nonce` = ?';
-            $stmt = $this->_connectToDatabase()->prepare($check);
-            $stmt->execute();
-            if($stmt->fetchColumn()>0){
-                $stmt->fetchAll();//clean up
-                $this->_generateNonce($recursion+1);
-            }
-            $stmt->fetchAll();//clean up
-            $insert = 'INSERT INTO `'.$this->_nonceTable.'` (`nonce`,`ip`) VALUES (?,?)';
-            $insertStmt = $this->_connectToDatabase()->prepare($insert);
-            $insertStmt->execute(array($this->_nonce,$this->_requestorIP));
+        if(!is_null($this->store)){
+            $this->store->storeNut($this->_nonce, $this->_requestorIP, $action, $key);
         }
         return $this->_nonce;
     }
