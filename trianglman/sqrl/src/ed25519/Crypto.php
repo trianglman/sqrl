@@ -71,7 +71,7 @@ class Crypto implements \trianglman\sqrl\interfaces\ed25519\Crypto{
 
     protected function expmod($b,$e,$m)
     {
-        if($e==0){return 1;}
+        //if($e==0){return 1;}
         $t = bcpowmod($b, $e, $m);
         if ($t[0] === '-') {
             $t = bcadd($t, $m);
@@ -97,13 +97,11 @@ class Crypto implements \trianglman\sqrl\interfaces\ed25519\Crypto{
     {
         list($x1,$y1) = $P;
         list($x2,$y2) = $Q;
-        $com = bcmul($this->d,bcmul(bcmul($x1,$x2),bcmul($y1,$y2)));
-        $xl = bcadd(bcmul($x1,$y2),bcmul($x2,$y1));
-        $xr = $this->inv(bcadd(1,$com));
-        $x3 = bcmul($xl,$xr);
-        $yl = bcadd(bcmul($y1,$y2),bcmul($x1,$x2));
-        $yr = $this->inv(bcsub(1,$com));
-        $y3 = bcmul($yl,$yr);
+        $xmul = bcmul($x1,$x2);
+        $ymul = bcmul($y1,$y2);
+        $com = bcmul($this->d,bcmul($xmul,$ymul));
+        $x3 = bcmul(bcadd(bcmul($x1,$y2),bcmul($x2,$y1)),$this->inv(bcadd(1,$com)));
+        $y3 = bcmul(bcadd($ymul,$xmul),$this->inv(bcsub(1,$com)));
         return array($this->pymod($x3,$this->q), $this->pymod($y3,$this->q));
     }
     
@@ -114,6 +112,29 @@ class Crypto implements \trianglman\sqrl\interfaces\ed25519\Crypto{
         $Q = $this->edwards($Q, $Q);
         if(substr($e, -1)%2==1){
             $Q = $this->edwards($Q, $P);
+        }
+        return $Q;
+    }
+    
+    protected function scalarloop($P,$e)
+    {
+        $temp = array();
+        $loopE = $e;
+        while($loopE>0){
+            array_unshift($temp, $loopE);
+            $loopE = bcdiv($loopE,2,0);
+        }
+        $Q = array();
+        foreach($temp as $e){
+            if($e == 1){
+                $Q=$this->edwards(array(0,1), $P);
+            }
+            elseif(substr($e, -1)%2==1){
+                $Q=$this->edwards($this->edwards($Q, $Q), $P);
+            }
+            else{
+                $Q = $this->edwards($Q, $Q);
+            }
         }
         return $Q;
     }
@@ -190,17 +211,6 @@ class Crypto implements \trianglman\sqrl\interfaces\ed25519\Crypto{
         return $sum;
     }
     
-/**
- * def signature(m,sk,pk):
-  h = H(sk)
-  a = 2**(b-2) + sum(2**i * bit(h,i) for i in range(3,b-2))
- * 
-  r = Hint( ''.join( [h[i] for i in range(b/8,b/4)] ) + m )
-  R = scalarmult(B,r)
-  S = (r + Hint(encodepoint(R) + pk + m) * a) % l
-  return encodepoint(R) + encodeint(S)
-
- */
     public function signature($m,$sk,$pk)
     {
         $h = $this->H($sk);
