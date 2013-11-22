@@ -66,9 +66,67 @@ class SqrlRequestHandler implements \trianglman\sqrl\interfaces\SqrlRequestHandl
      */
     protected $clientVer=1;
     
-    public function __construct(\trianglman\sqrl\interfaces\SqrlValidate $val)
+    /**
+     * Base 64 encoded authentication key
+     * @var string
+     */
+    protected $authenticateKey = '';
+    
+    /**
+     * Base 64 encoded server unlock key
+     * @var string
+     */
+    protected $serverUnlockKey = '';
+    
+    /**
+     * Base 64 verify unlock key
+     * @var string
+     */
+    protected $verifyUnlockKey = '';
+    
+    /**
+     * Base 64 unlock request signing key
+     * @var string
+     */
+    protected $unlockRequestKey = '';
+    
+    /**
+     * Base 64 signature using the unlock request key
+     * @var string
+     */
+    protected $unlockRequestSig = '';
+    
+    /**
+     * Base 64 new authentication key
+     * @var string
+     */
+    protected $newKey = '';
+    
+     /**
+     * Base 64 signature using the new authentication key
+     * @var string
+     */
+    protected $newKeySig = '';
+    
+   /**
+     *
+     * @var \trianglman\sqrl\interfaces\SqrlGenerate
+     */
+    protected $sqrlGenerator = null;
+    
+    /**
+     *
+     * @var \trianglman\sqrl\interfaces\SqrlStore
+     */
+    protected $store = null;
+    
+    public function __construct(\trianglman\sqrl\interfaces\SqrlValidate $val,
+            \trianglman\sqrl\interfaces\SqrlStore $store=null,
+            \trianglman\sqrl\interfaces\SqrlGenerate $gen=null)
     {
         $this->validator = $val;
+        $this->sqrlGenerator = $gen;
+        $this->store = $store;
     }
     
     /**
@@ -144,11 +202,66 @@ class SqrlRequestHandler implements \trianglman\sqrl\interfaces\SqrlRequestHandl
             }
         }
         if(isset($clientVal['authkey'])){
-            $this->validator->setAuthenticateKey(str_replace(array('-','_'), array('+','/'),$clientVal['authkey']).'=');
+            $this->authenticateKey = str_replace(array('-','_'), array('+','/'),$clientVal['authkey']).'=';
+            $this->validator->setAuthenticateKey($this->authenticateKey);
         }
         else{
             $this->message = 'No public key was included in the request'; 
             return;
+        }
+        if($this->requestType == self::NEW_ACCOUNT_REQUEST){
+            if(isset($clientVal['suk'])){
+                $this->serverUnlockKey = str_replace(array('-','_'), array('+','/'),$clientVal['suk']).'=';
+            }
+            else{
+                $this->message = 'No server unlock key was included in the request';
+                return;
+            }
+            if(isset($clientVal['vuk'])){
+                $this->verifyUnlockKey = str_replace(array('-','_'), array('+','/'),$clientVal['vuk']).'=';
+            }
+            else{
+                $this->message = 'No verify unlock key was included in the request';
+                return;
+            }
+        }
+        if($this->requestType == self::REKEY_REQUEST_LOOP2){
+            if(isset($clientVal['urskey'])){
+                $this->unlockRequestKey = str_replace(array('-','_'), array('+','/'),$clientVal['urskey']).'=';
+            }
+            else{
+                $this->message = 'No unlock request signing key was included in the request';
+                return;
+            }
+            if(isset($post['urssig'])){
+                $this->unlockRequestSig = str_replace(array('-','_'), array('+','/'), $post['urssig']).'==';
+            }
+            else{
+                $this->message = 'No signature was included in the request';
+                return;
+            }
+            $this->requestType = self::REENABLE_REQUEST;
+            if(isset($clientVal['newkey'])){
+                $this->newKey = str_replace(array('-','_'), array('+','/'),$clientVal['newkey']).'=';
+                $this->requestType = self::MIGRATE_REQUEST;
+                if(isset($post['newkeysig'])){
+                    $this->newKeySig = str_replace(array('-','_'), array('+','/'), $post['newkeysig']).'==';
+                }
+                else{
+                    $this->message = 'No signature was included in the request';
+                    return;
+                }
+            }
+            else{
+                $this->newKey = $this->authenticateKey;
+            }
+            if(isset($clientVal['vuk']) && isset($clientVal['suk'])){
+                $this->serverUnlockKey = str_replace(array('-','_'), array('+','/'),$clientVal['suk']).'=';
+                $this->verifyUnlockKey = str_replace(array('-','_'), array('+','/'),$clientVal['vuk']).'=';
+                $this->requestType = $this->requestType==self::MIGRATE_REQUEST?
+                        self::REPLACE_REQUEST:
+                        self::RELOCK_REQUEST;
+            }
         }
         if(isset($post['serverurl'])){
             $this->validator->setSignedUrl($post['serverurl']);
@@ -190,12 +303,11 @@ class SqrlRequestHandler implements \trianglman\sqrl\interfaces\SqrlRequestHandl
             return $this->message;
         }
         try {
-            if($this->validator->validate()){
-                $this->message = "Successfully authenticated.";
+            $this->verifyRequest();
+            if(!is_null($this->store)){
+                $this->storeKeyUpdate();
             }
-            if($this->requestType!= self::AUTHENTICATION_REQUEST){
-                //handle other "verbs"
-            }
+            $this->buildSucessResponse();
         } catch (SqrlException $exc) {
             switch($exc->getCode()){
                 case SqrlException::ENFORCE_IP_FAIL:
@@ -216,6 +328,96 @@ class SqrlRequestHandler implements \trianglman\sqrl\interfaces\SqrlRequestHandl
         }
         return $this->message;
         
+    }
+    
+    protected function storeKeyUpdate()
+    {
+        switch($this->requestType){
+            case self::NEW_ACCOUNT_REQUEST:
+                $this->store->storeIdentityLock($this->authenticateKey, 
+                        $this->serverUnlockKey, 
+                        $this->verifyUnlockKey);
+                break;
+            case self::DISABLE_REQUEST:
+                $this->store->lockKey($this->authenticateKey);
+                break;
+            case self::REENABLE_REQUEST:
+            case self::MIGRATE_REQUEST:
+                $this->store->migrateKey($this->authenticateKey, $this->newKey);
+                break;
+            case self::RELOCK_REQUEST:
+                $this->store->storeIdentityLock($this->authenticateKey, 
+                        $this->serverUnlockKey, 
+                        $this->verifyUnlockKey);
+                break;
+            case self::REPLACE_REQUEST:
+                $this->store->migrateKey($this->authenticateKey, $this->newKey,
+                        $this->serverUnlockKey,$this->verifyUnlockKey);
+        }
+    }
+    
+    protected function verifyRequest()
+    {
+        $this->validator->validate();
+        if($this->requestType!= self::AUTHENTICATION_REQUEST){
+            $idLockReqs = array(self::REENABLE_REQUEST,self::RELOCK_REQUEST,
+                self::MIGRATE_REQUEST,self::REPLACE_REQUEST);
+            if(in_array($this->requestType,$idLockReqs)){
+                $this->validator->validateSignature($this->unlockRequestKey,
+                        $this->unlockRequestSig);
+                if($this->newKey!=$this->authenticateKey){
+                    $this->validator->validateSignature($this->newKey,
+                            $this->newKeySig);
+                }
+            }
+        }
+    }
+    
+    protected function buildSucessResponse()
+    {
+        switch($this->requestType){
+            case self::AUTHENTICATION_REQUEST:
+                $this->message = "Successfully authenticated.";
+                if(!is_null($this->store)){
+                    $check = $this->store->retrieveAuthenticationRecord($this->authenticateKey, SqrlStore::ID);
+                    var_dump($check);
+                    if(is_array($check)){
+                        $this->message = $this->generateSecondLoop(self::NEW_ACCOUNT_REQUEST);
+                    }
+                }
+                break;
+            case self::REKEY_REQUEST:
+                $this->message = $this->generateSecondLoop(self::REKEY_REQUEST_LOOP2);
+                break;
+            case self::NEW_ACCOUNT_REQUEST:
+                $this->message = 'New account successfully created.';
+                break;
+            case self::DISABLE_REQUEST:
+                $this->message = 'Account locked.';
+                break;
+            case self::REENABLE_REQUEST:
+                $this->message = 'Account Re-enabled.';
+                break;
+            case self::MIGRATE_REQUEST:
+                $this->message = 'Authentication key migrated.';
+                break;
+            case self::RELOCK_REQUEST:
+                $this->message = 'Identity Lock key migrated.';
+                break;
+            case self::REPLACE_REQUEST:
+                $this->message = 'Authentication keys migrated.';
+                break;
+        }
+    }
+    
+    protected function generateSecondLoop($loopPurpose)
+    {
+        if(is_null($this->sqrlGenerator)){
+            return 'Second loop required: '
+                .($loopPurpose==self::NEW_ACCOUNT_REQUEST?'new account':'re-key');
+        }
+        $this->sqrlGenerator->getNonce($loopPurpose, $this->authenticateKey);//done to build it
+        return $this->sqrlGenerator->getUrl();
     }
     
     /**

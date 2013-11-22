@@ -52,10 +52,10 @@ class SqrlGenerate implements \trianglman\sqrl\interfaces\SqrlGenerate {
     
     protected $_requestorIP=0;
 
-    public function getNonce()
+    public function getNonce($action = SqrlRequestHandler::AUTHENTICATION_REQUEST,$key='')
     {
         if(empty($this->_nonce)){
-            $this->_generateNonce();
+            $this->_generateNonce($action,$key);
         }
         return $this->_nonce;
     }

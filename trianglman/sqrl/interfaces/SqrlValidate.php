@@ -165,4 +165,14 @@ interface SqrlValidate {
      */
     public function setRequestorIp($ip);
     
+    /**
+     * Validates a secondary request signature (Unlock Request or New Key)
+     * 
+     * @param string $key Base 64 encoded key
+     * @param string $sig Base 64 encoded signature
+     * 
+     * @return boolean
+     */
+    public function validateSignature($key,$sig);
+    
  }

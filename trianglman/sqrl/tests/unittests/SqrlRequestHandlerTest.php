@@ -279,4 +279,355 @@ class SqrlRequestHandlerTest extends \PHPUnit_Framework_TestCase{
         $this->assertEquals('200',$obj->getResponseCode());
     }
     
+    /**
+     * @depends testHandlesSuccessfulValidation
+     */
+    public function testRequestsSecondLoopNewAuthenticationNoGenerate()
+    {
+        $get = array('nut'=>'some valid nonce');
+        $post = array('serverurl'=>'sqrl://domain.com/login/sqrlauth.php?nut=some expired nonce',
+            'clientval'=>'ver=1&opt=enforce&authkey=xLOjlTKNdYFkCx-OMQT7hSoK7Ta54ioKZgWrh2ig0Fs',
+            'authsig'=>'mwa-haha!');
+        $server = array('REMOTE_ADDR'=>'192.168.0.1');
+        
+        $validator = $this->getMock('\trianglman\sqrl\interfaces\SqrlValidate');
+        $validator->expects($this->any())->method('setSignedClientVal')->with('ver=1&opt=enforce&authkey=xLOjlTKNdYFkCx-OMQT7hSoK7Ta54ioKZgWrh2ig0Fs');
+        $validator->expects($this->any())->method('setClientVer')->with('1');
+        $validator->expects($this->any())->method('setNonce')->with('some valid nonce')->will($this->returnValue(SqrlRequestHandler::AUTHENTICATION_REQUEST));
+        $validator->expects($this->any())->method('setEnforceIP')->with(true);
+        $validator->expects($this->any())->method('setAuthenticateKey')->with('xLOjlTKNdYFkCx+OMQT7hSoK7Ta54ioKZgWrh2ig0Fs=');
+        $validator->expects($this->any())->method('setSignedUrl')->with('sqrl://domain.com/login/sqrlauth.php?nut=some expired nonce');
+        $validator->expects($this->any())->method('setAuthenticateSignature')->with('mwa+haha!==');
+        $validator->expects($this->any())->method('setRequestorIp')->with('192.168.0.1');
+        $validator->expects($this->any())->method('validate')->will($this->returnValue(true));
+        
+        $store = $this->getMock('\trianglman\sqrl\interfaces\SqrlStore');
+        $store->expects($this->any())->method('retrieveAuthenticationRecord')
+                ->with('xLOjlTKNdYFkCx+OMQT7hSoK7Ta54ioKZgWrh2ig0Fs=',  SqrlStore::ID)
+                ->will($this->returnValue(array()));
+        
+        $obj = new SqrlRequestHandler($validator,$store);
+        $obj->parseRequest($get, $post, $server);
+        $this->assertEquals("Second loop required: new account",$obj->getResponseMessage());
+    }
+    
+    /**
+     * @depends testRequestsSecondLoopNewAuthenticationNoGenerate
+     */
+    public function testRequestsSecondLoopNewAuthenticationWithGenerate()
+    {
+        $get = array('nut'=>'some valid nonce');
+        $post = array('serverurl'=>'sqrl://domain.com/login/sqrlauth.php?nut=some expired nonce',
+            'clientval'=>'ver=1&opt=enforce&authkey=xLOjlTKNdYFkCx-OMQT7hSoK7Ta54ioKZgWrh2ig0Fs',
+            'authsig'=>'mwa-haha!');
+        $server = array('REMOTE_ADDR'=>'192.168.0.1');
+        
+        $validator = $this->getMock('\trianglman\sqrl\interfaces\SqrlValidate');
+        $validator->expects($this->any())->method('setSignedClientVal')->with('ver=1&opt=enforce&authkey=xLOjlTKNdYFkCx-OMQT7hSoK7Ta54ioKZgWrh2ig0Fs');
+        $validator->expects($this->any())->method('setClientVer')->with('1');
+        $validator->expects($this->any())->method('setNonce')->with('some valid nonce')->will($this->returnValue(SqrlRequestHandler::AUTHENTICATION_REQUEST));
+        $validator->expects($this->any())->method('setEnforceIP')->with(true);
+        $validator->expects($this->any())->method('setAuthenticateKey')->with('xLOjlTKNdYFkCx+OMQT7hSoK7Ta54ioKZgWrh2ig0Fs=');
+        $validator->expects($this->any())->method('setSignedUrl')->with('sqrl://domain.com/login/sqrlauth.php?nut=some expired nonce');
+        $validator->expects($this->any())->method('setAuthenticateSignature')->with('mwa+haha!==');
+        $validator->expects($this->any())->method('setRequestorIp')->with('192.168.0.1');
+        $validator->expects($this->any())->method('validate')->will($this->returnValue(true));
+        
+        $store = $this->getMock('\trianglman\sqrl\interfaces\SqrlStore');
+        $store->expects($this->any())->method('retrieveAuthenticationRecord')
+                ->with('xLOjlTKNdYFkCx+OMQT7hSoK7Ta54ioKZgWrh2ig0Fs=',  SqrlStore::ID)
+                ->will($this->returnValue(array()));
+        
+        $gen = $this->getMock('\trianglman\sqrl\interfaces\SqrlGenerate');
+        $gen->expects($this->once())->method('getNonce')
+                ->with(SqrlRequestHandler::NEW_ACCOUNT_REQUEST,'xLOjlTKNdYFkCx+OMQT7hSoK7Ta54ioKZgWrh2ig0Fs=');
+        $gen->expects($this->once())->method('getUrl')->will($this->returnValue('url'));
+        
+        $obj = new SqrlRequestHandler($validator,$store,$gen);
+        $obj->parseRequest($get, $post, $server);
+        $this->assertEquals("url",$obj->getResponseMessage());
+    }
+    
+    /**
+     * @depends testHandlesSuccessfulValidation
+     */
+    public function testHandlesNewAccountRequest()
+    {
+        $get = array('nut'=>'some valid nonce');
+        $post = array('serverurl'=>'sqrl://domain.com/login/sqrlauth.php?nut=some expired nonce',
+            'clientval'=>'ver=1&opt=enforce&authkey=xLOjlTKNdYFkCx-OMQT7hSoK7Ta54ioKZgWrh2ig0Fs'
+                    .'&suk=xLOjlTKNdYFkCx-OMQT7hSoK7Ta54ioKZgWrh2ig0Fs&vuk=xLOjlTKNdYFkCx-OMQT7hSoK7Ta54ioKZgWrh2ig0Fs',
+            'authsig'=>'mwa-haha!');
+        $server = array('REMOTE_ADDR'=>'192.168.0.1');
+        
+        $validator = $this->getMock('\trianglman\sqrl\interfaces\SqrlValidate');
+        $validator->expects($this->any())->method('setSignedClientVal')->with('ver=1&opt=enforce&authkey=xLOjlTKNdYFkCx-OMQT7hSoK7Ta54ioKZgWrh2ig0Fs'
+                .'&suk=xLOjlTKNdYFkCx-OMQT7hSoK7Ta54ioKZgWrh2ig0Fs&vuk=xLOjlTKNdYFkCx-OMQT7hSoK7Ta54ioKZgWrh2ig0Fs');
+        $validator->expects($this->any())->method('setClientVer')->with('1');
+        $validator->expects($this->any())->method('setNonce')->with('some valid nonce')->will($this->returnValue(SqrlRequestHandler::NEW_ACCOUNT_REQUEST));
+        $validator->expects($this->any())->method('setEnforceIP')->with(true);
+        $validator->expects($this->any())->method('setAuthenticateKey')->with('xLOjlTKNdYFkCx+OMQT7hSoK7Ta54ioKZgWrh2ig0Fs=');
+        $validator->expects($this->any())->method('setSignedUrl')->with('sqrl://domain.com/login/sqrlauth.php?nut=some expired nonce');
+        $validator->expects($this->any())->method('setAuthenticateSignature')->with('mwa+haha!==');
+        $validator->expects($this->any())->method('setRequestorIp')->with('192.168.0.1');
+        $validator->expects($this->any())->method('validate')->will($this->returnValue(true));
+        
+        $store = $this->getMock('\trianglman\sqrl\interfaces\SqrlStore');
+        $store->expects($this->any())->method('storeIdentityLock')
+                ->with('xLOjlTKNdYFkCx+OMQT7hSoK7Ta54ioKZgWrh2ig0Fs=',
+                        'xLOjlTKNdYFkCx+OMQT7hSoK7Ta54ioKZgWrh2ig0Fs=',
+                        'xLOjlTKNdYFkCx+OMQT7hSoK7Ta54ioKZgWrh2ig0Fs=');
+        
+        $obj = new SqrlRequestHandler($validator,$store);
+        $obj->parseRequest($get, $post, $server);
+        $this->assertEquals("New account successfully created.",$obj->getResponseMessage());
+    }
+    
+    /**
+     * @depends testHandlesSuccessfulValidation
+     */
+    public function testHandlesDisableRequest()
+    {
+        $get = array('nut'=>'some valid nonce');
+        $post = array('serverurl'=>'sqrl://domain.com/login/sqrlauth.php?nut=some expired nonce',
+            'clientval'=>'ver=1&opt=enforce disable&authkey=xLOjlTKNdYFkCx-OMQT7hSoK7Ta54ioKZgWrh2ig0Fs',
+            'authsig'=>'mwa-haha!');
+        $server = array('REMOTE_ADDR'=>'192.168.0.1');
+        
+        $validator = $this->getMock('\trianglman\sqrl\interfaces\SqrlValidate');
+        $validator->expects($this->any())->method('setSignedClientVal')->with('ver=1&opt=enforce disable&authkey=xLOjlTKNdYFkCx-OMQT7hSoK7Ta54ioKZgWrh2ig0Fs');
+        $validator->expects($this->any())->method('setClientVer')->with('1');
+        $validator->expects($this->any())->method('setNonce')->with('some valid nonce')->will($this->returnValue(SqrlRequestHandler::AUTHENTICATION_REQUEST));
+        $validator->expects($this->any())->method('setEnforceIP')->with(true);
+        $validator->expects($this->any())->method('setAuthenticateKey')->with('xLOjlTKNdYFkCx+OMQT7hSoK7Ta54ioKZgWrh2ig0Fs=');
+        $validator->expects($this->any())->method('setSignedUrl')->with('sqrl://domain.com/login/sqrlauth.php?nut=some expired nonce');
+        $validator->expects($this->any())->method('setAuthenticateSignature')->with('mwa+haha!==');
+        $validator->expects($this->any())->method('setRequestorIp')->with('192.168.0.1');
+        $validator->expects($this->any())->method('validate')->will($this->returnValue(true));
+        
+        $store = $this->getMock('\trianglman\sqrl\interfaces\SqrlStore');
+        $store->expects($this->any())->method('disableKey')
+                ->with('xLOjlTKNdYFkCx+OMQT7hSoK7Ta54ioKZgWrh2ig0Fs=');
+        
+        $obj = new SqrlRequestHandler($validator,$store);
+        $obj->parseRequest($get, $post, $server);
+        $this->assertEquals('Account locked.',$obj->getResponseMessage());
+    }
+    
+    /**
+     * @depends testHandlesSuccessfulValidation
+     */
+    public function testHandlesReKeyRequestNoGenerate()
+    {
+        $get = array('nut'=>'some valid nonce');
+        $post = array('serverurl'=>'sqrl://domain.com/login/sqrlauth.php?nut=some expired nonce',
+            'clientval'=>'ver=1&opt=enforce rekey&authkey=xLOjlTKNdYFkCx-OMQT7hSoK7Ta54ioKZgWrh2ig0Fs',
+            'authsig'=>'mwa-haha!');
+        $server = array('REMOTE_ADDR'=>'192.168.0.1');
+        
+        $validator = $this->getMock('\trianglman\sqrl\interfaces\SqrlValidate');
+        $validator->expects($this->any())->method('setSignedClientVal')->with('ver=1&opt=enforce rekey&authkey=xLOjlTKNdYFkCx-OMQT7hSoK7Ta54ioKZgWrh2ig0Fs');
+        $validator->expects($this->any())->method('setClientVer')->with('1');
+        $validator->expects($this->any())->method('setNonce')->with('some valid nonce')->will($this->returnValue(SqrlRequestHandler::AUTHENTICATION_REQUEST));
+        $validator->expects($this->any())->method('setEnforceIP')->with(true);
+        $validator->expects($this->any())->method('setAuthenticateKey')->with('xLOjlTKNdYFkCx+OMQT7hSoK7Ta54ioKZgWrh2ig0Fs=');
+        $validator->expects($this->any())->method('setSignedUrl')->with('sqrl://domain.com/login/sqrlauth.php?nut=some expired nonce');
+        $validator->expects($this->any())->method('setAuthenticateSignature')->with('mwa+haha!==');
+        $validator->expects($this->any())->method('setRequestorIp')->with('192.168.0.1');
+        $validator->expects($this->any())->method('validate')->will($this->returnValue(true));
+        
+        $store = $this->getMock('\trianglman\sqrl\interfaces\SqrlStore');
+        
+        $obj = new SqrlRequestHandler($validator,$store);
+        $obj->parseRequest($get, $post, $server);
+        $this->assertEquals("Second loop required: re-key",$obj->getResponseMessage());
+    }
+    
+    /**
+     * @depends testHandlesReKeyRequestNoGenerate
+     */
+    public function testHandlesReKeyRequestGenerate()
+    {
+        $get = array('nut'=>'some valid nonce');
+        $post = array('serverurl'=>'sqrl://domain.com/login/sqrlauth.php?nut=some expired nonce',
+            'clientval'=>'ver=1&opt=enforce rekey&authkey=xLOjlTKNdYFkCx-OMQT7hSoK7Ta54ioKZgWrh2ig0Fs',
+            'authsig'=>'mwa-haha!');
+        $server = array('REMOTE_ADDR'=>'192.168.0.1');
+        
+        $validator = $this->getMock('\trianglman\sqrl\interfaces\SqrlValidate');
+        $validator->expects($this->any())->method('setSignedClientVal')->with('ver=1&opt=enforce rekey&authkey=xLOjlTKNdYFkCx-OMQT7hSoK7Ta54ioKZgWrh2ig0Fs');
+        $validator->expects($this->any())->method('setClientVer')->with('1');
+        $validator->expects($this->any())->method('setNonce')->with('some valid nonce')->will($this->returnValue(SqrlRequestHandler::AUTHENTICATION_REQUEST));
+        $validator->expects($this->any())->method('setEnforceIP')->with(true);
+        $validator->expects($this->any())->method('setAuthenticateKey')->with('xLOjlTKNdYFkCx+OMQT7hSoK7Ta54ioKZgWrh2ig0Fs=');
+        $validator->expects($this->any())->method('setSignedUrl')->with('sqrl://domain.com/login/sqrlauth.php?nut=some expired nonce');
+        $validator->expects($this->any())->method('setAuthenticateSignature')->with('mwa+haha!==');
+        $validator->expects($this->any())->method('setRequestorIp')->with('192.168.0.1');
+        $validator->expects($this->any())->method('validate')->will($this->returnValue(true));
+        
+        $store = $this->getMock('\trianglman\sqrl\interfaces\SqrlStore');
+        
+        $gen = $this->getMock('\trianglman\sqrl\interfaces\SqrlGenerate');
+        $gen->expects($this->once())->method('getNonce')
+                ->with(SqrlRequestHandler::REKEY_REQUEST_LOOP2,'xLOjlTKNdYFkCx+OMQT7hSoK7Ta54ioKZgWrh2ig0Fs=');
+        $gen->expects($this->once())->method('getUrl')->will($this->returnValue('url'));
+        
+        $obj = new SqrlRequestHandler($validator,$store,$gen);
+        $obj->parseRequest($get, $post, $server);
+        $this->assertEquals("url",$obj->getResponseMessage());
+    }
+    
+    /**
+     * @depends testHandlesSuccessfulValidation
+     */
+    public function testHandlesReKeyLoop2Unlock()
+    {
+        $get = array('nut'=>'some valid nonce');
+        $post = array('serverurl'=>'sqrl://domain.com/login/sqrlauth.php?nut=some expired nonce',
+            'clientval'=>'ver=1&opt=enforce&authkey=xLOjlTKNdYFkCx-OMQT7hSoK7Ta54ioKZgWrh2ig0Fs&urskey=xLOjlTKNdYFkCx-OMQT7hSoK7Ta54ioKZgWrh2ig0Fs',
+            'authsig'=>'mwa-haha!',
+            'urssig'=>'open sesame');
+        $server = array('REMOTE_ADDR'=>'192.168.0.1');
+        
+        $validator = $this->getMock('\trianglman\sqrl\interfaces\SqrlValidate');
+        $validator->expects($this->any())->method('setSignedClientVal')->with('ver=1&opt=enforce&authkey=xLOjlTKNdYFkCx-OMQT7hSoK7Ta54ioKZgWrh2ig0Fs&urskey=xLOjlTKNdYFkCx-OMQT7hSoK7Ta54ioKZgWrh2ig0Fs');
+        $validator->expects($this->any())->method('setClientVer')->with('1');
+        $validator->expects($this->any())->method('setNonce')->with('some valid nonce')->will($this->returnValue(SqrlRequestHandler::REKEY_REQUEST_LOOP2));
+        $validator->expects($this->any())->method('setEnforceIP')->with(true);
+        $validator->expects($this->any())->method('setAuthenticateKey')->with('xLOjlTKNdYFkCx+OMQT7hSoK7Ta54ioKZgWrh2ig0Fs=');
+        $validator->expects($this->any())->method('setSignedUrl')->with('sqrl://domain.com/login/sqrlauth.php?nut=some expired nonce');
+        $validator->expects($this->any())->method('setAuthenticateSignature')->with('mwa+haha!==');
+        $validator->expects($this->any())->method('setRequestorIp')->with('192.168.0.1');
+        $validator->expects($this->any())->method('validate')->will($this->returnValue(true));
+        $validator->expects($this->once())->method('validateSignature')
+                ->with('xLOjlTKNdYFkCx+OMQT7hSoK7Ta54ioKZgWrh2ig0Fs=','open sesame==')->will($this->returnValue(true));
+        
+        $store = $this->getMock('\trianglman\sqrl\interfaces\SqrlStore');
+        $store->expects($this->once())->method('migrateKey')->with('xLOjlTKNdYFkCx+OMQT7hSoK7Ta54ioKZgWrh2ig0Fs=','xLOjlTKNdYFkCx+OMQT7hSoK7Ta54ioKZgWrh2ig0Fs=');
+        
+        $obj = new SqrlRequestHandler($validator,$store);
+        $obj->parseRequest($get, $post, $server);
+        $this->assertEquals('Account Re-enabled.',$obj->getResponseMessage());
+    }
+    
+    /**
+     * @depends testHandlesSuccessfulValidation
+     */
+    public function testHandlesReKeyLoop2Migrate()
+    {
+        $get = array('nut'=>'some valid nonce');
+        $post = array('serverurl'=>'sqrl://domain.com/login/sqrlauth.php?nut=some expired nonce',
+            'clientval'=>'ver=1&opt=enforce&authkey=xLOjlTKNdYFkCx-OMQT7hSoK7Ta54ioKZgWrh2ig0Fs'
+                    .'&urskey=xLOjlTKNdYFkCx-OMQT7hSoK7Ta54ioKZgWrh2ig0Fs&newkey=zzzjlTKNdYFkCx-OMQT7hSoK7Ta54ioKZgWrh2ig0Fs',
+            'authsig'=>'mwa-haha!',
+            'urssig'=>'open sesame',
+            'newkeysig'=>'something new');
+        $server = array('REMOTE_ADDR'=>'192.168.0.1');
+        
+        $validator = $this->getMock('\trianglman\sqrl\interfaces\SqrlValidate');
+        $validator->expects($this->any())->method('setSignedClientVal')->with('ver=1&opt=enforce&authkey=xLOjlTKNdYFkCx-OMQT7hSoK7Ta54ioKZgWrh2ig0Fs'
+                .'&urskey=xLOjlTKNdYFkCx-OMQT7hSoK7Ta54ioKZgWrh2ig0Fs&newkey=zzzjlTKNdYFkCx-OMQT7hSoK7Ta54ioKZgWrh2ig0Fs');
+        $validator->expects($this->any())->method('setClientVer')->with('1');
+        $validator->expects($this->any())->method('setNonce')->with('some valid nonce')->will($this->returnValue(SqrlRequestHandler::REKEY_REQUEST_LOOP2));
+        $validator->expects($this->any())->method('setEnforceIP')->with(true);
+        $validator->expects($this->any())->method('setAuthenticateKey')->with('xLOjlTKNdYFkCx+OMQT7hSoK7Ta54ioKZgWrh2ig0Fs=');
+        $validator->expects($this->any())->method('setSignedUrl')->with('sqrl://domain.com/login/sqrlauth.php?nut=some expired nonce');
+        $validator->expects($this->any())->method('setAuthenticateSignature')->with('mwa+haha!==');
+        $validator->expects($this->any())->method('setRequestorIp')->with('192.168.0.1');
+        $validator->expects($this->any())->method('validate')->will($this->returnValue(true));
+        $validator->expects($this->at(9))->method('validateSignature')
+                ->with('xLOjlTKNdYFkCx+OMQT7hSoK7Ta54ioKZgWrh2ig0Fs=','open sesame==')->will($this->returnValue(true));
+        $validator->expects($this->at(10))->method('validateSignature')
+                ->with('zzzjlTKNdYFkCx+OMQT7hSoK7Ta54ioKZgWrh2ig0Fs=','something new==')->will($this->returnValue(true));
+        
+        $store = $this->getMock('\trianglman\sqrl\interfaces\SqrlStore');
+        $store->expects($this->once())->method('migrateKey')->with('xLOjlTKNdYFkCx+OMQT7hSoK7Ta54ioKZgWrh2ig0Fs=','zzzjlTKNdYFkCx+OMQT7hSoK7Ta54ioKZgWrh2ig0Fs=');
+        
+        $obj = new SqrlRequestHandler($validator,$store);
+        $obj->parseRequest($get, $post, $server);
+        $this->assertEquals('Authentication key migrated.',$obj->getResponseMessage());
+    }
+    
+    /**
+     * @depends testHandlesSuccessfulValidation
+     */
+    public function testHandlesReKeyLoop2ReLock()
+    {
+        $get = array('nut'=>'some valid nonce');
+        $post = array('serverurl'=>'sqrl://domain.com/login/sqrlauth.php?nut=some expired nonce',
+            'clientval'=>'ver=1&opt=enforce&authkey=xLOjlTKNdYFkCx-OMQT7hSoK7Ta54ioKZgWrh2ig0Fs'
+                    .'&urskey=xLOjlTKNdYFkCx-OMQT7hSoK7Ta54ioKZgWrh2ig0Fs&suk=xLOjlTKNdYFkCx-OMQT7hSoK7Ta54ioKZgWrh2ig0Fs'
+                    .'&vuk=xLOjlTKNdYFkCx-OMQT7hSoK7Ta54ioKZgWrh2ig0Fs',
+            'authsig'=>'mwa-haha!',
+            'urssig'=>'open sesame',
+            'newkeysig'=>'something new');
+        $server = array('REMOTE_ADDR'=>'192.168.0.1');
+        
+        $validator = $this->getMock('\trianglman\sqrl\interfaces\SqrlValidate');
+        $validator->expects($this->any())->method('setSignedClientVal')->with('ver=1&opt=enforce&authkey=xLOjlTKNdYFkCx-OMQT7hSoK7Ta54ioKZgWrh2ig0Fs'
+                .'&urskey=xLOjlTKNdYFkCx-OMQT7hSoK7Ta54ioKZgWrh2ig0Fs&suk=xLOjlTKNdYFkCx-OMQT7hSoK7Ta54ioKZgWrh2ig0Fs'
+                    .'&vuk=xLOjlTKNdYFkCx-OMQT7hSoK7Ta54ioKZgWrh2ig0Fs');
+        $validator->expects($this->any())->method('setClientVer')->with('1');
+        $validator->expects($this->any())->method('setNonce')->with('some valid nonce')->will($this->returnValue(SqrlRequestHandler::REKEY_REQUEST_LOOP2));
+        $validator->expects($this->any())->method('setEnforceIP')->with(true);
+        $validator->expects($this->any())->method('setAuthenticateKey')->with('xLOjlTKNdYFkCx+OMQT7hSoK7Ta54ioKZgWrh2ig0Fs=');
+        $validator->expects($this->any())->method('setSignedUrl')->with('sqrl://domain.com/login/sqrlauth.php?nut=some expired nonce');
+        $validator->expects($this->any())->method('setAuthenticateSignature')->with('mwa+haha!==');
+        $validator->expects($this->any())->method('setRequestorIp')->with('192.168.0.1');
+        $validator->expects($this->any())->method('validate')->will($this->returnValue(true));
+        $validator->expects($this->once())->method('validateSignature')
+                ->with('xLOjlTKNdYFkCx+OMQT7hSoK7Ta54ioKZgWrh2ig0Fs=','open sesame==')->will($this->returnValue(true));
+        
+        $store = $this->getMock('\trianglman\sqrl\interfaces\SqrlStore');
+        $store->expects($this->any())->method('storeIdentityLock')
+                ->with('xLOjlTKNdYFkCx+OMQT7hSoK7Ta54ioKZgWrh2ig0Fs=',
+                        'xLOjlTKNdYFkCx+OMQT7hSoK7Ta54ioKZgWrh2ig0Fs=',
+                        'xLOjlTKNdYFkCx+OMQT7hSoK7Ta54ioKZgWrh2ig0Fs=');
+        
+        $obj = new SqrlRequestHandler($validator,$store);
+        $obj->parseRequest($get, $post, $server);
+        $this->assertEquals('Identity Lock key migrated.',$obj->getResponseMessage());
+    }
+    
+    /**
+     * @depends testHandlesSuccessfulValidation
+     */
+    public function testHandlesReKeyLoop2Replace()
+    {
+        $get = array('nut'=>'some valid nonce');
+        $post = array('serverurl'=>'sqrl://domain.com/login/sqrlauth.php?nut=some expired nonce',
+            'clientval'=>'ver=1&opt=enforce&authkey=xLOjlTKNdYFkCx-OMQT7hSoK7Ta54ioKZgWrh2ig0Fs'
+                    .'&urskey=xLOjlTKNdYFkCx-OMQT7hSoK7Ta54ioKZgWrh2ig0Fs&newkey=zzzjlTKNdYFkCx-OMQT7hSoK7Ta54ioKZgWrh2ig0Fs'
+                    .'&suk=xLOjlTKNdYFkCx-OMQT7hSoK7Ta54ioKZgWrh2ig0Fs&vuk=xLOjlTKNdYFkCx-OMQT7hSoK7Ta54ioKZgWrh2ig0Fs',
+            'authsig'=>'mwa-haha!',
+            'urssig'=>'open sesame',
+            'newkeysig'=>'something new');
+        $server = array('REMOTE_ADDR'=>'192.168.0.1');
+        
+        $validator = $this->getMock('\trianglman\sqrl\interfaces\SqrlValidate');
+        $validator->expects($this->any())->method('setSignedClientVal')->with('ver=1&opt=enforce&authkey=xLOjlTKNdYFkCx-OMQT7hSoK7Ta54ioKZgWrh2ig0Fs'
+                .'&urskey=xLOjlTKNdYFkCx-OMQT7hSoK7Ta54ioKZgWrh2ig0Fs&newkey=zzzjlTKNdYFkCx-OMQT7hSoK7Ta54ioKZgWrh2ig0Fs'
+                    .'&suk=xLOjlTKNdYFkCx-OMQT7hSoK7Ta54ioKZgWrh2ig0Fs&vuk=xLOjlTKNdYFkCx-OMQT7hSoK7Ta54ioKZgWrh2ig0Fs');
+        $validator->expects($this->any())->method('setClientVer')->with('1');
+        $validator->expects($this->any())->method('setNonce')->with('some valid nonce')->will($this->returnValue(SqrlRequestHandler::REKEY_REQUEST_LOOP2));
+        $validator->expects($this->any())->method('setEnforceIP')->with(true);
+        $validator->expects($this->any())->method('setAuthenticateKey')->with('xLOjlTKNdYFkCx+OMQT7hSoK7Ta54ioKZgWrh2ig0Fs=');
+        $validator->expects($this->any())->method('setSignedUrl')->with('sqrl://domain.com/login/sqrlauth.php?nut=some expired nonce');
+        $validator->expects($this->any())->method('setAuthenticateSignature')->with('mwa+haha!==');
+        $validator->expects($this->any())->method('setRequestorIp')->with('192.168.0.1');
+        $validator->expects($this->any())->method('validate')->will($this->returnValue(true));
+        $validator->expects($this->at(9))->method('validateSignature')
+                ->with('xLOjlTKNdYFkCx+OMQT7hSoK7Ta54ioKZgWrh2ig0Fs=','open sesame==')->will($this->returnValue(true));
+        $validator->expects($this->at(10))->method('validateSignature')
+                ->with('zzzjlTKNdYFkCx+OMQT7hSoK7Ta54ioKZgWrh2ig0Fs=','something new==')->will($this->returnValue(true));
+        
+        $store = $this->getMock('\trianglman\sqrl\interfaces\SqrlStore');
+        $store->expects($this->once())->method('migrateKey')->with('xLOjlTKNdYFkCx+OMQT7hSoK7Ta54ioKZgWrh2ig0Fs=','zzzjlTKNdYFkCx+OMQT7hSoK7Ta54ioKZgWrh2ig0Fs=',
+                'xLOjlTKNdYFkCx+OMQT7hSoK7Ta54ioKZgWrh2ig0Fs=','xLOjlTKNdYFkCx+OMQT7hSoK7Ta54ioKZgWrh2ig0Fs=');
+        
+        $obj = new SqrlRequestHandler($validator,$store);
+        $obj->parseRequest($get, $post, $server);
+        $this->assertEquals('Authentication keys migrated.',$obj->getResponseMessage());
+    }
+    
 }

@@ -132,9 +132,13 @@ interface SqrlGenerate {
     /**
      * Returns the generated nonce
      * 
+     * @param int $action [Optional] The type of action this nonce is being generated for
+     * @see SqrlRequestHandler
+     * @param string $key [Optional] The public key associated with the nonce
+     * 
      * @return string The one time use number for the QR link
      */
-    public function getNonce();
+    public function getNonce($action = SqrlRequestHandler::AUTHENTICATION_REQUEST,$key='');
     
     /**
      * Gets the validation URL including the nonce

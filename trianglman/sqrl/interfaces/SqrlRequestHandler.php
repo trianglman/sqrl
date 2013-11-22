@@ -86,15 +86,27 @@ interface SqrlRequestHandler {
      * @var int
      */
     const RELOCK_REQUEST=8;
+    /**
+     * A second loop response for all Identity Lock related requests
+     * 
+     * This should be set and stored with the nonce and will be overriden during 
+     * request processing
+     * 
+     * @const
+     * @var int
+     */
+    const REKEY_REQUEST_LOOP2=9;
     
     /**
      * Initializes the Request Handler
      * 
-     * @param \trianglman\sqrl\interfaces\SqrlValidate $val
+     * @param \trianglman\sqrl\interfaces\SqrlValidate $val Sets the validator that will check the response
+     * @param \trianglman\sqrl\interfaces\SqrlStore $store [Optional] Sets storage for submitted authorization keys
+     * @param \trianglman\sqrl\interfaces\SqrlGenerate $gen [Optional] Sets the nonce generator for loop two
      * 
      * @return void
      */
-    public function __construct(SqrlValidate $val);
+    public function __construct(SqrlValidate $val,SqrlStore $store=null,SqrlGenerate $gen=null);
     
     /**
      * Parses a user request

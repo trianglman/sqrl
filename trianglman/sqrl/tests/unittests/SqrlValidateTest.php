@@ -63,6 +63,25 @@ class SqrlValidateTest extends \PHPUnit_Framework_TestCase{
         $this->assertTrue($obj->validate());
     }
     
+    public function testValidatesSecondarySignature()
+    {
+        $validator = $this->getMock('\trianglman\sqrl\interfaces\NonceValidator');
+        $orig='clientval=ver=1&opt=&authkey='.str_replace(array('+','/','='), array('-','_',''), base64_encode('some key'))
+                .'&serverurl=sqrl://domain.com/login/sqrlauth.php?nut=a valid nut';
+        $validator->expects($this->once())->method('validateSignature')->with($orig,'otherSig','other key')->will($this->returnValue(true));
+        
+        $obj = new SqrlValidate();
+        $obj->loadConfigFromJSON(dirname(__FILE__).'/../resources/unittest.json');
+        $obj->setSignedClientVal('ver=1&opt=&authkey='.str_replace(array('+','/','='), array('-','_',''), base64_encode('some key')));
+        $obj->setClientVer('1');
+        $obj->setNonce('a valid nut');
+        $obj->setAuthenticateKey(base64_encode('some key'));
+        $obj->setSignedUrl('sqrl://domain.com/login/sqrlauth.php?nut=a valid nut');
+        $obj->setAuthenticateSignature(base64_encode('valid signature'));
+        $obj->setValidator($validator);
+        $this->assertTrue($obj->validateSignature('other key','otherSig'));
+    }
+    
     /**
      * @expectedException \trianglman\sqrl\src\SqrlException
      * @expectedExceptionCode 1

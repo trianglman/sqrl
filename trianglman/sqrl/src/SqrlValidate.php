@@ -291,6 +291,20 @@ class SqrlValidate implements \trianglman\sqrl\interfaces\SqrlValidate{
         }
     }
     
+    public function validateSignature($key,$sig)
+    {
+        try{
+            $signedValue = 'clientval='.$this->clientVal.'&serverurl='.$this->signedUrl;
+            if(!$this->_validator->validateSignature($signedValue,$sig,$key)){
+                throw new SqrlException('Signature not valid.',SqrlException::SIGNATURE_NOT_VALID);
+            }
+            return true;
+        }
+        catch(\Exception $e){
+            throw new SqrlException('Signature not valid.',SqrlException::SIGNATURE_NOT_VALID,$e);
+        }
+    }
+    
     protected function generateUrl($nonce)
     {
         $url = ($this->_secure?'s':'').'qrl://'.$this->_domain.(strpos($this->_domain,'/')!==false?'|':'/').$this->_authPath;
