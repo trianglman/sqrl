@@ -52,7 +52,7 @@ class SqrlRequestHandlerTest extends \PHPUnit_Framework_TestCase{
         
         $obj = new SqrlRequestHandler($validator);
         $obj->parseRequest($get, $post, $server);
-        $this->assertEquals('ver=1&result=2&display=No+client+response+was+included+in+the+request',$obj->getResponseMessage());
+        $this->assertEquals('sqrlreply='.urlencode('ver=1&result=2&display=No+client+response+was+included+in+the+request'),$obj->getResponseMessage());
         $this->assertEquals('200',$obj->getResponseCode());
     }
     
@@ -68,7 +68,7 @@ class SqrlRequestHandlerTest extends \PHPUnit_Framework_TestCase{
         
         $obj = new SqrlRequestHandler($validator);
         $obj->parseRequest($get, $post, $server);
-        $this->assertEquals('ver=1&result=2&display=No+version+was+included+in+the+request',$obj->getResponseMessage());
+        $this->assertEquals('sqrlreply='.urlencode('ver=1&result=2&display=No+version+was+included+in+the+request'),$obj->getResponseMessage());
         $this->assertEquals('200',$obj->getResponseCode());
     }
     
@@ -85,7 +85,7 @@ class SqrlRequestHandlerTest extends \PHPUnit_Framework_TestCase{
         
         $obj = new SqrlRequestHandler($validator);
         $obj->parseRequest($get, $post, $server);
-        $this->assertEquals('ver=1&result=2&display=No+nonce+was+included+in+the+request',$obj->getResponseMessage());
+        $this->assertEquals('sqrlreply='.urlencode('ver=1&result=2&display=No+nonce+was+included+in+the+request'),$obj->getResponseMessage());
         $this->assertEquals('200',$obj->getResponseCode());
     }
     
@@ -103,7 +103,7 @@ class SqrlRequestHandlerTest extends \PHPUnit_Framework_TestCase{
         
         $obj = new SqrlRequestHandler($validator);
         $obj->parseRequest($get, $post, $server);
-        $this->assertEquals('ver=1&result=2&display=No+nonce+was+included+in+the+request',$obj->getResponseMessage());
+        $this->assertEquals('sqrlreply='.urlencode('ver=1&result=2&display=No+nonce+was+included+in+the+request'),$obj->getResponseMessage());
         $this->assertEquals('200',$obj->getResponseCode());
     }
     
@@ -121,7 +121,7 @@ class SqrlRequestHandlerTest extends \PHPUnit_Framework_TestCase{
         
         $obj = new SqrlRequestHandler($validator);
         $obj->parseRequest($get, $post, $server);
-        $this->assertEquals('ver=1&result=2&display=No+nonce+was+included+in+the+request',$obj->getResponseMessage());
+        $this->assertEquals('sqrlreply='.urlencode('ver=1&result=2&display=No+nonce+was+included+in+the+request'),$obj->getResponseMessage());
         $this->assertEquals('200',$obj->getResponseCode());
     }
     
@@ -140,7 +140,7 @@ class SqrlRequestHandlerTest extends \PHPUnit_Framework_TestCase{
         
         $obj = new SqrlRequestHandler($validator);
         $obj->parseRequest($get, $post, $server);
-        $this->assertEquals('ver=1&result=2&display=No+public+key+was+included+in+the+request',$obj->getResponseMessage());
+        $this->assertEquals('sqrlreply='.urlencode('ver=1&result=2&display=No+public+key+was+included+in+the+request'),$obj->getResponseMessage());
         $this->assertEquals('200',$obj->getResponseCode());
     }
     
@@ -159,7 +159,7 @@ class SqrlRequestHandlerTest extends \PHPUnit_Framework_TestCase{
         
         $obj = new SqrlRequestHandler($validator);
         $obj->parseRequest($get, $post, $server);
-        $this->assertEquals('ver=1&result=2&display=No+server+URL+was+included+in+the+request',$obj->getResponseMessage());
+        $this->assertEquals('sqrlreply='.urlencode('ver=1&result=2&display=No+server+URL+was+included+in+the+request'),$obj->getResponseMessage());
         $this->assertEquals('200',$obj->getResponseCode());
     }
     
@@ -179,7 +179,7 @@ class SqrlRequestHandlerTest extends \PHPUnit_Framework_TestCase{
         
         $obj = new SqrlRequestHandler($validator);
         $obj->parseRequest($get, $post, $server);
-        $this->assertEquals('ver=1&result=2&display=No+signature+was+included+in+the+request',$obj->getResponseMessage());
+        $this->assertEquals('sqrlreply='.urlencode('ver=1&result=2&display=No+signature+was+included+in+the+request'),$obj->getResponseMessage());
         $this->assertEquals('200',$obj->getResponseCode());
     }
     
@@ -203,7 +203,7 @@ class SqrlRequestHandlerTest extends \PHPUnit_Framework_TestCase{
         
         $obj = new SqrlRequestHandler($validator);
         $obj->parseRequest($get, $post, $server);
-        $this->assertEquals("ver=1&result=3&display=IP+check+failed.",$obj->getResponseMessage());
+        $this->assertEquals('sqrlreply='.urlencode("ver=1&result=3&display=IP+check+failed."),$obj->getResponseMessage());
         $this->assertEquals('200',$obj->getResponseCode());
     }
     
@@ -227,7 +227,7 @@ class SqrlRequestHandlerTest extends \PHPUnit_Framework_TestCase{
         
         $obj = new SqrlRequestHandler($validator);
         $obj->parseRequest($get, $post, $server);
-        $this->assertEquals("ver=1&result=4&display=The+returned+URL+does+not+match+the+initial+SQRL+challenge.",$obj->getResponseMessage());
+        $this->assertEquals('sqrlreply='.urlencode("ver=1&result=4&display=The+returned+URL+does+not+match+the+initial+SQRL+challenge."),$obj->getResponseMessage());
         $this->assertEquals('200',$obj->getResponseCode());
     }
     
@@ -251,7 +251,7 @@ class SqrlRequestHandlerTest extends \PHPUnit_Framework_TestCase{
         
         $obj = new SqrlRequestHandler($validator);
         $obj->parseRequest($get, $post, $server);
-        $this->assertEquals("ver=1&result=5&display=The+signature+is+not+valid.",$obj->getResponseMessage());
+        $this->assertEquals('sqrlreply='.urlencode("ver=1&result=5&display=The+signature+is+not+valid."),$obj->getResponseMessage());
         $this->assertEquals('200',$obj->getResponseCode());
     }
     
@@ -275,7 +275,7 @@ class SqrlRequestHandlerTest extends \PHPUnit_Framework_TestCase{
         
         $obj = new SqrlRequestHandler($validator);
         $obj->parseRequest($get, $post, $server);
-        $this->assertEquals("ver=1&result=1&display=Successfully+authenticated.",$obj->getResponseMessage());
+        $this->assertEquals('sqrlreply='.urlencode("ver=1&result=1&display=Successfully+authenticated."),$obj->getResponseMessage());
         $this->assertEquals('200',$obj->getResponseCode());
     }
     
@@ -308,7 +308,7 @@ class SqrlRequestHandlerTest extends \PHPUnit_Framework_TestCase{
         
         $obj = new SqrlRequestHandler($validator,$store);
         $obj->parseRequest($get, $post, $server);
-        $this->assertEquals("ver=1&result=6&display=No+matching+account+found.+Please+supply+Identity+Lock+information.",$obj->getResponseMessage());
+        $this->assertEquals('sqrlreply='.urlencode("ver=1&result=6&display=No+matching+account+found.+Please+supply+Identity+Lock+information."),$obj->getResponseMessage());
     }
     
     /**
@@ -345,8 +345,8 @@ class SqrlRequestHandlerTest extends \PHPUnit_Framework_TestCase{
         
         $obj = new SqrlRequestHandler($validator,$store,$gen);
         $obj->parseRequest($get, $post, $server);
-        $this->assertEquals("ver=1&result=6&display=No+matching+account+found.+Please+supply+Identity+Lock+information."
-                ."&serverurl=sqrl%3A%2F%2Fdomain.com%2Flogin%2Fsqrlauth.php%3Fnut%3Dsome+new+nonce",$obj->getResponseMessage());
+        $this->assertEquals('sqrlreply='.urlencode("ver=1&result=6&display=No+matching+account+found.+Please+supply+Identity+Lock+information."
+                ."&serverurl=sqrl%3A%2F%2Fdomain.com%2Flogin%2Fsqrlauth.php%3Fnut%3Dsome+new+nonce"),$obj->getResponseMessage());
     }
     
     /**
@@ -381,7 +381,7 @@ class SqrlRequestHandlerTest extends \PHPUnit_Framework_TestCase{
         
         $obj = new SqrlRequestHandler($validator,$store);
         $obj->parseRequest($get, $post, $server);
-        $this->assertEquals("ver=1&result=1&display=New+account+successfully+created.",$obj->getResponseMessage());
+        $this->assertEquals('sqrlreply='.urlencode("ver=1&result=1&display=New+account+successfully+created."),$obj->getResponseMessage());
     }
     
     /**
@@ -412,7 +412,7 @@ class SqrlRequestHandlerTest extends \PHPUnit_Framework_TestCase{
         
         $obj = new SqrlRequestHandler($validator,$store);
         $obj->parseRequest($get, $post, $server);
-        $this->assertEquals('ver=1&result=1&display=Account+locked.',$obj->getResponseMessage());
+        $this->assertEquals('sqrlreply='.urlencode('ver=1&result=1&display=Account+locked.'),$obj->getResponseMessage());
     }
     
     /**
@@ -441,7 +441,7 @@ class SqrlRequestHandlerTest extends \PHPUnit_Framework_TestCase{
         
         $obj = new SqrlRequestHandler($validator,$store);
         $obj->parseRequest($get, $post, $server);
-        $this->assertEquals("ver=1&result=6&display=Second+loop+required+to+perform+the+re-key+request.",$obj->getResponseMessage());
+        $this->assertEquals('sqrlreply='.urlencode("ver=1&result=6&display=Second+loop+required+to+perform+the+re-key+request."),$obj->getResponseMessage());
     }
     
     /**
@@ -475,8 +475,8 @@ class SqrlRequestHandlerTest extends \PHPUnit_Framework_TestCase{
         
         $obj = new SqrlRequestHandler($validator,$store,$gen);
         $obj->parseRequest($get, $post, $server);
-        $this->assertEquals("ver=1&result=6&display=Second+loop+required+to+perform+the+re-key+request."
-                ."&serverurl=sqrl%3A%2F%2Fdomain.com%2Flogin%2Fsqrlauth.php%3Fnut%3Dsome+new+nonce",$obj->getResponseMessage());
+        $this->assertEquals('sqrlreply='.urlencode("ver=1&result=6&display=Second+loop+required+to+perform+the+re-key+request."
+                ."&serverurl=sqrl%3A%2F%2Fdomain.com%2Flogin%2Fsqrlauth.php%3Fnut%3Dsome+new+nonce"),$obj->getResponseMessage());
     }
     
     /**
@@ -509,7 +509,7 @@ class SqrlRequestHandlerTest extends \PHPUnit_Framework_TestCase{
         
         $obj = new SqrlRequestHandler($validator,$store);
         $obj->parseRequest($get, $post, $server);
-        $this->assertEquals('ver=1&result=1&display=Account+Re-enabled.',$obj->getResponseMessage());
+        $this->assertEquals('sqrlreply='.urlencode('ver=1&result=1&display=Account+Re-enabled.'),$obj->getResponseMessage());
     }
     
     /**
@@ -547,7 +547,7 @@ class SqrlRequestHandlerTest extends \PHPUnit_Framework_TestCase{
         
         $obj = new SqrlRequestHandler($validator,$store);
         $obj->parseRequest($get, $post, $server);
-        $this->assertEquals('ver=1&result=1&display=Authentication+key+migrated.',$obj->getResponseMessage());
+        $this->assertEquals('sqrlreply='.urlencode('ver=1&result=1&display=Authentication+key+migrated.'),$obj->getResponseMessage());
     }
     
     /**
@@ -588,7 +588,7 @@ class SqrlRequestHandlerTest extends \PHPUnit_Framework_TestCase{
         
         $obj = new SqrlRequestHandler($validator,$store);
         $obj->parseRequest($get, $post, $server);
-        $this->assertEquals('ver=1&result=1&display=Identity+Lock+key+migrated.',$obj->getResponseMessage());
+        $this->assertEquals('sqrlreply='.urlencode('ver=1&result=1&display=Identity+Lock+key+migrated.'),$obj->getResponseMessage());
     }
     
     /**
@@ -629,7 +629,7 @@ class SqrlRequestHandlerTest extends \PHPUnit_Framework_TestCase{
         
         $obj = new SqrlRequestHandler($validator,$store);
         $obj->parseRequest($get, $post, $server);
-        $this->assertEquals('ver=1&result=1&display=Authentication+keys+migrated.',$obj->getResponseMessage());
+        $this->assertEquals('sqrlreply='.urlencode('ver=1&result=1&display=Authentication+keys+migrated.'),$obj->getResponseMessage());
     }
     
 }

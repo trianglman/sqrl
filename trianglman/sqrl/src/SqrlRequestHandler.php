@@ -384,7 +384,6 @@ class SqrlRequestHandler implements \trianglman\sqrl\interfaces\SqrlRequestHandl
                 $this->message = $this->formatRequest("Successfully authenticated.");
                 if(!is_null($this->store)){
                     $check = $this->store->retrieveAuthenticationRecord($this->authenticateKey, SqrlStore::ID);
-                    var_dump($check);
                     if(is_array($check)){
                         $this->message = $this->generateSecondLoop(self::NEW_ACCOUNT_REQUEST);
                     }
@@ -457,10 +456,10 @@ class SqrlRequestHandler implements \trianglman\sqrl\interfaces\SqrlRequestHandl
     
     protected function formatRequest($display,$code=self::OK,$serverurl='')
     {
-        return 'ver='.$this->responseVersion
+        return 'sqrlreply='.urlencode('ver='.$this->responseVersion
                 .'&result='.$code
                 .'&display='.urlencode($display)
-                .(($code == self::MORE_INFORMATION && !empty($serverurl))?'&serverurl='.urlencode($serverurl):'');
+                .(($code == self::MORE_INFORMATION && !empty($serverurl))?'&serverurl='.urlencode($serverurl):''));
     }
     
 }
