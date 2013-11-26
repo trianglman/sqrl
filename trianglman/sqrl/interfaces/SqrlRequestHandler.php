@@ -37,6 +37,13 @@ namespace trianglman\sqrl\interfaces;
 interface SqrlRequestHandler {
     
     /**
+     * The SQRL Server version
+     * @const
+     * @var int
+     */
+    const VERSION=1;
+    
+    /**
      * A basic SQRL authentication request, no special parameters
      * @const
      * @var int
@@ -96,6 +103,51 @@ interface SqrlRequestHandler {
      * @var int
      */
     const REKEY_REQUEST_LOOP2=9;
+    
+    //ERROR CODES
+    
+    /**
+     * Request was completed successfully
+     * 
+     * @const
+     * @var int
+     */
+    const OK=1;
+    /**
+     * The request was not properly formatted or was missing information
+     * 
+     * @const
+     * @var int
+     */
+    const INVALID_REQUEST=2;
+    /**
+     * The IP of the request did not match the nonce IP
+     * 
+     * @const
+     * @var int
+     */
+    const ENFORCE_IP_FAILED=3;
+    /**
+     * The serverurl value did not match what was supplied by the server
+     * 
+     * @const
+     * @var int
+     */
+    const SERVERURL_MISMATCH=4;
+    /**
+     * The signature did not match the key
+     * 
+     * @const
+     * @var int
+     */
+    const INVALID_SIGNATURE=5;
+    /**
+     * A second loop is required to supply more information
+     * 
+     * @const
+     * @var int
+     */
+    const MORE_INFORMATION=6;
     
     /**
      * Initializes the Request Handler

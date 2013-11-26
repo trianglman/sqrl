@@ -114,6 +114,9 @@ class SqrlRequestHandler implements \trianglman\sqrl\interfaces\SqrlRequestHandl
      */
     protected $sqrlGenerator = null;
     
+    protected $responseVersion = self::VERSION;
+    
+    
     /**
      *
      * @var \trianglman\sqrl\interfaces\SqrlStore
@@ -149,15 +152,16 @@ class SqrlRequestHandler implements \trianglman\sqrl\interfaces\SqrlRequestHandl
             $this->validator->setSignedClientVal($post['clientval']);
         }
         else{
-            $this->message = 'No client response was included in the request';
+            $this->message = $this->formatRequest('No client response was included in the request',self::INVALID_REQUEST);
             return;
         }
         if(isset($clientVal['ver'])){
+            //after version one, this will need to affect response version
             $this->clientVer = $clientVal['ver'];
             $this->validator->setClientVer($clientVal['ver']);
         }
         else{
-            $this->message = 'No version was included in the request';
+            $this->message = $this->formatRequest('No version was included in the request',self::INVALID_REQUEST);
             return;
         }
         if(isset($get['nut'])){
@@ -171,10 +175,10 @@ class SqrlRequestHandler implements \trianglman\sqrl\interfaces\SqrlRequestHandl
             }
             catch(SqrlException $e){
                 if($e->getCode() == SqrlException::NONCE_NOT_FOUND){
-                    $this->message = 'No nonce was included in the request';//do we want to be more explicit?
+                    $this->message = $this->formatRequest('No nonce was included in the request',self::INVALID_REQUEST);//do we want to be more explicit?
                 }
                 elseif($e->getCode() == SqrlException::EXPIRED_NONCE){
-                    $this->message = 'No nonce was included in the request';//do we want to be more explicit?
+                    $this->message = $this->formatRequest('No nonce was included in the request',self::INVALID_REQUEST);//do we want to be more explicit?
                 }
                 else{
                     //no other SQRL related exceptions should happen, but if a 
@@ -186,7 +190,7 @@ class SqrlRequestHandler implements \trianglman\sqrl\interfaces\SqrlRequestHandl
             }
         }
         else{
-            $this->message = 'No nonce was included in the request';
+            $this->message = $this->formatRequest('No nonce was included in the request',self::INVALID_REQUEST);
             return;
         }
         if(isset($clientVal['opt'])){
@@ -206,7 +210,7 @@ class SqrlRequestHandler implements \trianglman\sqrl\interfaces\SqrlRequestHandl
             $this->validator->setAuthenticateKey($this->authenticateKey);
         }
         else{
-            $this->message = 'No public key was included in the request'; 
+            $this->message = $this->formatRequest('No public key was included in the request',self::INVALID_REQUEST); 
             return;
         }
         if($this->requestType == self::NEW_ACCOUNT_REQUEST){
@@ -214,14 +218,14 @@ class SqrlRequestHandler implements \trianglman\sqrl\interfaces\SqrlRequestHandl
                 $this->serverUnlockKey = str_replace(array('-','_'), array('+','/'),$clientVal['suk']).'=';
             }
             else{
-                $this->message = 'No server unlock key was included in the request';
+                $this->message = $this->formatRequest('No server unlock key was included in the request',self::INVALID_REQUEST);
                 return;
             }
             if(isset($clientVal['vuk'])){
                 $this->verifyUnlockKey = str_replace(array('-','_'), array('+','/'),$clientVal['vuk']).'=';
             }
             else{
-                $this->message = 'No verify unlock key was included in the request';
+                $this->message = $this->formatRequest('No verify unlock key was included in the request',self::INVALID_REQUEST);
                 return;
             }
         }
@@ -230,14 +234,14 @@ class SqrlRequestHandler implements \trianglman\sqrl\interfaces\SqrlRequestHandl
                 $this->unlockRequestKey = str_replace(array('-','_'), array('+','/'),$clientVal['urskey']).'=';
             }
             else{
-                $this->message = 'No unlock request signing key was included in the request';
+                $this->message = $this->formatRequest('No unlock request signing key was included in the request',self::INVALID_REQUEST);
                 return;
             }
             if(isset($post['urssig'])){
                 $this->unlockRequestSig = str_replace(array('-','_'), array('+','/'), $post['urssig']).'==';
             }
             else{
-                $this->message = 'No signature was included in the request';
+                $this->message = $this->formatRequest('No signature was included in the request',self::INVALID_REQUEST);
                 return;
             }
             $this->requestType = self::REENABLE_REQUEST;
@@ -248,7 +252,7 @@ class SqrlRequestHandler implements \trianglman\sqrl\interfaces\SqrlRequestHandl
                     $this->newKeySig = str_replace(array('-','_'), array('+','/'), $post['newkeysig']).'==';
                 }
                 else{
-                    $this->message = 'No signature was included in the request';
+                    $this->message = $this->formatRequest('No signature was included in the request',self::INVALID_REQUEST);
                     return;
                 }
             }
@@ -267,14 +271,14 @@ class SqrlRequestHandler implements \trianglman\sqrl\interfaces\SqrlRequestHandl
             $this->validator->setSignedUrl($post['serverurl']);
         }
         else{
-            $this->message = 'No server URL was included in the request';
+            $this->message = $this->formatRequest('No server URL was included in the request',self::INVALID_REQUEST);
             return;
         }
         if(isset($post['authsig'])){
             $this->validator->setAuthenticateSignature(str_replace(array('-','_'), array('+','/'), $post['authsig']).'==');
         }
         else{
-            $this->message = 'No signature was included in the request';
+            $this->message = $this->formatRequest('No signature was included in the request',self::INVALID_REQUEST);
             return;
         }
         $this->validator->setRequestorIp($server['REMOTE_ADDR']);
@@ -311,13 +315,13 @@ class SqrlRequestHandler implements \trianglman\sqrl\interfaces\SqrlRequestHandl
         } catch (SqrlException $exc) {
             switch($exc->getCode()){
                 case SqrlException::ENFORCE_IP_FAIL:
-                    $this->message = "IP check failed.";
+                    $this->message = $this->formatRequest("IP check failed.",self::ENFORCE_IP_FAILED);
                     break;
                 case SqrlException::SIGNED_URL_DOESNT_MATCH:
-                    $this->message = "The returned URL does not match the initial SQRL challenge.";
+                    $this->message = $this->formatRequest("The returned URL does not match the initial SQRL challenge.",self::SERVERURL_MISMATCH);
                     break;
                 case SqrlException::SIGNATURE_NOT_VALID:
-                    $this->message = "The signature is not valid.";
+                    $this->message = $this->formatRequest("The signature is not valid.",self::INVALID_SIGNATURE);
                     break;
                 default:
                     //no other SQRL related exceptions should happen, but if a 
@@ -377,7 +381,7 @@ class SqrlRequestHandler implements \trianglman\sqrl\interfaces\SqrlRequestHandl
     {
         switch($this->requestType){
             case self::AUTHENTICATION_REQUEST:
-                $this->message = "Successfully authenticated.";
+                $this->message = $this->formatRequest("Successfully authenticated.");
                 if(!is_null($this->store)){
                     $check = $this->store->retrieveAuthenticationRecord($this->authenticateKey, SqrlStore::ID);
                     var_dump($check);
@@ -390,34 +394,42 @@ class SqrlRequestHandler implements \trianglman\sqrl\interfaces\SqrlRequestHandl
                 $this->message = $this->generateSecondLoop(self::REKEY_REQUEST_LOOP2);
                 break;
             case self::NEW_ACCOUNT_REQUEST:
-                $this->message = 'New account successfully created.';
+                $this->message = $this->formatRequest('New account successfully created.');
                 break;
             case self::DISABLE_REQUEST:
-                $this->message = 'Account locked.';
+                $this->message = $this->formatRequest('Account locked.');
                 break;
             case self::REENABLE_REQUEST:
-                $this->message = 'Account Re-enabled.';
+                $this->message = $this->formatRequest('Account Re-enabled.');
                 break;
             case self::MIGRATE_REQUEST:
-                $this->message = 'Authentication key migrated.';
+                $this->message = $this->formatRequest('Authentication key migrated.');
                 break;
             case self::RELOCK_REQUEST:
-                $this->message = 'Identity Lock key migrated.';
+                $this->message = $this->formatRequest('Identity Lock key migrated.');
                 break;
             case self::REPLACE_REQUEST:
-                $this->message = 'Authentication keys migrated.';
+                $this->message = $this->formatRequest('Authentication keys migrated.');
                 break;
         }
     }
     
     protected function generateSecondLoop($loopPurpose)
     {
+        $display = '';
+        switch($loopPurpose){
+            case self::NEW_ACCOUNT_REQUEST:
+                $display = 'No matching account found. Please supply Identity Lock information.';
+                break;
+            case self::REKEY_REQUEST_LOOP2:
+                $display = 'Second loop required to perform the re-key request.';
+                break;
+        }
         if(is_null($this->sqrlGenerator)){
-            return 'Second loop required: '
-                .($loopPurpose==self::NEW_ACCOUNT_REQUEST?'new account':'re-key');
+            return $this->formatRequest($display, self::MORE_INFORMATION);
         }
         $this->sqrlGenerator->getNonce($loopPurpose, $this->authenticateKey);//done to build it
-        return $this->sqrlGenerator->getUrl();
+        return $this->formatRequest($display, self::MORE_INFORMATION,$this->sqrlGenerator->getUrl());
     }
     
     /**
@@ -441,6 +453,14 @@ class SqrlRequestHandler implements \trianglman\sqrl\interfaces\SqrlRequestHandl
     public function sendResponse()
     {
         
+    }
+    
+    protected function formatRequest($display,$code=self::OK,$serverurl='')
+    {
+        return 'ver='.$this->responseVersion
+                .'&result='.$code
+                .'&display='.urlencode($display)
+                .(($code == self::MORE_INFORMATION && !empty($serverurl))?'&serverurl='.urlencode($serverurl):'');
     }
     
 }

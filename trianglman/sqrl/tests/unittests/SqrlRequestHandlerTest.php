@@ -52,7 +52,7 @@ class SqrlRequestHandlerTest extends \PHPUnit_Framework_TestCase{
         
         $obj = new SqrlRequestHandler($validator);
         $obj->parseRequest($get, $post, $server);
-        $this->assertEquals('No client response was included in the request',$obj->getResponseMessage());
+        $this->assertEquals('ver=1&result=2&display=No+client+response+was+included+in+the+request',$obj->getResponseMessage());
         $this->assertEquals('200',$obj->getResponseCode());
     }
     
@@ -68,7 +68,7 @@ class SqrlRequestHandlerTest extends \PHPUnit_Framework_TestCase{
         
         $obj = new SqrlRequestHandler($validator);
         $obj->parseRequest($get, $post, $server);
-        $this->assertEquals('No version was included in the request',$obj->getResponseMessage());
+        $this->assertEquals('ver=1&result=2&display=No+version+was+included+in+the+request',$obj->getResponseMessage());
         $this->assertEquals('200',$obj->getResponseCode());
     }
     
@@ -85,7 +85,7 @@ class SqrlRequestHandlerTest extends \PHPUnit_Framework_TestCase{
         
         $obj = new SqrlRequestHandler($validator);
         $obj->parseRequest($get, $post, $server);
-        $this->assertEquals('No nonce was included in the request',$obj->getResponseMessage());
+        $this->assertEquals('ver=1&result=2&display=No+nonce+was+included+in+the+request',$obj->getResponseMessage());
         $this->assertEquals('200',$obj->getResponseCode());
     }
     
@@ -103,7 +103,7 @@ class SqrlRequestHandlerTest extends \PHPUnit_Framework_TestCase{
         
         $obj = new SqrlRequestHandler($validator);
         $obj->parseRequest($get, $post, $server);
-        $this->assertEquals('No nonce was included in the request',$obj->getResponseMessage());
+        $this->assertEquals('ver=1&result=2&display=No+nonce+was+included+in+the+request',$obj->getResponseMessage());
         $this->assertEquals('200',$obj->getResponseCode());
     }
     
@@ -121,7 +121,7 @@ class SqrlRequestHandlerTest extends \PHPUnit_Framework_TestCase{
         
         $obj = new SqrlRequestHandler($validator);
         $obj->parseRequest($get, $post, $server);
-        $this->assertEquals('No nonce was included in the request',$obj->getResponseMessage());
+        $this->assertEquals('ver=1&result=2&display=No+nonce+was+included+in+the+request',$obj->getResponseMessage());
         $this->assertEquals('200',$obj->getResponseCode());
     }
     
@@ -140,7 +140,7 @@ class SqrlRequestHandlerTest extends \PHPUnit_Framework_TestCase{
         
         $obj = new SqrlRequestHandler($validator);
         $obj->parseRequest($get, $post, $server);
-        $this->assertEquals('No public key was included in the request',$obj->getResponseMessage());
+        $this->assertEquals('ver=1&result=2&display=No+public+key+was+included+in+the+request',$obj->getResponseMessage());
         $this->assertEquals('200',$obj->getResponseCode());
     }
     
@@ -159,7 +159,7 @@ class SqrlRequestHandlerTest extends \PHPUnit_Framework_TestCase{
         
         $obj = new SqrlRequestHandler($validator);
         $obj->parseRequest($get, $post, $server);
-        $this->assertEquals('No server URL was included in the request',$obj->getResponseMessage());
+        $this->assertEquals('ver=1&result=2&display=No+server+URL+was+included+in+the+request',$obj->getResponseMessage());
         $this->assertEquals('200',$obj->getResponseCode());
     }
     
@@ -179,7 +179,7 @@ class SqrlRequestHandlerTest extends \PHPUnit_Framework_TestCase{
         
         $obj = new SqrlRequestHandler($validator);
         $obj->parseRequest($get, $post, $server);
-        $this->assertEquals('No signature was included in the request',$obj->getResponseMessage());
+        $this->assertEquals('ver=1&result=2&display=No+signature+was+included+in+the+request',$obj->getResponseMessage());
         $this->assertEquals('200',$obj->getResponseCode());
     }
     
@@ -203,7 +203,7 @@ class SqrlRequestHandlerTest extends \PHPUnit_Framework_TestCase{
         
         $obj = new SqrlRequestHandler($validator);
         $obj->parseRequest($get, $post, $server);
-        $this->assertEquals("IP check failed.",$obj->getResponseMessage());
+        $this->assertEquals("ver=1&result=3&display=IP+check+failed.",$obj->getResponseMessage());
         $this->assertEquals('200',$obj->getResponseCode());
     }
     
@@ -227,14 +227,14 @@ class SqrlRequestHandlerTest extends \PHPUnit_Framework_TestCase{
         
         $obj = new SqrlRequestHandler($validator);
         $obj->parseRequest($get, $post, $server);
-        $this->assertEquals("The returned URL does not match the initial SQRL challenge.",$obj->getResponseMessage());
+        $this->assertEquals("ver=1&result=4&display=The+returned+URL+does+not+match+the+initial+SQRL+challenge.",$obj->getResponseMessage());
         $this->assertEquals('200',$obj->getResponseCode());
     }
     
     public function testHandlesFailedSignatureMatch()
     {
         $get = array('nut'=>'some valid nonce');
-        $post = array('serverurl'=>'sqrl://domain.com/login/sqrlauth.php?nut=some expired nonce',
+        $post = array('serverurl'=>'sqrl://domain.com/login/sqrlauth.php?nut=some valid nonce',
             'clientval'=>'ver=1&opt=enforce&authkey=xLOjlTKNdYFkCx-OMQT7hSoK7Ta54ioKZgWrh2ig0Fs',
             'authsig'=>'mwa-haha!');
         $server = array('REMOTE_ADDR'=>'192.168.0.1');
@@ -244,21 +244,21 @@ class SqrlRequestHandlerTest extends \PHPUnit_Framework_TestCase{
         $validator->expects($this->any())->method('setNonce')->with('some valid nonce')->will($this->returnValue(SqrlRequestHandler::AUTHENTICATION_REQUEST));
         $validator->expects($this->any())->method('setEnforceIP')->with(true);
         $validator->expects($this->any())->method('setAuthenticateKey')->with('xLOjlTKNdYFkCx+OMQT7hSoK7Ta54ioKZgWrh2ig0Fs=');
-        $validator->expects($this->any())->method('setSignedUrl')->with('sqrl://domain.com/login/sqrlauth.php?nut=some expired nonce');
+        $validator->expects($this->any())->method('setSignedUrl')->with('sqrl://domain.com/login/sqrlauth.php?nut=some valid nonce');
         $validator->expects($this->any())->method('setAuthenticateSignature')->with('mwa+haha!==');
         $validator->expects($this->any())->method('setRequestorIp')->with('192.168.0.1');
         $validator->expects($this->any())->method('validate')->will($this->throwException(new SqrlException('Signature not valid.',SqrlException::SIGNATURE_NOT_VALID)));
         
         $obj = new SqrlRequestHandler($validator);
         $obj->parseRequest($get, $post, $server);
-        $this->assertEquals("The signature is not valid.",$obj->getResponseMessage());
+        $this->assertEquals("ver=1&result=5&display=The+signature+is+not+valid.",$obj->getResponseMessage());
         $this->assertEquals('200',$obj->getResponseCode());
     }
     
     public function testHandlesSuccessfulValidation()
     {
         $get = array('nut'=>'some valid nonce');
-        $post = array('serverurl'=>'sqrl://domain.com/login/sqrlauth.php?nut=some expired nonce',
+        $post = array('serverurl'=>'sqrl://domain.com/login/sqrlauth.php?nut=some valid nonce',
             'clientval'=>'ver=1&opt=enforce&authkey=xLOjlTKNdYFkCx-OMQT7hSoK7Ta54ioKZgWrh2ig0Fs',
             'authsig'=>'mwa-haha!');
         $server = array('REMOTE_ADDR'=>'192.168.0.1');
@@ -268,14 +268,14 @@ class SqrlRequestHandlerTest extends \PHPUnit_Framework_TestCase{
         $validator->expects($this->any())->method('setNonce')->with('some valid nonce')->will($this->returnValue(SqrlRequestHandler::AUTHENTICATION_REQUEST));
         $validator->expects($this->any())->method('setEnforceIP')->with(true);
         $validator->expects($this->any())->method('setAuthenticateKey')->with('xLOjlTKNdYFkCx+OMQT7hSoK7Ta54ioKZgWrh2ig0Fs=');
-        $validator->expects($this->any())->method('setSignedUrl')->with('sqrl://domain.com/login/sqrlauth.php?nut=some expired nonce');
+        $validator->expects($this->any())->method('setSignedUrl')->with('sqrl://domain.com/login/sqrlauth.php?nut=some valid nonce');
         $validator->expects($this->any())->method('setAuthenticateSignature')->with('mwa+haha!==');
         $validator->expects($this->any())->method('setRequestorIp')->with('192.168.0.1');
         $validator->expects($this->any())->method('validate')->will($this->returnValue(true));
         
         $obj = new SqrlRequestHandler($validator);
         $obj->parseRequest($get, $post, $server);
-        $this->assertEquals("Successfully authenticated.",$obj->getResponseMessage());
+        $this->assertEquals("ver=1&result=1&display=Successfully+authenticated.",$obj->getResponseMessage());
         $this->assertEquals('200',$obj->getResponseCode());
     }
     
@@ -285,7 +285,7 @@ class SqrlRequestHandlerTest extends \PHPUnit_Framework_TestCase{
     public function testRequestsSecondLoopNewAuthenticationNoGenerate()
     {
         $get = array('nut'=>'some valid nonce');
-        $post = array('serverurl'=>'sqrl://domain.com/login/sqrlauth.php?nut=some expired nonce',
+        $post = array('serverurl'=>'sqrl://domain.com/login/sqrlauth.php?nut=some valid nonce',
             'clientval'=>'ver=1&opt=enforce&authkey=xLOjlTKNdYFkCx-OMQT7hSoK7Ta54ioKZgWrh2ig0Fs',
             'authsig'=>'mwa-haha!');
         $server = array('REMOTE_ADDR'=>'192.168.0.1');
@@ -296,7 +296,7 @@ class SqrlRequestHandlerTest extends \PHPUnit_Framework_TestCase{
         $validator->expects($this->any())->method('setNonce')->with('some valid nonce')->will($this->returnValue(SqrlRequestHandler::AUTHENTICATION_REQUEST));
         $validator->expects($this->any())->method('setEnforceIP')->with(true);
         $validator->expects($this->any())->method('setAuthenticateKey')->with('xLOjlTKNdYFkCx+OMQT7hSoK7Ta54ioKZgWrh2ig0Fs=');
-        $validator->expects($this->any())->method('setSignedUrl')->with('sqrl://domain.com/login/sqrlauth.php?nut=some expired nonce');
+        $validator->expects($this->any())->method('setSignedUrl')->with('sqrl://domain.com/login/sqrlauth.php?nut=some valid nonce');
         $validator->expects($this->any())->method('setAuthenticateSignature')->with('mwa+haha!==');
         $validator->expects($this->any())->method('setRequestorIp')->with('192.168.0.1');
         $validator->expects($this->any())->method('validate')->will($this->returnValue(true));
@@ -308,7 +308,7 @@ class SqrlRequestHandlerTest extends \PHPUnit_Framework_TestCase{
         
         $obj = new SqrlRequestHandler($validator,$store);
         $obj->parseRequest($get, $post, $server);
-        $this->assertEquals("Second loop required: new account",$obj->getResponseMessage());
+        $this->assertEquals("ver=1&result=6&display=No+matching+account+found.+Please+supply+Identity+Lock+information.",$obj->getResponseMessage());
     }
     
     /**
@@ -317,7 +317,7 @@ class SqrlRequestHandlerTest extends \PHPUnit_Framework_TestCase{
     public function testRequestsSecondLoopNewAuthenticationWithGenerate()
     {
         $get = array('nut'=>'some valid nonce');
-        $post = array('serverurl'=>'sqrl://domain.com/login/sqrlauth.php?nut=some expired nonce',
+        $post = array('serverurl'=>'sqrl://domain.com/login/sqrlauth.php?nut=some valid nonce',
             'clientval'=>'ver=1&opt=enforce&authkey=xLOjlTKNdYFkCx-OMQT7hSoK7Ta54ioKZgWrh2ig0Fs',
             'authsig'=>'mwa-haha!');
         $server = array('REMOTE_ADDR'=>'192.168.0.1');
@@ -328,7 +328,7 @@ class SqrlRequestHandlerTest extends \PHPUnit_Framework_TestCase{
         $validator->expects($this->any())->method('setNonce')->with('some valid nonce')->will($this->returnValue(SqrlRequestHandler::AUTHENTICATION_REQUEST));
         $validator->expects($this->any())->method('setEnforceIP')->with(true);
         $validator->expects($this->any())->method('setAuthenticateKey')->with('xLOjlTKNdYFkCx+OMQT7hSoK7Ta54ioKZgWrh2ig0Fs=');
-        $validator->expects($this->any())->method('setSignedUrl')->with('sqrl://domain.com/login/sqrlauth.php?nut=some expired nonce');
+        $validator->expects($this->any())->method('setSignedUrl')->with('sqrl://domain.com/login/sqrlauth.php?nut=some valid nonce');
         $validator->expects($this->any())->method('setAuthenticateSignature')->with('mwa+haha!==');
         $validator->expects($this->any())->method('setRequestorIp')->with('192.168.0.1');
         $validator->expects($this->any())->method('validate')->will($this->returnValue(true));
@@ -341,11 +341,12 @@ class SqrlRequestHandlerTest extends \PHPUnit_Framework_TestCase{
         $gen = $this->getMock('\trianglman\sqrl\interfaces\SqrlGenerate');
         $gen->expects($this->once())->method('getNonce')
                 ->with(SqrlRequestHandler::NEW_ACCOUNT_REQUEST,'xLOjlTKNdYFkCx+OMQT7hSoK7Ta54ioKZgWrh2ig0Fs=');
-        $gen->expects($this->once())->method('getUrl')->will($this->returnValue('url'));
+        $gen->expects($this->once())->method('getUrl')->will($this->returnValue('sqrl://domain.com/login/sqrlauth.php?nut=some new nonce'));
         
         $obj = new SqrlRequestHandler($validator,$store,$gen);
         $obj->parseRequest($get, $post, $server);
-        $this->assertEquals("url",$obj->getResponseMessage());
+        $this->assertEquals("ver=1&result=6&display=No+matching+account+found.+Please+supply+Identity+Lock+information."
+                ."&serverurl=sqrl%3A%2F%2Fdomain.com%2Flogin%2Fsqrlauth.php%3Fnut%3Dsome+new+nonce",$obj->getResponseMessage());
     }
     
     /**
@@ -354,7 +355,7 @@ class SqrlRequestHandlerTest extends \PHPUnit_Framework_TestCase{
     public function testHandlesNewAccountRequest()
     {
         $get = array('nut'=>'some valid nonce');
-        $post = array('serverurl'=>'sqrl://domain.com/login/sqrlauth.php?nut=some expired nonce',
+        $post = array('serverurl'=>'sqrl://domain.com/login/sqrlauth.php?nut=some valid nonce',
             'clientval'=>'ver=1&opt=enforce&authkey=xLOjlTKNdYFkCx-OMQT7hSoK7Ta54ioKZgWrh2ig0Fs'
                     .'&suk=xLOjlTKNdYFkCx-OMQT7hSoK7Ta54ioKZgWrh2ig0Fs&vuk=xLOjlTKNdYFkCx-OMQT7hSoK7Ta54ioKZgWrh2ig0Fs',
             'authsig'=>'mwa-haha!');
@@ -367,7 +368,7 @@ class SqrlRequestHandlerTest extends \PHPUnit_Framework_TestCase{
         $validator->expects($this->any())->method('setNonce')->with('some valid nonce')->will($this->returnValue(SqrlRequestHandler::NEW_ACCOUNT_REQUEST));
         $validator->expects($this->any())->method('setEnforceIP')->with(true);
         $validator->expects($this->any())->method('setAuthenticateKey')->with('xLOjlTKNdYFkCx+OMQT7hSoK7Ta54ioKZgWrh2ig0Fs=');
-        $validator->expects($this->any())->method('setSignedUrl')->with('sqrl://domain.com/login/sqrlauth.php?nut=some expired nonce');
+        $validator->expects($this->any())->method('setSignedUrl')->with('sqrl://domain.com/login/sqrlauth.php?nut=some valid nonce');
         $validator->expects($this->any())->method('setAuthenticateSignature')->with('mwa+haha!==');
         $validator->expects($this->any())->method('setRequestorIp')->with('192.168.0.1');
         $validator->expects($this->any())->method('validate')->will($this->returnValue(true));
@@ -380,7 +381,7 @@ class SqrlRequestHandlerTest extends \PHPUnit_Framework_TestCase{
         
         $obj = new SqrlRequestHandler($validator,$store);
         $obj->parseRequest($get, $post, $server);
-        $this->assertEquals("New account successfully created.",$obj->getResponseMessage());
+        $this->assertEquals("ver=1&result=1&display=New+account+successfully+created.",$obj->getResponseMessage());
     }
     
     /**
@@ -389,7 +390,7 @@ class SqrlRequestHandlerTest extends \PHPUnit_Framework_TestCase{
     public function testHandlesDisableRequest()
     {
         $get = array('nut'=>'some valid nonce');
-        $post = array('serverurl'=>'sqrl://domain.com/login/sqrlauth.php?nut=some expired nonce',
+        $post = array('serverurl'=>'sqrl://domain.com/login/sqrlauth.php?nut=some valid nonce',
             'clientval'=>'ver=1&opt=enforce disable&authkey=xLOjlTKNdYFkCx-OMQT7hSoK7Ta54ioKZgWrh2ig0Fs',
             'authsig'=>'mwa-haha!');
         $server = array('REMOTE_ADDR'=>'192.168.0.1');
@@ -400,7 +401,7 @@ class SqrlRequestHandlerTest extends \PHPUnit_Framework_TestCase{
         $validator->expects($this->any())->method('setNonce')->with('some valid nonce')->will($this->returnValue(SqrlRequestHandler::AUTHENTICATION_REQUEST));
         $validator->expects($this->any())->method('setEnforceIP')->with(true);
         $validator->expects($this->any())->method('setAuthenticateKey')->with('xLOjlTKNdYFkCx+OMQT7hSoK7Ta54ioKZgWrh2ig0Fs=');
-        $validator->expects($this->any())->method('setSignedUrl')->with('sqrl://domain.com/login/sqrlauth.php?nut=some expired nonce');
+        $validator->expects($this->any())->method('setSignedUrl')->with('sqrl://domain.com/login/sqrlauth.php?nut=some valid nonce');
         $validator->expects($this->any())->method('setAuthenticateSignature')->with('mwa+haha!==');
         $validator->expects($this->any())->method('setRequestorIp')->with('192.168.0.1');
         $validator->expects($this->any())->method('validate')->will($this->returnValue(true));
@@ -411,7 +412,7 @@ class SqrlRequestHandlerTest extends \PHPUnit_Framework_TestCase{
         
         $obj = new SqrlRequestHandler($validator,$store);
         $obj->parseRequest($get, $post, $server);
-        $this->assertEquals('Account locked.',$obj->getResponseMessage());
+        $this->assertEquals('ver=1&result=1&display=Account+locked.',$obj->getResponseMessage());
     }
     
     /**
@@ -420,7 +421,7 @@ class SqrlRequestHandlerTest extends \PHPUnit_Framework_TestCase{
     public function testHandlesReKeyRequestNoGenerate()
     {
         $get = array('nut'=>'some valid nonce');
-        $post = array('serverurl'=>'sqrl://domain.com/login/sqrlauth.php?nut=some expired nonce',
+        $post = array('serverurl'=>'sqrl://domain.com/login/sqrlauth.php?nut=some valid nonce',
             'clientval'=>'ver=1&opt=enforce rekey&authkey=xLOjlTKNdYFkCx-OMQT7hSoK7Ta54ioKZgWrh2ig0Fs',
             'authsig'=>'mwa-haha!');
         $server = array('REMOTE_ADDR'=>'192.168.0.1');
@@ -431,7 +432,7 @@ class SqrlRequestHandlerTest extends \PHPUnit_Framework_TestCase{
         $validator->expects($this->any())->method('setNonce')->with('some valid nonce')->will($this->returnValue(SqrlRequestHandler::AUTHENTICATION_REQUEST));
         $validator->expects($this->any())->method('setEnforceIP')->with(true);
         $validator->expects($this->any())->method('setAuthenticateKey')->with('xLOjlTKNdYFkCx+OMQT7hSoK7Ta54ioKZgWrh2ig0Fs=');
-        $validator->expects($this->any())->method('setSignedUrl')->with('sqrl://domain.com/login/sqrlauth.php?nut=some expired nonce');
+        $validator->expects($this->any())->method('setSignedUrl')->with('sqrl://domain.com/login/sqrlauth.php?nut=some valid nonce');
         $validator->expects($this->any())->method('setAuthenticateSignature')->with('mwa+haha!==');
         $validator->expects($this->any())->method('setRequestorIp')->with('192.168.0.1');
         $validator->expects($this->any())->method('validate')->will($this->returnValue(true));
@@ -440,7 +441,7 @@ class SqrlRequestHandlerTest extends \PHPUnit_Framework_TestCase{
         
         $obj = new SqrlRequestHandler($validator,$store);
         $obj->parseRequest($get, $post, $server);
-        $this->assertEquals("Second loop required: re-key",$obj->getResponseMessage());
+        $this->assertEquals("ver=1&result=6&display=Second+loop+required+to+perform+the+re-key+request.",$obj->getResponseMessage());
     }
     
     /**
@@ -449,7 +450,7 @@ class SqrlRequestHandlerTest extends \PHPUnit_Framework_TestCase{
     public function testHandlesReKeyRequestGenerate()
     {
         $get = array('nut'=>'some valid nonce');
-        $post = array('serverurl'=>'sqrl://domain.com/login/sqrlauth.php?nut=some expired nonce',
+        $post = array('serverurl'=>'sqrl://domain.com/login/sqrlauth.php?nut=some valid nonce',
             'clientval'=>'ver=1&opt=enforce rekey&authkey=xLOjlTKNdYFkCx-OMQT7hSoK7Ta54ioKZgWrh2ig0Fs',
             'authsig'=>'mwa-haha!');
         $server = array('REMOTE_ADDR'=>'192.168.0.1');
@@ -460,7 +461,7 @@ class SqrlRequestHandlerTest extends \PHPUnit_Framework_TestCase{
         $validator->expects($this->any())->method('setNonce')->with('some valid nonce')->will($this->returnValue(SqrlRequestHandler::AUTHENTICATION_REQUEST));
         $validator->expects($this->any())->method('setEnforceIP')->with(true);
         $validator->expects($this->any())->method('setAuthenticateKey')->with('xLOjlTKNdYFkCx+OMQT7hSoK7Ta54ioKZgWrh2ig0Fs=');
-        $validator->expects($this->any())->method('setSignedUrl')->with('sqrl://domain.com/login/sqrlauth.php?nut=some expired nonce');
+        $validator->expects($this->any())->method('setSignedUrl')->with('sqrl://domain.com/login/sqrlauth.php?nut=some valid nonce');
         $validator->expects($this->any())->method('setAuthenticateSignature')->with('mwa+haha!==');
         $validator->expects($this->any())->method('setRequestorIp')->with('192.168.0.1');
         $validator->expects($this->any())->method('validate')->will($this->returnValue(true));
@@ -470,11 +471,12 @@ class SqrlRequestHandlerTest extends \PHPUnit_Framework_TestCase{
         $gen = $this->getMock('\trianglman\sqrl\interfaces\SqrlGenerate');
         $gen->expects($this->once())->method('getNonce')
                 ->with(SqrlRequestHandler::REKEY_REQUEST_LOOP2,'xLOjlTKNdYFkCx+OMQT7hSoK7Ta54ioKZgWrh2ig0Fs=');
-        $gen->expects($this->once())->method('getUrl')->will($this->returnValue('url'));
+        $gen->expects($this->once())->method('getUrl')->will($this->returnValue('sqrl://domain.com/login/sqrlauth.php?nut=some new nonce'));
         
         $obj = new SqrlRequestHandler($validator,$store,$gen);
         $obj->parseRequest($get, $post, $server);
-        $this->assertEquals("url",$obj->getResponseMessage());
+        $this->assertEquals("ver=1&result=6&display=Second+loop+required+to+perform+the+re-key+request."
+                ."&serverurl=sqrl%3A%2F%2Fdomain.com%2Flogin%2Fsqrlauth.php%3Fnut%3Dsome+new+nonce",$obj->getResponseMessage());
     }
     
     /**
@@ -483,7 +485,7 @@ class SqrlRequestHandlerTest extends \PHPUnit_Framework_TestCase{
     public function testHandlesReKeyLoop2Unlock()
     {
         $get = array('nut'=>'some valid nonce');
-        $post = array('serverurl'=>'sqrl://domain.com/login/sqrlauth.php?nut=some expired nonce',
+        $post = array('serverurl'=>'sqrl://domain.com/login/sqrlauth.php?nut=some valid nonce',
             'clientval'=>'ver=1&opt=enforce&authkey=xLOjlTKNdYFkCx-OMQT7hSoK7Ta54ioKZgWrh2ig0Fs&urskey=xLOjlTKNdYFkCx-OMQT7hSoK7Ta54ioKZgWrh2ig0Fs',
             'authsig'=>'mwa-haha!',
             'urssig'=>'open sesame');
@@ -495,7 +497,7 @@ class SqrlRequestHandlerTest extends \PHPUnit_Framework_TestCase{
         $validator->expects($this->any())->method('setNonce')->with('some valid nonce')->will($this->returnValue(SqrlRequestHandler::REKEY_REQUEST_LOOP2));
         $validator->expects($this->any())->method('setEnforceIP')->with(true);
         $validator->expects($this->any())->method('setAuthenticateKey')->with('xLOjlTKNdYFkCx+OMQT7hSoK7Ta54ioKZgWrh2ig0Fs=');
-        $validator->expects($this->any())->method('setSignedUrl')->with('sqrl://domain.com/login/sqrlauth.php?nut=some expired nonce');
+        $validator->expects($this->any())->method('setSignedUrl')->with('sqrl://domain.com/login/sqrlauth.php?nut=some valid nonce');
         $validator->expects($this->any())->method('setAuthenticateSignature')->with('mwa+haha!==');
         $validator->expects($this->any())->method('setRequestorIp')->with('192.168.0.1');
         $validator->expects($this->any())->method('validate')->will($this->returnValue(true));
@@ -507,7 +509,7 @@ class SqrlRequestHandlerTest extends \PHPUnit_Framework_TestCase{
         
         $obj = new SqrlRequestHandler($validator,$store);
         $obj->parseRequest($get, $post, $server);
-        $this->assertEquals('Account Re-enabled.',$obj->getResponseMessage());
+        $this->assertEquals('ver=1&result=1&display=Account+Re-enabled.',$obj->getResponseMessage());
     }
     
     /**
@@ -516,7 +518,7 @@ class SqrlRequestHandlerTest extends \PHPUnit_Framework_TestCase{
     public function testHandlesReKeyLoop2Migrate()
     {
         $get = array('nut'=>'some valid nonce');
-        $post = array('serverurl'=>'sqrl://domain.com/login/sqrlauth.php?nut=some expired nonce',
+        $post = array('serverurl'=>'sqrl://domain.com/login/sqrlauth.php?nut=some valid nonce',
             'clientval'=>'ver=1&opt=enforce&authkey=xLOjlTKNdYFkCx-OMQT7hSoK7Ta54ioKZgWrh2ig0Fs'
                     .'&urskey=xLOjlTKNdYFkCx-OMQT7hSoK7Ta54ioKZgWrh2ig0Fs&newkey=zzzjlTKNdYFkCx-OMQT7hSoK7Ta54ioKZgWrh2ig0Fs',
             'authsig'=>'mwa-haha!',
@@ -531,7 +533,7 @@ class SqrlRequestHandlerTest extends \PHPUnit_Framework_TestCase{
         $validator->expects($this->any())->method('setNonce')->with('some valid nonce')->will($this->returnValue(SqrlRequestHandler::REKEY_REQUEST_LOOP2));
         $validator->expects($this->any())->method('setEnforceIP')->with(true);
         $validator->expects($this->any())->method('setAuthenticateKey')->with('xLOjlTKNdYFkCx+OMQT7hSoK7Ta54ioKZgWrh2ig0Fs=');
-        $validator->expects($this->any())->method('setSignedUrl')->with('sqrl://domain.com/login/sqrlauth.php?nut=some expired nonce');
+        $validator->expects($this->any())->method('setSignedUrl')->with('sqrl://domain.com/login/sqrlauth.php?nut=some valid nonce');
         $validator->expects($this->any())->method('setAuthenticateSignature')->with('mwa+haha!==');
         $validator->expects($this->any())->method('setRequestorIp')->with('192.168.0.1');
         $validator->expects($this->any())->method('validate')->will($this->returnValue(true));
@@ -545,7 +547,7 @@ class SqrlRequestHandlerTest extends \PHPUnit_Framework_TestCase{
         
         $obj = new SqrlRequestHandler($validator,$store);
         $obj->parseRequest($get, $post, $server);
-        $this->assertEquals('Authentication key migrated.',$obj->getResponseMessage());
+        $this->assertEquals('ver=1&result=1&display=Authentication+key+migrated.',$obj->getResponseMessage());
     }
     
     /**
@@ -554,7 +556,7 @@ class SqrlRequestHandlerTest extends \PHPUnit_Framework_TestCase{
     public function testHandlesReKeyLoop2ReLock()
     {
         $get = array('nut'=>'some valid nonce');
-        $post = array('serverurl'=>'sqrl://domain.com/login/sqrlauth.php?nut=some expired nonce',
+        $post = array('serverurl'=>'sqrl://domain.com/login/sqrlauth.php?nut=some valid nonce',
             'clientval'=>'ver=1&opt=enforce&authkey=xLOjlTKNdYFkCx-OMQT7hSoK7Ta54ioKZgWrh2ig0Fs'
                     .'&urskey=xLOjlTKNdYFkCx-OMQT7hSoK7Ta54ioKZgWrh2ig0Fs&suk=xLOjlTKNdYFkCx-OMQT7hSoK7Ta54ioKZgWrh2ig0Fs'
                     .'&vuk=xLOjlTKNdYFkCx-OMQT7hSoK7Ta54ioKZgWrh2ig0Fs',
@@ -571,7 +573,7 @@ class SqrlRequestHandlerTest extends \PHPUnit_Framework_TestCase{
         $validator->expects($this->any())->method('setNonce')->with('some valid nonce')->will($this->returnValue(SqrlRequestHandler::REKEY_REQUEST_LOOP2));
         $validator->expects($this->any())->method('setEnforceIP')->with(true);
         $validator->expects($this->any())->method('setAuthenticateKey')->with('xLOjlTKNdYFkCx+OMQT7hSoK7Ta54ioKZgWrh2ig0Fs=');
-        $validator->expects($this->any())->method('setSignedUrl')->with('sqrl://domain.com/login/sqrlauth.php?nut=some expired nonce');
+        $validator->expects($this->any())->method('setSignedUrl')->with('sqrl://domain.com/login/sqrlauth.php?nut=some valid nonce');
         $validator->expects($this->any())->method('setAuthenticateSignature')->with('mwa+haha!==');
         $validator->expects($this->any())->method('setRequestorIp')->with('192.168.0.1');
         $validator->expects($this->any())->method('validate')->will($this->returnValue(true));
@@ -586,7 +588,7 @@ class SqrlRequestHandlerTest extends \PHPUnit_Framework_TestCase{
         
         $obj = new SqrlRequestHandler($validator,$store);
         $obj->parseRequest($get, $post, $server);
-        $this->assertEquals('Identity Lock key migrated.',$obj->getResponseMessage());
+        $this->assertEquals('ver=1&result=1&display=Identity+Lock+key+migrated.',$obj->getResponseMessage());
     }
     
     /**
@@ -595,7 +597,7 @@ class SqrlRequestHandlerTest extends \PHPUnit_Framework_TestCase{
     public function testHandlesReKeyLoop2Replace()
     {
         $get = array('nut'=>'some valid nonce');
-        $post = array('serverurl'=>'sqrl://domain.com/login/sqrlauth.php?nut=some expired nonce',
+        $post = array('serverurl'=>'sqrl://domain.com/login/sqrlauth.php?nut=some valid nonce',
             'clientval'=>'ver=1&opt=enforce&authkey=xLOjlTKNdYFkCx-OMQT7hSoK7Ta54ioKZgWrh2ig0Fs'
                     .'&urskey=xLOjlTKNdYFkCx-OMQT7hSoK7Ta54ioKZgWrh2ig0Fs&newkey=zzzjlTKNdYFkCx-OMQT7hSoK7Ta54ioKZgWrh2ig0Fs'
                     .'&suk=xLOjlTKNdYFkCx-OMQT7hSoK7Ta54ioKZgWrh2ig0Fs&vuk=xLOjlTKNdYFkCx-OMQT7hSoK7Ta54ioKZgWrh2ig0Fs',
@@ -612,7 +614,7 @@ class SqrlRequestHandlerTest extends \PHPUnit_Framework_TestCase{
         $validator->expects($this->any())->method('setNonce')->with('some valid nonce')->will($this->returnValue(SqrlRequestHandler::REKEY_REQUEST_LOOP2));
         $validator->expects($this->any())->method('setEnforceIP')->with(true);
         $validator->expects($this->any())->method('setAuthenticateKey')->with('xLOjlTKNdYFkCx+OMQT7hSoK7Ta54ioKZgWrh2ig0Fs=');
-        $validator->expects($this->any())->method('setSignedUrl')->with('sqrl://domain.com/login/sqrlauth.php?nut=some expired nonce');
+        $validator->expects($this->any())->method('setSignedUrl')->with('sqrl://domain.com/login/sqrlauth.php?nut=some valid nonce');
         $validator->expects($this->any())->method('setAuthenticateSignature')->with('mwa+haha!==');
         $validator->expects($this->any())->method('setRequestorIp')->with('192.168.0.1');
         $validator->expects($this->any())->method('validate')->will($this->returnValue(true));
@@ -627,7 +629,7 @@ class SqrlRequestHandlerTest extends \PHPUnit_Framework_TestCase{
         
         $obj = new SqrlRequestHandler($validator,$store);
         $obj->parseRequest($get, $post, $server);
-        $this->assertEquals('Authentication keys migrated.',$obj->getResponseMessage());
+        $this->assertEquals('ver=1&result=1&display=Authentication+keys+migrated.',$obj->getResponseMessage());
     }
     
 }
