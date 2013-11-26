@@ -452,7 +452,7 @@ class SqrlRequestHandler implements \trianglman\sqrl\interfaces\SqrlRequestHandl
      */
     public function sendResponse()
     {
-        
+        echo $this->getResponseMessage();
     }
     
     protected function formatRequest($display,$code=self::OK,$serverurl='')
