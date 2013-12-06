@@ -21,45 +21,47 @@
  * IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN
  * CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
  */
+namespace Trianglman\Sqrl;
 
-namespace trianglman\sqrl\src;
+use Endroid\QrCode\QrCode;
 
 /**
  * Generates a SQRL QR image, URL and nonce.
  *
  * @author johnj
  */
-class SqrlGenerate implements \trianglman\sqrl\interfaces\SqrlGenerate {
-    
+class SqrlGenerate implements SqrlGenerateInterface
+{
     /**
-     * @var \trianglman\sqrl\interfaces\SqrlStore
+     * @var SqrlStore
      */
-    protected $store=null;
-    
-    protected $_secure=false;
-    
-    protected $_domain='';
-    
-    protected $_authPath='';
-    
-    protected $_qrHeight=300;
-    
-    protected $_qrPad=10;
-    
-    protected $_salt='asWB^<O]3>H*`a`h_b$XX6r*^6WkNV!;hAgL,X}:#mag"pq)lpUFuj^d5R3i?;X';
-    
-    protected $_nonce='';
-    
-    protected $_requestorIP=0;
+    protected $store = null;
 
-    public function getNonce($action = SqrlRequestHandler::AUTHENTICATION_REQUEST,$key='')
+    protected $_secure = false;
+
+    protected $_domain = '';
+
+    protected $_authPath = '';
+
+    protected $_qrHeight = 300;
+
+    protected $_qrPad = 10;
+
+    protected $_salt = 'asWB^<O]3>H*`a`h_b$XX6r*^6WkNV!;hAgL,X}:#mag"pq)lpUFuj^d5R3i?;X';
+
+    protected $_nonce = '';
+
+    protected $_requestorIP = 0;
+
+    public function getNonce($action = SqrlRequestHandlerInterface::AUTHENTICATION_REQUEST, $key = '')
     {
-        if(empty($this->_nonce)){
-            $this->_generateNonce($action,$key);
+        if (empty($this->_nonce)) {
+            $this->_generateNonce($action, $key);
         }
+
         return $this->_nonce;
     }
-    
+
     public function getUrl()
     {
         return $this->_buildUrl();
@@ -67,42 +69,42 @@ class SqrlGenerate implements \trianglman\sqrl\interfaces\SqrlGenerate {
 
     public function loadConfigFromJSON($filePath)
     {
-        if(!file_exists($filePath)){
+        if (!file_exists($filePath)) {
             throw new \InvalidArgumentException('Configuration file not found');
         }
         $data = file_get_contents($filePath);
         $decoded = json_decode($data);
-        if(is_null($decoded)){
+        if (is_null($decoded)) {
             throw new \InvalidArgumentException('Configuration data could not be parsed. Is it JSON formatted?');
         }
-        if(!empty($decoded->secure)){
-            $this->setSecure($decoded->secure>0);
+        if (!empty($decoded->secure)) {
+            $this->setSecure($decoded->secure > 0);
         }
-        if(!empty($decoded->key_domain)){
+        if (!empty($decoded->key_domain)) {
             $this->setKeyDomain($decoded->key_domain);
         }
-        if(!empty($decoded->authentication_path)){
+        if (!empty($decoded->authentication_path)) {
             $this->setAuthenticationPath($decoded->authentication_path);
         }
-        if(!empty($decoded->height)){
+        if (!empty($decoded->height)) {
             $this->setHeight($decoded->height);
         }
-        if(!empty($decoded->padding)){
+        if (!empty($decoded->padding)) {
             $this->setPadding($decoded->padding);
         }
-        if(!empty($decoded->nonce_salt)){
+        if (!empty($decoded->nonce_salt)) {
             $this->setSalt($decoded->nonce_salt);
         }
     }
 
-    public function setStorage(\trianglman\sqrl\interfaces\SqrlStore $storage)
+    public function setStorage(SqrlStoreInterface $storage)
     {
         $this->store = $storage;
     }
-    
-    public function render($outputFile) 
+
+    public function render($outputFile)
     {
-        $qrCode = new \Endroid\QrCode\QrCode();
+        $qrCode = new QrCode();
         $qrCode->setText($this->getUrl());
         $qrCode->setSize($this->_qrHeight);
         $qrCode->setPadding($this->_qrPad);
@@ -111,92 +113,103 @@ class SqrlGenerate implements \trianglman\sqrl\interfaces\SqrlGenerate {
 
     public function setHeight($height)
     {
-        if(is_numeric($height)){
+        if (is_numeric($height)) {
             $this->_qrHeight = $height;
         }
     }
 
-    public function setPadding($pad) 
+    public function setPadding($pad)
     {
-        if(is_numeric($pad)){
+        if (is_numeric($pad)) {
             $this->_qrPad = $pad;
         }
     }
 
-    public function setSalt($salt) 
+    public function setSalt($salt)
     {
         $this->_salt = $salt;
     }
-    
+
     /**
      * Sets the IP of the user who requested the SQRL image
-     * 
+     *
      * @param string $ip
-     * 
+     *
+     * @throws \InvalidArgumentException
      * @return void
      */
     public function setRequestorIp($ip)
     {
-        if(!filter_var($ip,FILTER_VALIDATE_IP,FILTER_FLAG_IPV4)){throw new \InvalidArgumentException('Not a valid IPv4');}
+        if (!filter_var($ip, FILTER_VALIDATE_IP, FILTER_FLAG_IPV4)) {
+            throw new \InvalidArgumentException('Not a valid IPv4');
+        }
         $this->_requestorIP = ip2long($ip);
     }
-    
+
     /**
      * Generates a random, one time use key to be used in the sqrl validation
-     * 
-     * The implementation of this may get more complicated depending on the 
-     * requirements detailed in any reference implementation. Users wanting to 
-     * make this library more (or less) secure should override this function 
+     *
+     * The implementation of this may get more complicated depending on the
+     * requirements detailed in any reference implementation. Users wanting to
+     * make this library more (or less) secure should override this function
      * to strengthen (or weaken) the randomness of the generation.
-     * 
+     *
      * @param int $action [Optional] The type of action this nonce is being generated for
+     *
      * @see SqrlRequestHandler
+     *
      * @param string $key [Optional] The public key associated with the nonce
-     * 
+     *
      * @return string
      */
-    protected function _generateNonce($action = SqrlRequestHandler::AUTHENTICATION_REQUEST,$key='')
+    protected function _generateNonce($action = SqrlRequestHandlerInterface::AUTHENTICATION_REQUEST, $key = '')
     {
-        $this->_nonce = hash_hmac('sha256', uniqid('',true), $this->_salt);
-        if(!is_null($this->store)){
+        $this->_nonce = hash_hmac('sha256', uniqid('', true), $this->_salt);
+        if (!is_null($this->store)) {
             $this->store->storeNut($this->_nonce, $this->_requestorIP, $action, $key);
         }
+
         return $this->_nonce;
     }
-    
+
     /**
      * Generates the URL to display in the QR code
-     * 
-     * Separated this out to break out the logic that determines how to append 
+     *
+     * Separated this out to break out the logic that determines how to append
      * to the URL. This can be extended to add extra SQRL validation to add
      * requests for user information if that is determined to be valid in the
      * standard.
-     * 
+     *
      * @return string
      */
     protected function _buildUrl()
     {
-        $url = ($this->_secure?'s':'').'qrl://'.$this->_domain.(strpos($this->_domain,'/')!==false?'|':'/').$this->_authPath;
+        $url = ($this->_secure ? 's' : '').'qrl://'.$this->_domain.(strpos(
+                $this->_domain,
+                '/'
+            ) !== false ? '|' : '/').$this->_authPath;
         $currentPathParts = parse_url($url);
-        if(!empty($currentPathParts['query'])){
+        if (!empty($currentPathParts['query'])) {
             $pathAppend = '&nut=';
-        }
-        else{
+        } else {
             $pathAppend = '?nut=';
         }
+
         return $url.$pathAppend.$this->getNonce();
     }
 
-    public function setAuthenticationPath($path) 
+    public function setAuthenticationPath($path)
     {
         $this->_authPath = $path;
     }
 
-    public function setKeyDomain($domain) {
+    public function setKeyDomain($domain)
+    {
         $this->_domain = $domain;
     }
 
-    public function setSecure($sec) {
-        $this->_secure = (bool)$sec;
+    public function setSecure($sec)
+    {
+        $this->_secure = (bool) $sec;
     }
 }

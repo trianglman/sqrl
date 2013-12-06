@@ -22,23 +22,43 @@
  * IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN
  * CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
  */
-
-namespace trianglman\sqrl\interfaces;
+namespace Trianglman\Sqrl\Ed25519;
 
 /**
- *
  * @author johnj
  */
-interface NonceValidator {
-    
+interface CryptoInterface
+{
     /**
-     * Validates a supplied signature against the original and the public key
-     * 
-     * @param string $orig The original message
-     * @param string $sig The signature to verify
-     * @param string $pk The public key derived from the private key that created the signature
-     * 
-     * @return boolean
+     * Generates the public key of a given private key
+     *
+     * @param string $sk the secret key
+     *
+     * @return string
      */
-    public function validateSignature($orig,$sig,$pk);
+    public function publickey($sk);
+
+    /**
+     * Signs a string with the private key
+     *
+     * @param string $m  The message to sign
+     * @param string $sk The secret key to sign the message with
+     * @param string $pk The public key that will be able to verify the signature
+     *
+     * @return string
+     */
+    public function signature($m, $sk, $pk);
+
+    /**
+     * Validates a signature matches a given message
+     *
+     * @param string $s  The message signature
+     * @param string $m  The original message
+     * @param string $pk The public key to verify the signature
+     *
+     * @return boolean
+     *
+     * @throws \Exception
+     */
+    public function checkvalid($s, $m, $pk);
 }

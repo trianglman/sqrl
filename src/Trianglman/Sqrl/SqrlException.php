@@ -1,5 +1,4 @@
 <?php
-
 /*
  * The MIT License (MIT)
  * 
@@ -22,20 +21,26 @@
  * IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN
  * CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
  */
-
-namespace trianglman\sqrl\src;
+namespace Trianglman\Sqrl;
 
 /**
  * Exceptions that can be thrown during the validation process
  *
  * @author johnj
  */
-class SqrlException extends \Exception{
-    const ENFORCE_IP_FAIL=1;
-    const SIGNED_URL_DOESNT_MATCH=2;
-    const NONCE_NOT_FOUND=3;
-    const SIGNATURE_NOT_VALID=4;
-    const EXPIRED_NONCE=5;
-    const DATABASE_NOT_CONFIGURED=6;
-    const DATABASE_EXCEPTION=7;
+class SqrlException extends \Exception
+{
+    const ENFORCE_IP_FAIL = 1;
+
+    const SIGNED_URL_DOESNT_MATCH = 2;
+
+    const NONCE_NOT_FOUND = 3;
+
+    const SIGNATURE_NOT_VALID = 4;
+
+    const EXPIRED_NONCE = 5;
+
+    const DATABASE_NOT_CONFIGURED = 6;
+
+    const DATABASE_EXCEPTION = 7;
 }

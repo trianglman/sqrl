@@ -1,5 +1,4 @@
 <?php
-
 /*
  * The MIT License (MIT)
  * 
@@ -22,59 +21,58 @@
  * IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN
  * CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
  */
+namespace Trianglman\Sqrl\Tests;
 
-namespace trianglman\sqrl\src;
+use Trianglman\Sqrl\SqrlRequestHandlerInterface;
+use Trianglman\Sqrl\SqrlStore;
+use Trianglman\Sqrl\SqrlStoreInterface;
 
 /**
  * Description of SqrlStoreTest
  *
  * @author johnj
  */
-class SqrlStoreTest extends \PHPUnit_Framework_TestCase{
-    
+class SqrlStoreTest extends \PHPUnit_Framework_TestCase
+{
     /**
-     *
      * @var \PDO
      */
     protected $db;
-    
+
     /**
-     *
      * @var \PDOStatement
      */
     protected $stmt;
-    
+
     /**
-     *
-     * @var SqrlStore
+     * @var SqrlStoreInterface
      */
     protected $obj;
-    
+
     public function setup()
     {
-        $this->db = $this->getMock('\trianglman\sqrl\src\TestPDO');
-        $this->stmt = $this->getMock('\PDOStatement');
+        $this->db = $this->getMock('Trianglman\Sqrl\Test\TestPDO');
+        $this->stmt = $this->getMock('PDOStatement');
         $this->obj = new SqrlStore();
         $this->obj->setDatabaseConnection($this->db);
     }
-    
+
     public function teardown()
     {
-        
     }
-    
+
     public function testStoresNonceNoPubKey()
     {
         $sql = 'INSERT INTO `nonces` (`nonce`,`ip`,`action`) VALUES (?,?,?)';
         $this->db->expects($this->once())->method('prepare')
-                ->with($this->equalTo($sql))->will($this->returnValue($this->stmt));
+            ->with($this->equalTo($sql))->will($this->returnValue($this->stmt));
         $this->stmt->expects($this->once())->method('execute')
-                ->with($this->equalTo(array('123456','654322','1')))
-                ->will($this->returnValue(true));
+            ->with($this->equalTo(array('123456', '654322', '1')))
+            ->will($this->returnValue(true));
         $this->obj->setNonceTable('nonces');
         $this->obj->storeNut('123456', '654322');
     }
-    
+
     /**
      * @depends testStoresNonceNoPubKey
      */
@@ -82,62 +80,71 @@ class SqrlStoreTest extends \PHPUnit_Framework_TestCase{
     {
         $sql = 'INSERT INTO `nonces` (`nonce`,`ip`,`action`,`related_public_key`) VALUES (?,?,?,?)';
         $this->db->expects($this->once())->method('prepare')
-                ->with($this->equalTo($sql))->will($this->returnValue($this->stmt));
+            ->with($this->equalTo($sql))->will($this->returnValue($this->stmt));
         $this->stmt->expects($this->once())->method('execute')
-                ->with($this->equalTo(array('123456','654322','2','pubkey')))
-                ->will($this->returnValue(true));
+            ->with($this->equalTo(array('123456', '654322', '2', 'pubkey')))
+            ->will($this->returnValue(true));
         $this->obj->setNonceTable('nonces');
-        $this->obj->storeNut('123456', '654322',SqrlRequestHandler::NEW_ACCOUNT_REQUEST,'pubkey');
+        $this->obj->storeNut('123456', '654322', SqrlRequestHandlerInterface::NEW_ACCOUNT_REQUEST, 'pubkey');
     }
-    
+
     public function testRetrievesNutInfo()
     {
         $sql = 'SELECT `id`,`created`,`action`,`ip`,`related_public_key` FROM `nonces` WHERE `nonce` = ?';
         $this->db->expects($this->once())->method('prepare')
-                ->with($this->equalTo($sql))->will($this->returnValue($this->stmt));
+            ->with($this->equalTo($sql))->will($this->returnValue($this->stmt));
         $this->stmt->expects($this->once())->method('execute')
-                ->with($this->equalTo(array('a nonce')))
-                ->will($this->returnValue(true));
-        $result = array('id'=>'1','created'=>'2013-11-18 00:00:00',
-            'action'=>SqrlRequestHandler::AUTHENTICATION_REQUEST,'ip'=>'654322',
-            'related_public_key'=>'pubkey');
+            ->with($this->equalTo(array('a nonce')))
+            ->will($this->returnValue(true));
+        $result = array(
+            'id' => '1',
+            'created' => '2013-11-18 00:00:00',
+            'action' => SqrlRequestHandlerInterface::AUTHENTICATION_REQUEST,
+            'ip' => '654322',
+            'related_public_key' => 'pubkey'
+        );
         $this->stmt->expects($this->once())->method('fetchAll')->with($this->equalTo(\PDO::FETCH_ASSOC))
-                ->will($this->returnValue(array($result)));
+            ->will($this->returnValue(array($result)));
         $this->obj->setNonceTable('nonces');
-        $this->assertEquals($result,$this->obj->retrieveNutRecord('a nonce'));
+        $this->assertEquals($result, $this->obj->retrieveNutRecord('a nonce'));
     }
-    
+
     public function testStoresAuthenticationKey()
     {
         $sql = 'INSERT INTO `pubkeys` (`public_key`) VALUES (?)';
         $this->db->expects($this->once())->method('prepare')
-                ->with($this->equalTo($sql))->will($this->returnValue($this->stmt));
+            ->with($this->equalTo($sql))->will($this->returnValue($this->stmt));
         $this->stmt->expects($this->once())->method('execute')
-                ->with($this->equalTo(array('pubkey')))
-                ->will($this->returnValue(true));
+            ->with($this->equalTo(array('pubkey')))
+            ->will($this->returnValue(true));
         $this->obj->setPublicKeyTable('pubkeys');
         $this->obj->storeAuthenticationKey('pubkey');
     }
-    
+
     public function testRetrievesAuthenticationRecord()
     {
         $sql = 'SELECT `id`,`public_key`,`disabled`,`suk`,`vuk` FROM `pubkeys` WHERE `public_key` = ?';
         $this->db->expects($this->once())->method('prepare')
-                ->with($this->equalTo($sql))->will($this->returnValue($this->stmt));
+            ->with($this->equalTo($sql))->will($this->returnValue($this->stmt));
         $this->stmt->expects($this->once())->method('execute')
-                ->with($this->equalTo(array('pubkey')))
-                ->will($this->returnValue(true));
-        $result = array('id'=>'1','public_key'=>'pubkey','disabled'=>'0',
-            'suk'=>'serverkey', 'vuk'=>'verifyunlock');
+            ->with($this->equalTo(array('pubkey')))
+            ->will($this->returnValue(true));
+        $result = array(
+            'id' => '1',
+            'public_key' => 'pubkey',
+            'disabled' => '0',
+            'suk' => 'serverkey',
+            'vuk' => 'verifyunlock'
+        );
         $this->stmt->expects($this->once())->method('fetchAll')->with($this->equalTo(\PDO::FETCH_ASSOC))
-                ->will($this->returnValue(array($result)));
+            ->will($this->returnValue(array($result)));
         $this->obj->setPublicKeyTable('pubkeys');
-        $this->assertEquals($result,$this->obj->retrieveAuthenticationRecord('pubkey'));
+        $this->assertEquals($result, $this->obj->retrieveAuthenticationRecord('pubkey'));
     }
-    
+
     /**
      * @depends testRetrievesAuthenticationRecord
-     * 
+     *
      * Wrote a dedicated test for this function since this is the most likely
      * scenario for a single column select to happen
      */
@@ -145,53 +152,53 @@ class SqrlStoreTest extends \PHPUnit_Framework_TestCase{
     {
         $sql = 'SELECT `id` FROM `pubkeys` WHERE `public_key` = ?';
         $this->db->expects($this->once())->method('prepare')
-                ->with($this->equalTo($sql))->will($this->returnValue($this->stmt));
+            ->with($this->equalTo($sql))->will($this->returnValue($this->stmt));
         $this->stmt->expects($this->once())->method('execute')
-                ->with($this->equalTo(array('pubkey')))
-                ->will($this->returnValue(true));
-        $result = array('id'=>'1');
+            ->with($this->equalTo(array('pubkey')))
+            ->will($this->returnValue(true));
+        $result = array('id' => '1');
         $this->stmt->expects($this->once())->method('fetchAll')->with($this->equalTo(\PDO::FETCH_ASSOC))
-                ->will($this->returnValue(array($result)));
+            ->will($this->returnValue(array($result)));
         $this->obj->setPublicKeyTable('pubkeys');
-        $this->assertEquals('1',$this->obj->retrieveAuthenticationRecord('pubkey',array(SqrlStore::ID)));
+        $this->assertEquals('1', $this->obj->retrieveAuthenticationRecord('pubkey', array(SqrlStoreInterface::ID)));
     }
-    
+
     public function testStoresIdentityLock()
     {
         $sql = 'UPDATE `pubkeys` SET `suk` = ?, `vuk` = ? WHERE `public_key` = ?';
         $this->db->expects($this->once())->method('prepare')
-                ->with($this->equalTo($sql))->will($this->returnValue($this->stmt));
+            ->with($this->equalTo($sql))->will($this->returnValue($this->stmt));
         $this->stmt->expects($this->once())->method('execute')
-                ->with($this->equalTo(array('serverkey','verifyunlock','pubkey')))
-                ->will($this->returnValue(true));
+            ->with($this->equalTo(array('serverkey', 'verifyunlock', 'pubkey')))
+            ->will($this->returnValue(true));
         $this->obj->setPublicKeyTable('pubkeys');
-        $this->obj->storeIdentityLock('pubkey','serverkey','verifyunlock');
+        $this->obj->storeIdentityLock('pubkey', 'serverkey', 'verifyunlock');
     }
-    
+
     public function testLocksKey()
     {
         $sql = 'UPDATE `pubkeys` SET `disabled` = 1 WHERE `public_key` = ?';
         $this->db->expects($this->once())->method('prepare')
-                ->with($this->equalTo($sql))->will($this->returnValue($this->stmt));
+            ->with($this->equalTo($sql))->will($this->returnValue($this->stmt));
         $this->stmt->expects($this->once())->method('execute')
-                ->with($this->equalTo(array('pubkey')))
-                ->will($this->returnValue(true));
+            ->with($this->equalTo(array('pubkey')))
+            ->will($this->returnValue(true));
         $this->obj->setPublicKeyTable('pubkeys');
         $this->obj->lockKey('pubkey');
     }
-    
+
     public function testMigratesAllKeyData()
     {
         $sql = 'UPDATE `pubkeys` SET `public_key` = ?, `disabled` = ?, `suk` = ?, `vuk` = ? WHERE `public_key` = ?';
         $this->db->expects($this->once())->method('prepare')
-                ->with($this->equalTo($sql))->will($this->returnValue($this->stmt));
+            ->with($this->equalTo($sql))->will($this->returnValue($this->stmt));
         $this->stmt->expects($this->once())->method('execute')
-                ->with($this->equalTo(array('newpubkey',0,'serverkey','verifyunlock','oldpubkey')))
-                ->will($this->returnValue(true));
+            ->with($this->equalTo(array('newpubkey', 0, 'serverkey', 'verifyunlock', 'oldpubkey')))
+            ->will($this->returnValue(true));
         $this->obj->setPublicKeyTable('pubkeys');
-        $this->obj->migrateKey('oldpubkey','newpubkey','serverkey','verifyunlock');
+        $this->obj->migrateKey('oldpubkey', 'newpubkey', 'serverkey', 'verifyunlock');
     }
-    
+
     /**
      * @depends testMigratesAllKeyData
      */
@@ -199,14 +206,14 @@ class SqrlStoreTest extends \PHPUnit_Framework_TestCase{
     {
         $sql = 'UPDATE `pubkeys` SET `public_key` = ?, `disabled` = ? WHERE `public_key` = ?';
         $this->db->expects($this->once())->method('prepare')
-                ->with($this->equalTo($sql))->will($this->returnValue($this->stmt));
+            ->with($this->equalTo($sql))->will($this->returnValue($this->stmt));
         $this->stmt->expects($this->once())->method('execute')
-                ->with($this->equalTo(array('newpubkey',0,'oldpubkey')))
-                ->will($this->returnValue(true));
+            ->with($this->equalTo(array('newpubkey', 0, 'oldpubkey')))
+            ->will($this->returnValue(true));
         $this->obj->setPublicKeyTable('pubkeys');
-        $this->obj->migrateKey('oldpubkey','newpubkey');
+        $this->obj->migrateKey('oldpubkey', 'newpubkey');
     }
-    
+
     /**
      * @depends testMigratesAllKeyData
      */
@@ -214,16 +221,18 @@ class SqrlStoreTest extends \PHPUnit_Framework_TestCase{
     {
         $sql = 'UPDATE `pubkeys` SET `suk` = ?, `vuk` = ? WHERE `public_key` = ?';
         $this->db->expects($this->once())->method('prepare')
-                ->with($this->equalTo($sql))->will($this->returnValue($this->stmt));
+            ->with($this->equalTo($sql))->will($this->returnValue($this->stmt));
         $this->stmt->expects($this->once())->method('execute')
-                ->with($this->equalTo(array('serverkey','verifyunlock','oldpubkey')))
-                ->will($this->returnValue(true));
+            ->with($this->equalTo(array('serverkey', 'verifyunlock', 'oldpubkey')))
+            ->will($this->returnValue(true));
         $this->obj->setPublicKeyTable('pubkeys');
-        $this->obj->migrateKey('oldpubkey',null,'serverkey','verifyunlock');
+        $this->obj->migrateKey('oldpubkey', null, 'serverkey', 'verifyunlock');
     }
 }
 
-class TestPDO extends \PDO{
-    public function __construct($dsn=null) {
+class TestPDO extends \PDO
+{
+    public function __construct($dsn = null)
+    {
     }
 }

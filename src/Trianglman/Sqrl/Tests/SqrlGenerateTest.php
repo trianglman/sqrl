@@ -22,42 +22,40 @@
  * IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN
  * CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
  */
+namespace Trianglman\Sqrl\Tests;
 
-namespace trianglman\sqrl\src;
+use Endroid\QrCode\QrCode;
+use Trianglman\Sqrl\SqrlGenerate;
 
 /**
  * Unit tests for the SqrlGenerate class
  *
  * @author johnj
  */
-class SqrlGenerateTest extends \PHPUnit_Framework_TestCase{
-    
+class SqrlGenerateTest extends \PHPUnit_Framework_TestCase
+{
     public function setup()
     {
-        
     }
-    
+
     public function teardown()
     {
-        
     }
-    
-    
+
     public function testGeneratesUniqueNonce()
     {
         $createdNonces = array();
-        
         $obj = new SqrlGenerate();
         $createdNonces[] = $obj->getNonce();
-        for($x=0;$x<10;$x++){
+        for ($x = 0; $x < 10; $x++) {
             $checkObj = new SqrlGenerate();
             $checkNonce = $checkObj->getNonce();
             $this->assertFalse(in_array($checkNonce, $createdNonces));
-            $createdNonces[]=$checkNonce;
+            $createdNonces[] = $checkNonce;
         }
-        $this->assertEquals($createdNonces[0],$obj->getNonce());
+        $this->assertEquals($createdNonces[0], $obj->getNonce());
     }
-    
+
     /**
      * @depends testGeneratesUniqueNonce
      */
@@ -68,10 +66,9 @@ class SqrlGenerateTest extends \PHPUnit_Framework_TestCase{
         $obj->setKeyDomain('example.com');
         $obj->setAuthenticationPath('sqrl');
         $nonce = $obj->getNonce();
-        
-        $this->assertEquals('sqrl://example.com/sqrl?nut='.$nonce,$obj->getUrl());
+        $this->assertEquals('sqrl://example.com/sqrl?nut='.$nonce, $obj->getUrl());
     }
-    
+
     /**
      * @depends testGeneratesUniqueNonce
      */
@@ -82,10 +79,9 @@ class SqrlGenerateTest extends \PHPUnit_Framework_TestCase{
         $obj->setKeyDomain('example.com');
         $obj->setAuthenticationPath('sqrl?foo=bar');
         $nonce = $obj->getNonce();
-        
-        $this->assertEquals('qrl://example.com/sqrl?foo=bar&nut='.$nonce,$obj->getUrl());
+        $this->assertEquals('qrl://example.com/sqrl?foo=bar&nut='.$nonce, $obj->getUrl());
     }
-    
+
     /**
      * @depends testGeneratesUrlNoQueryString
      */
@@ -96,28 +92,27 @@ class SqrlGenerateTest extends \PHPUnit_Framework_TestCase{
         $obj->setKeyDomain('example.com/unique');
         $obj->setAuthenticationPath('sqrl');
         $nonce = $obj->getNonce();
-        
-        $this->assertEquals('sqrl://example.com/unique|sqrl?nut='.$nonce,$obj->getUrl());
+        $this->assertEquals('sqrl://example.com/unique|sqrl?nut='.$nonce, $obj->getUrl());
     }
-    
+
     /**
      * @depends testGeneratesUrlNoQueryString
      */
     public function testRenders()
     {
-        require dirname(__FILE__).'/../../../../vendor/autoload.php';
         $obj = new SQRLGenerate();
-        $obj->loadConfigFromJSON(dirname(__FILE__).'/../resources/unittest.json');
+        $obj->loadConfigFromJSON(dirname(__FILE__).'/Resources/unittest.json');
         $nonce = $obj->getNonce();
-        
-        $expected = new \Endroid\QrCode\QrCode();
+        $expected = new QrCode();
         $expected->setText('sqrl://domain.com/login/sqrlauth.php?nut='.$nonce);
         $expected->setSize(30);
         $expected->setPadding(1);
         $expected->render(dirname(__FILE__).'/expected.png');
         $obj->render(dirname(__FILE__).'/test.png');
-        $this->assertEquals(file_get_contents(dirname(__FILE__).'/expected.png'),
-                file_get_contents(dirname(__FILE__).'/test.png'));
+        $this->assertEquals(
+            file_get_contents(dirname(__FILE__).'/expected.png'),
+            file_get_contents(dirname(__FILE__).'/test.png')
+        );
         unlink(dirname(__FILE__).'/expected.png');
         unlink(dirname(__FILE__).'/test.png');
     }

@@ -22,75 +22,64 @@
  * IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN
  * CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
  */
+namespace Trianglman\Sqrl\Test\Ed25519;
 
-namespace trianglman\sqrl\src\ed25519;
+use Trianglman\Sqrl\Ed25519\Crypto;
 
 /**
  * Unit tests for the Crypto class
  *
  * @author johnj
  */
-class CryptoTest extends \PHPUnit_Framework_TestCase{
-    
-    public function setup()
-    {
-        
-    }
-    
-    public function teardown()
-    {
-        
-    }
-    
+class CryptoTest extends \PHPUnit_Framework_TestCase
+{
+
     public function testGeneratesPublicKey()
     {
-        $testData = file_get_contents(dirname(__FILE__).'/../../resources/sign.input');
+        $testData = file_get_contents(dirname(__FILE__).'/../Resources/sign.input');
         //use only a subset of the total data because of how long it takes to run each test
         $fullDataSet = explode("\n", $testData);
         $startofTestSet = rand(0, count($fullDataSet)-10);
         echo "Starting test set at row $startofTestSet\n";
-        $dataRows = array_slice($fullDataSet,$startofTestSet,10);
-        foreach($dataRows as $set){
-            list($skconcat,$pktest) = explode(':',$set);
-            $sk = hex2bin(substr($skconcat, 0,64));
-            
-            
+        $dataRows = array_slice($fullDataSet, $startofTestSet, 10);
+        foreach ($dataRows as $set) {
+            list($skconcat, $pktest) = explode(':', $set);
+            $sk = hex2bin(substr($skconcat, 0, 64));
             $obj = new Crypto();
             $pk = $obj->publickey($sk);
-            $this->assertEquals($skconcat,  bin2hex($sk.$pk));
-            $this->assertEquals($pktest,bin2hex($pk));
+            $this->assertEquals($skconcat, bin2hex($sk.$pk));
+            $this->assertEquals($pktest, bin2hex($pk));
         }
     }
-    
-    
+
     public function testSigns()
     {
-        $testData = file_get_contents(dirname(__FILE__).'/../../resources/sign.input');
+        $testData = file_get_contents(dirname(__FILE__).'/../Resources/sign.input');
         //use only a subset of the total data because of how long it takes to run each test
         $fullDataSet = explode("\n", $testData);
         $startofTestSet = rand(0, count($fullDataSet)-10);
         echo "Starting test set at row $startofTestSet\n";
-        $dataRows = array_slice($fullDataSet,$startofTestSet,10);
-        foreach($dataRows as $set){
-            list($skconcat,$pktest,$m,$sigConcat) = explode(':',$set);
-            $sk = hex2bin(substr($skconcat, 0,64));
+        $dataRows = array_slice($fullDataSet, $startofTestSet, 10);
+        foreach ($dataRows as $set) {
+            list($skconcat, $pktest, $m, $sigConcat) = explode(':', $set);
+            $sk = hex2bin(substr($skconcat, 0, 64));
             $binM = hex2bin($m);
             $obj = new Crypto();
             $sig = $obj->signature($binM, $sk, hex2bin($pktest));
             $this->assertEquals(hex2bin(substr($sigConcat, 0, 128)), $sig);
         }
     }
-    
+
     public function testVerify()
     {
-        $testData = file_get_contents(dirname(__FILE__).'/../../resources/sign.input');
+        $testData = file_get_contents(dirname(__FILE__).'/../Resources/sign.input');
         //use only a subset of the total data because of how long it takes to run each test
         $fullDataSet = explode("\n", $testData);
         $startofTestSet = rand(0, count($fullDataSet)-10);
         echo "Starting test set at row $startofTestSet\n";
-        $dataRows = array_slice($fullDataSet,$startofTestSet,10);
-        foreach($dataRows as $set){
-            list($skconcat,$pktest,$m,$sigConcat) = explode(':',$set);
+        $dataRows = array_slice($fullDataSet, $startofTestSet, 10);
+        foreach ($dataRows as $set) {
+            list($skconcat, $pktest, $m, $sigConcat) = explode(':', $set);
             $binM = hex2bin($m);
             $sig = hex2bin(substr($sigConcat, 0, 128));
             $obj = new Crypto();

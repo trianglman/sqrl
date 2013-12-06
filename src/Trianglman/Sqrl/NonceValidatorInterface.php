@@ -1,5 +1,4 @@
 <?php
-
 /*
  * The MIT License (MIT)
  * 
@@ -22,44 +21,22 @@
  * IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN
  * CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
  */
-
-namespace trianglman\sqrl\interfaces\ed25519;
+namespace Trianglman\Sqrl;
 
 /**
  *
  * @author johnj
  */
-interface Crypto {
+interface NonceValidatorInterface
+{
     /**
-     * Generates the public key of a given private key
-     * 
-     * @param string $sk the secret key
-     * @return string
-     */
-    public function publickey($sk);
-    
-    /**
-     * Signs a string with the private key
-     * 
-     * @param string $m The message to sign
-     * @param string $sk The secret key to sign the message with
-     * @param string $pk The public key that will be able to verify the signature
-     * 
-     * @return string
-     */
-    public function signature($m,$sk,$pk);
-    
-    /**
-     * Validates a signature matches a given message
-     * 
-     * @param string $s The message signature
-     * @param string $m The original message
-     * @param string $pk The public key to verify the signature
-     * 
+     * Validates a supplied signature against the original and the public key
+     *
+     * @param string $orig The original message
+     * @param string $sig  The signature to verify
+     * @param string $pk   The public key derived from the private key that created the signature
+     *
      * @return boolean
-     * 
-     * @throws \Exception
      */
-    public function checkvalid($s,$m,$pk);
-    
+    public function validateSignature($orig, $sig, $pk);
 }

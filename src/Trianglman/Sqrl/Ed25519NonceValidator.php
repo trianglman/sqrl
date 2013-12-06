@@ -1,5 +1,4 @@
 <?php
-
 /*
  * The MIT License (MIT)
  * 
@@ -22,17 +21,17 @@
  * IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN
  * CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
  */
-
-namespace trianglman\sqrl\src;
+namespace Trianglman\Sqrl;
 
 /**
- * A wrapper around the PHP impementation of the ED25519 signature validation code to match the NonceValidator interface
+ * A wrapper around the PHP implementation of the ED25519 signature validation code to match the NonceValidator interface
  *
  * @author johnj
  */
-class Ed25519NonceValidator extends ed25519\Crypto implements \trianglman\sqrl\interfaces\NonceValidator{
-    
-    public function validateSignature($orig, $sig, $pk) {
+class Ed25519NonceValidator extends Ed25519\Crypto implements NonceValidatorInterface
+{
+    public function validateSignature($orig, $sig, $pk)
+    {
         return $this->checkvalid($sig, $orig, $pk);
-    }    
+    }
 }

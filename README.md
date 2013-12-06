@@ -54,7 +54,7 @@ If you would rather manage storage of this information in your own tables, you c
 configure the generator manually:
 
 ```php
-$generator = new \trianglman\sqrl\src\SqrlGenerate();
+$generator = new \trianglman\sqrl\SqrlGenerate();
 //whether SQRL responses should come back over SSL (sqrl://)
 $generator->setSecure(true);
 //the domain sqrl clients should generate their key off of
@@ -87,7 +87,7 @@ Usage
 **Generate a nonce**
 ```php
 //Initialize the generator
-$generator = new \trianglman\sqrl\src\SqrlGenerate();
+$generator = new \trianglman\sqrl\SqrlGenerate();
 $generator->loadConfigFromJSON('/path/to/config');
 
 //output the QR file to stdout
@@ -100,12 +100,12 @@ $nonce = $generator->getNonce();
 **Verify a user's input**
 ```php
 //initialize the validator
-$validator = new \trianglman\sqrl\src\SqrlValidate();
+$validator = new \trianglman\sqrl\SqrlValidate();
 $validator->loadConfigFromJSON('/path/to/config');
-$validator->setValidator(new \trianglman\sqrl\src\ed25519\Crypto());
+$validator->setValidator(new \trianglman\sqrl\ed25519\Crypto());
 
 //initialize the request handler
-$requestResponse = new \trianglman\sqrl\src\SqrlRequestHandler($validator);
+$requestResponse = new \trianglman\sqrl\SqrlRequestHandler($validator);
 $requestResponse->parseRequest($_GET, $_POST, $_SERVER);
 
 //check validation

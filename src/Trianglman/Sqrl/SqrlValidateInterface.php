@@ -1,5 +1,4 @@
 <?php
-
 /*
  * The MIT License (MIT)
  * 
@@ -22,157 +21,155 @@
  * IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN
  * CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
  */
-
-namespace trianglman\sqrl\interfaces;
+namespace Trianglman\Sqrl;
 
 /**
  * Validates a nonce/public key pair
- * 
+ *
  * If a database is configured, this will also check to see if the public key
  * matches a previously encountered key. If it does it will load an identifier.
  * If there is no match, it will store the public key and generate an identifier.
- * 
+ *
  * @author johnj
  */
-interface SqrlValidate {
-    
+interface SqrlValidateInterface
+{
     /**
      * Loads a configuration file from the supplied path
-     * 
+     *
      * @param string $filePath Path to a JSON formatted configuration file
-     * 
+     *
      * @return void
-     * 
+     *
      * @throws \InvalidArgumentException If the file does not exist
      * @throws \InvalidArgumentException If the file is not JSON formatted
      */
     public function loadConfigFromJSON($filePath);
-    
+
     /**
      * Sets an object to be used to store and retrieve SQRL information
-     * 
-     * @param \trianglman\sqrl\interfaces\SqrlStore $storage 
-     * 
+     *
+     * @param SqrlStoreInterface $storage
+     *
      * @return void
      */
-    public function setStorage(\trianglman\sqrl\interfaces\SqrlStore $storage);
-    
+    public function setStorage(SqrlStoreInterface $storage);
+
     /**
      * Sets the authenticating key
-     * 
+     *
      * @param string $key The base64 encoded key
-     * 
+     *
      * @return void
      */
     public function setAuthenticateKey($key);
-    
+
     /**
      * Sets the signature of the authenticating key
-     * 
+     *
      * @param string $sig The base64 encoded signature
-     * 
+     *
      * @return void
      */
     public function setAuthenticateSignature($sig);
-    
+
     /**
      * Sets the URL that was signed by the key(s)
-     * 
+     *
      * @param string $url
-     * 
+     *
      * @return void
      */
     public function setSignedUrl($url);
-    
+
     /**
      * Sets the clientval value that was signed by the key(s)
-     * 
+     *
      * @param string $val
-     * 
+     *
      * @return void
      */
     public function setSignedClientVal($val);
-    
+
     /**
      * Sets the client's SQRL version
-     * 
+     *
      * @param int $version The client's version
-     * 
+     *
      * @return void
      */
     public function setClientVer($version);
-    
+
     /**
      * Sets the nonce being validated
-     * 
+     *
      * @param string $nonce
-     * 
+     *
      * @return void
-     * 
-     * @throws \trianglman\sqrl\src\SqrlException If the nonce is not valid (either expired or not found in the database)
+     *
+     * @throws SqrlException If the nonce is not valid (either expired or not found in the database)
      */
     public function setNonce($nonce);
-    
+
     /**
      * Sets the class that will handle the validation
-     * 
-     * @param \trianglman\sqrl\interfaces\NonceValidator $validator
-     * 
+     *
+     * @param NonceValidatorInterface $validator
+     *
      * @return void
      */
-    public function setValidator(\trianglman\sqrl\interfaces\NonceValidator $validator);
-    
+    public function setValidator(NonceValidatorInterface $validator);
+
     /**
      * Validates that the supplied signature matches the public key
-     * 
+     *
      * @return boolean
      */
     public function validate();
-    
+
     /**
      * Gets the public key parsed from the request
-     * 
+     *
      * @return string
-     * 
+     *
      * @throws \RuntimeException if no request information has been parsed
      */
     public function getPublicKey();
-    
+
     /**
      * Gets the nonce being returned in the request
-     * 
+     *
      * @return string
-     * 
+     *
      * @throws \RuntimeException if no request information has been parsed
      */
     public function getNonce();
-    
+
     /**
      * Sets whether to enforce the same IP check
-     * 
+     *
      * @param boolean $bool
-     * 
+     *
      * @return void
      */
     public function setEnforceIP($bool);
-            
+
     /**
      * Sets the IP of the user who requested the SQRL image
-     * 
+     *
      * @param string $ip
-     * 
+     *
      * @return void
      */
     public function setRequestorIp($ip);
-    
+
     /**
      * Validates a secondary request signature (Unlock Request or New Key)
-     * 
+     *
      * @param string $key Base 64 encoded key
      * @param string $sig Base 64 encoded signature
-     * 
+     *
      * @return boolean
      */
-    public function validateSignature($key,$sig);
-    
- }
+    public function validateSignature($key, $sig);
+}

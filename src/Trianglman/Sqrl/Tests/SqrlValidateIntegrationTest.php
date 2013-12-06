@@ -1,5 +1,4 @@
 <?php
-
 /*
  * The MIT License (MIT)
  * 
@@ -22,168 +21,168 @@
  * IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN
  * CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
  */
+namespace Trianglman\Sqrl\Tests;
 
-namespace trianglman\sqrl\src;
-require_once "PHPUnit/Extensions/Database/TestCase.php";
-require_once dirname(__FILE__).'/../DbUnit_Array_DataSet.php';
-use \trianglman\sqrl\DbUnit_Array_DataSet;
+use Trianglman\Sqrl\SqrlException;
+use Trianglman\Sqrl\SqrlStore;
+use Trianglman\Sqrl\SqrlValidate;
+use Trianglman\Sqrl\Ed25519NonceValidator;
 
-require_once "PHPUnit/Extensions/Database/TestCase.php";
 /**
  * Description of SqrlValidateIntegrationTest
  *
  * @author johnj
  */
-class SqrlValidateIntegrationTest extends \PHPUnit_Extensions_Database_TestCase{
-    
+class SqrlValidateIntegrationTest extends \PHPUnit_Extensions_Database_TestCase
+{
     /**
-     * @return PHPUnit_Extensions_Database_DB_IDatabaseConnection
+     * @return \PHPUnit_Extensions_Database_DB_IDatabaseConnection
      */
     public function getConnection()
     {
-        if(file_exists('/tmp/sqrl_test_db.db')){
+        if (file_exists('/tmp/sqrl_test_db.db')) {
             unlink('/tmp/sqrl_test_db.db');
         }
         $pdo = new \PDO('sqlite:/tmp/sqrl_test_db.db');
-        $pdo->exec(file_get_contents(dirname(__FILE__).'/../databaseStructure/base.sql'));
+        $pdo->exec(file_get_contents(dirname(__FILE__).'/Resources/databaseStructure/base.sql'));
+
         return $this->createDefaultDBConnection($pdo, 'sqrl_test');
     }
- 
+
     /**
-     * @return PHPUnit_Extensions_Database_DataSet_IDataSet
+     * @return \PHPUnit_Extensions_Database_DataSet_IDataSet
      */
     public function getDataSet()
     {
-        return new DbUnit_Array_DataSet(include dirname(__FILE__).'/../databaseStructure/SqrlIntegrationInitialState.php');
+        return new DbUnitArrayDataSet(include dirname(
+                __FILE__
+            ).'/Resources/databaseStructure/SqrlIntegrationInitialState.php');
     }
-    
+
     /**
-     * @expectedException \trianglman\sqrl\src\SqrlException
+     * @expectedException SqrlException
      * @expectedExceptionCode 3
      */
     public function testChecksNonceDb()
     {
         $val = new SqrlValidate();
-        $val->loadConfigFromJSON(dirname(__FILE__).'/../resources/functionaltest.json');
+        $val->loadConfigFromJSON(dirname(__FILE__).'/Resources/functionaltest.json');
         $store = new SqrlStore();
-        $store->loadConfigFromJSON(dirname(__FILE__).'/../resources/functionaltest.json');
+        $store->loadConfigFromJSON(dirname(__FILE__).'/Resources/functionaltest.json');
         $val->setStorage($store);
         $val->setSignedClientVal('ver=1&opt=enforce&authkey=xLOjlTKNdYFkCx-OMQT7hSoK7Ta54ioKZgWrh2ig0Fs');
         $val->setClientVer('1');
         $val->setNonce('not a valid nut');
     }
-    
+
     /**
-     * @depends testChecksNonceDb
-     * @expectedException \trianglman\sqrl\src\SqrlException
+     * @depends               testChecksNonceDb
+     * @expectedException SqrlException
      * @expectedExceptionCode 5
      */
     public function testChecksStaleNonce()
     {
         $val = new SqrlValidate();
-        $val->loadConfigFromJSON(dirname(__FILE__).'/../resources/functionaltest.json');
+        $val->loadConfigFromJSON(dirname(__FILE__).'/Resources/functionaltest.json');
         $store = new SqrlStore();
-        $store->loadConfigFromJSON(dirname(__FILE__).'/../resources/functionaltest.json');
+        $store->loadConfigFromJSON(dirname(__FILE__).'/Resources/functionaltest.json');
         $val->setStorage($store);
-        
         $val->setSignedClientVal('ver=1&opt=enforce&authkey=W_yg-zTXTp_9fGnkMfRYYpNZLTD-0TDmFcLK7r3fyZg');
         $val->setClientVer('1');
         $val->setNonce('some stale nonce');
-        
     }
-    
+
     /**
-     * @expectedException \trianglman\sqrl\src\SqrlException
+     * @expectedException SqrlException
      * @expectedExceptionCode 1
      */
     public function testChecksEnforceDb()
     {
         $val = new SqrlValidate();
-        $val->loadConfigFromJSON(dirname(__FILE__).'/../resources/functionaltest.json');
+        $val->loadConfigFromJSON(dirname(__FILE__).'/Resources/functionaltest.json');
         $store = new SqrlStore();
-        $store->loadConfigFromJSON(dirname(__FILE__).'/../resources/functionaltest.json');
+        $store->loadConfigFromJSON(dirname(__FILE__).'/Resources/functionaltest.json');
         $val->setStorage($store);
-        
         $val->setSignedClientVal('ver=1&opt=enforce&authkey=xLOjlTKNdYFkCx-OMQT7hSoK7Ta54ioKZgWrh2ig0Fs');
         $val->setClientVer('1');
         $val->setNonce('some 192 delivered nonce');
         $val->setAuthenticateKey('xLOjlTKNdYFkCx+OMQT7hSoK7Ta54ioKZgWrh2ig0Fs=');
         $val->setSignedUrl('sqrl://domain.com/login/sqrlauth.php?nut=some 192 delivered nonce');
-        $val->setAuthenticateSignature('G+jZkH9/aOZ8/giAZrlxqZJkS0zlUJHx5xb6F/btl2XeOpQlLedXYIfqseJvfOywRdM/a7uHqh2OcXY094mZAw==');
+        $val->setAuthenticateSignature(
+            'G+jZkH9/aOZ8/giAZrlxqZJkS0zlUJHx5xb6F/btl2XeOpQlLedXYIfqseJvfOywRdM/a7uHqh2OcXY094mZAw=='
+        );
         $val->setRequestorIp('127.0.0.1');
         $val->setEnforceIP(true);
-        
         $val->setValidator(new Ed25519NonceValidator());
         $val->validate();
     }
-    
+
     public function testValidatesSignature()
     {
         $val = new SqrlValidate();
-        $val->loadConfigFromJSON(dirname(__FILE__).'/../resources/functionaltest.json');
+        $val->loadConfigFromJSON(dirname(__FILE__).'/Resources/functionaltest.json');
         $store = new SqrlStore();
-        $store->loadConfigFromJSON(dirname(__FILE__).'/../resources/functionaltest.json');
+        $store->loadConfigFromJSON(dirname(__FILE__).'/Resources/functionaltest.json');
         $val->setStorage($store);
-        
         $val->setSignedClientVal('ver=1&opt=enforce&authkey=xLOjlTKNdYFkCx-OMQT7hSoK7Ta54ioKZgWrh2ig0Fs');
         $val->setClientVer('1');
         $val->setNonce('some 192 delivered nonce');
         $val->setAuthenticateKey('xLOjlTKNdYFkCx+OMQT7hSoK7Ta54ioKZgWrh2ig0Fs=');
         $val->setSignedUrl('sqrl://domain.com/login/sqrlauth.php?nut=some 192 delivered nonce');
-        $val->setAuthenticateSignature('FdmG45+Rkx25y5qTbOU1LWTKG4/pqD2UnBRywqNJ+O0BitxFU1ZC2EggAEXvJqx85+iP6QL+eLAFoK6Q6C43Ag==');
+        $val->setAuthenticateSignature(
+            'FdmG45+Rkx25y5qTbOU1LWTKG4/pqD2UnBRywqNJ+O0BitxFU1ZC2EggAEXvJqx85+iP6QL+eLAFoK6Q6C43Ag=='
+        );
         $val->setRequestorIp('192.168.0.1');
         $val->setEnforceIP(true);
-        
         $val->setValidator(new Ed25519NonceValidator());
         $this->assertTrue($val->validate());
     }
-    
+
     /**
      * @depends testValidatesSignature
      */
     public function testValidatesSignature2()
     {
         $val = new SqrlValidate();
-        $val->loadConfigFromJSON(dirname(__FILE__).'/../resources/functionaltest.json');
+        $val->loadConfigFromJSON(dirname(__FILE__).'/Resources/functionaltest.json');
         $store = new SqrlStore();
-        $store->loadConfigFromJSON(dirname(__FILE__).'/../resources/functionaltest.json');
+        $store->loadConfigFromJSON(dirname(__FILE__).'/Resources/functionaltest.json');
         $val->setStorage($store);
-        
         $val->setSignedClientVal('ver=1&opt=enforce&authkey=W_yg-zTXTp_9fGnkMfRYYpNZLTD-0TDmFcLK7r3fyZg');
         $val->setClientVer('1');
         $val->setNonce('some 192 delivered nonce');
         $val->setAuthenticateKey('W/yg+zTXTp/9fGnkMfRYYpNZLTD+0TDmFcLK7r3fyZg=');
         $val->setSignedUrl('sqrl://domain.com/login/sqrlauth.php?nut=some 192 delivered nonce');
-        $val->setAuthenticateSignature('ZBL2xqxJHl/CvxtLlqkUG/2hgoslS1G4SGpslReW68EN6xLo0vFdoPFSz/hTFt3sJQI56RsfpMGhTEu9UtOPDQ==');
+        $val->setAuthenticateSignature(
+            'ZBL2xqxJHl/CvxtLlqkUG/2hgoslS1G4SGpslReW68EN6xLo0vFdoPFSz/hTFt3sJQI56RsfpMGhTEu9UtOPDQ=='
+        );
         $val->setRequestorIp('192.168.0.1');
         $val->setEnforceIP(true);
-        
         $val->setValidator(new Ed25519NonceValidator());
         $this->assertTrue($val->validate());
     }
-    
+
     /**
-     * @expectedException \trianglman\sqrl\src\SqrlException
+     * @expectedException SqrlException
      * @expectedExceptionCode 4
      */
     public function testChecksInvalidSignature()
     {
         $val = new SqrlValidate();
-        $val->loadConfigFromJSON(dirname(__FILE__).'/../resources/functionaltest.json');
+        $val->loadConfigFromJSON(dirname(__FILE__).'/Resources/functionaltest.json');
         $store = new SqrlStore();
-        $store->loadConfigFromJSON(dirname(__FILE__).'/../resources/functionaltest.json');
+        $store->loadConfigFromJSON(dirname(__FILE__).'/Resources/functionaltest.json');
         $val->setStorage($store);
-        
         $val->setSignedClientVal('ver=1&opt=&authkey=xLOjlTKNdYFkCx-OMQT7hSoK7Ta54ioKZgWrh2ig0Fs');
         $val->setClientVer('1');
         $val->setNonce('some 192 delivered nonce');
         $val->setAuthenticateKey('xLOjlTKNdYFkCx+OMQT7hSoK7Ta54ioKZgWrh2ig0Fs=');
         $val->setSignedUrl('sqrl://domain.com/login/sqrlauth.php?nut=some 192 delivered nonce');
-        $val->setAuthenticateSignature('FdmG45+Rkx25y5qTbOU1LWTKG4/pqD2UnBRywqNJ+O0BitxFU1ZC2EggAEXvJqx85+iP6QL+eLAFoK6Q6C43Ag==');
+        $val->setAuthenticateSignature(
+            'FdmG45+Rkx25y5qTbOU1LWTKG4/pqD2UnBRywqNJ+O0BitxFU1ZC2EggAEXvJqx85+iP6QL+eLAFoK6Q6C43Ag=='
+        );
         $val->setRequestorIp('192.168.0.1');
-        
         $val->setValidator(new Ed25519NonceValidator());
         $val->validate();
     }
-    
 }
