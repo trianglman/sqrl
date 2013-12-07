@@ -35,16 +35,6 @@ use Trianglman\Sqrl\SqrlRequestHandler;
  */
 class SqrlRequestHandlerTest extends \PHPUnit_Framework_TestCase
 {
-    public function setUp()
-    {
-        parent::setUp();
-    }
-
-    public function tearDown()
-    {
-        parent::tearDown();
-    }
-
     public function testChecksForClientVal()
     {
         $get = array('nut' => 'some 192 delivered nonce');

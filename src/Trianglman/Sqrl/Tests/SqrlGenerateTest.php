@@ -34,14 +34,6 @@ use Trianglman\Sqrl\SqrlGenerate;
  */
 class SqrlGenerateTest extends \PHPUnit_Framework_TestCase
 {
-    public function setup()
-    {
-    }
-
-    public function teardown()
-    {
-    }
-
     public function testGeneratesUniqueNonce()
     {
         $createdNonces = array();

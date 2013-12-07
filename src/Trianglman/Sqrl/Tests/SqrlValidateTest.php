@@ -33,14 +33,6 @@ use Trianglman\Sqrl\SqrlValidate;
  */
 class SqrlValidateTest extends \PHPUnit_Framework_TestCase
 {
-    public function setup()
-    {
-    }
-
-    public function teardown()
-    {
-    }
-
     public function testValidatesWithoutEnforceFlagAndNoDatabase()
     {
         $validator = $this->getMock('\Trianglman\Sqrl\NonceValidatorInterface');

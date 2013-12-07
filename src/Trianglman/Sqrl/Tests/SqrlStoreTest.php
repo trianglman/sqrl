@@ -49,16 +49,23 @@ class SqrlStoreTest extends \PHPUnit_Framework_TestCase
      */
     protected $obj;
 
-    public function setup()
+    public function setUp()
     {
+        parent::setUp();
+
         $this->db = $this->getMock('Trianglman\Sqrl\Test\TestPDO');
         $this->stmt = $this->getMock('PDOStatement');
         $this->obj = new SqrlStore();
         $this->obj->setDatabaseConnection($this->db);
     }
 
-    public function teardown()
+    public function tearDown()
     {
+        $this->obj = null;
+        $this->stmt = null;
+        $this->db = null;
+
+        parent::tearDown();
     }
 
     public function testStoresNonceNoPubKey()
