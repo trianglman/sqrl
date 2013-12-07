@@ -1,5 +1,4 @@
 <?php
-
 /*
  * The MIT License (MIT)
  * 
@@ -33,9 +32,12 @@ use Trianglman\Sqrl\Ed25519\Crypto;
  */
 class CryptoTest extends \PHPUnit_Framework_TestCase
 {
-
     public function testGeneratesPublicKey()
     {
+        if (version_compare(phpversion(), '5.4.0', '<')) {
+            $this->markTestSkipped('Test only works in PHP >=5.4.0');
+        }
+
         $testData = file_get_contents(dirname(__FILE__).'/../Resources/sign.input');
         //use only a subset of the total data because of how long it takes to run each test
         $fullDataSet = explode("\n", $testData);
@@ -54,6 +56,10 @@ class CryptoTest extends \PHPUnit_Framework_TestCase
 
     public function testSigns()
     {
+        if (version_compare(phpversion(), '5.4.0', '<')) {
+            $this->markTestSkipped('Test only works in PHP >=5.4.0');
+        }
+
         $testData = file_get_contents(dirname(__FILE__).'/../Resources/sign.input');
         //use only a subset of the total data because of how long it takes to run each test
         $fullDataSet = explode("\n", $testData);
@@ -72,6 +78,10 @@ class CryptoTest extends \PHPUnit_Framework_TestCase
 
     public function testVerify()
     {
+        if (version_compare(phpversion(), '5.4.0', '<')) {
+            $this->markTestSkipped('Test only works in PHP >=5.4.0');
+        }
+
         $testData = file_get_contents(dirname(__FILE__).'/../Resources/sign.input');
         //use only a subset of the total data because of how long it takes to run each test
         $fullDataSet = explode("\n", $testData);
