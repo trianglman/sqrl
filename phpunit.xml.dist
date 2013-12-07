@@ -13,7 +13,7 @@
 >
     <testsuites>
         <testsuite name="Sqrl Tests">
-            <directory>./src/Trianglman/Sqrl/Tests/*/</directory>
+            <directory>./src/Trianglman/Sqrl/Tests</directory>
         </testsuite>
     </testsuites>
 
@@ -21,7 +21,7 @@
         <whitelist>
             <directory>./</directory>
             <exclude>
-                <directory>./src/Trianglman/Sqrl/Tests/Resources/</directory>
+                <directory>./src/Trianglman/Sqrl/Tests/Resources</directory>
             </exclude>
         </whitelist>
     </filter>

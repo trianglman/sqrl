@@ -40,10 +40,13 @@ class SqrlValidateIntegrationTest extends \PHPUnit_Extensions_Database_TestCase
      */
     public function getConnection()
     {
-        if (file_exists('/tmp/sqrl_test_db.db')) {
-            unlink('/tmp/sqrl_test_db.db');
+        $sysTemp = sys_get_temp_dir();
+        $file = $sysTemp.'/sqrl_test_db.db';
+        if (file_exists($file)) {
+            unlink($file);
         }
-        $pdo = new \PDO('sqlite:/tmp/sqrl_test_db.db');
+
+        $pdo = new \PDO('sqlite:'.$file);
         $pdo->exec(file_get_contents(dirname(__FILE__).'/Resources/databaseStructure/base.sql'));
 
         return $this->createDefaultDBConnection($pdo, 'sqrl_test');
@@ -60,7 +63,7 @@ class SqrlValidateIntegrationTest extends \PHPUnit_Extensions_Database_TestCase
     }
 
     /**
-     * @expectedException SqrlException
+     * @expectedException \Trianglman\Sqrl\SqrlException
      * @expectedExceptionCode 3
      */
     public function testChecksNonceDb()
@@ -77,7 +80,7 @@ class SqrlValidateIntegrationTest extends \PHPUnit_Extensions_Database_TestCase
 
     /**
      * @depends               testChecksNonceDb
-     * @expectedException SqrlException
+     * @expectedException \Trianglman\Sqrl\SqrlException
      * @expectedExceptionCode 5
      */
     public function testChecksStaleNonce()
@@ -93,7 +96,7 @@ class SqrlValidateIntegrationTest extends \PHPUnit_Extensions_Database_TestCase
     }
 
     /**
-     * @expectedException SqrlException
+     * @expectedException \Trianglman\Sqrl\SqrlException
      * @expectedExceptionCode 1
      */
     public function testChecksEnforceDb()
@@ -163,7 +166,7 @@ class SqrlValidateIntegrationTest extends \PHPUnit_Extensions_Database_TestCase
     }
 
     /**
-     * @expectedException SqrlException
+     * @expectedException \Trianglman\Sqrl\SqrlException
      * @expectedExceptionCode 4
      */
     public function testChecksInvalidSignature()
