@@ -32,68 +32,68 @@ use Trianglman\Sqrl\Ed25519\Crypto;
  */
 class CryptoTest extends \PHPUnit_Framework_TestCase
 {
-    public function testGeneratesPublicKey()
+    /**
+     * @dataProvider publicKeyProvider
+     */
+    public function testGeneratesPublicKey($skConcat, $pktest, $binM, $sigConcat, $sk)
     {
         if (version_compare(phpversion(), '5.4.0', '<')) {
             $this->markTestSkipped('Test only works in PHP >=5.4.0');
         }
 
-        $testData = file_get_contents(dirname(__FILE__).'/../Resources/sign.input');
-        //use only a subset of the total data because of how long it takes to run each test
-        $fullDataSet = explode("\n", $testData);
-        $startofTestSet = rand(0, count($fullDataSet)-10);
-        echo "Starting test set at row $startofTestSet\n";
-        $dataRows = array_slice($fullDataSet, $startofTestSet, 10);
-        foreach ($dataRows as $set) {
-            list($skconcat, $pktest) = explode(':', $set);
-            $sk = hex2bin(substr($skconcat, 0, 64));
-            $obj = new Crypto();
-            $pk = $obj->publickey($sk);
-            $this->assertEquals($skconcat, bin2hex($sk.$pk));
-            $this->assertEquals($pktest, bin2hex($pk));
-        }
+        $obj = new Crypto();
+        $pk = $obj->publickey($sk);
+        $this->assertEquals($skConcat, bin2hex($sk.$pk));
+        $this->assertEquals($pktest, bin2hex($pk));
     }
 
-    public function testSigns()
+    /**
+     * @dataProvider publicKeyProvider
+     */
+    public function testSigns($skConcat, $pktest, $binM, $sigConcat, $sk)
     {
         if (version_compare(phpversion(), '5.4.0', '<')) {
             $this->markTestSkipped('Test only works in PHP >=5.4.0');
         }
 
-        $testData = file_get_contents(dirname(__FILE__).'/../Resources/sign.input');
-        //use only a subset of the total data because of how long it takes to run each test
-        $fullDataSet = explode("\n", $testData);
-        $startofTestSet = rand(0, count($fullDataSet)-10);
-        echo "Starting test set at row $startofTestSet\n";
-        $dataRows = array_slice($fullDataSet, $startofTestSet, 10);
-        foreach ($dataRows as $set) {
-            list($skconcat, $pktest, $m, $sigConcat) = explode(':', $set);
-            $sk = hex2bin(substr($skconcat, 0, 64));
-            $binM = hex2bin($m);
-            $obj = new Crypto();
-            $sig = $obj->signature($binM, $sk, hex2bin($pktest));
-            $this->assertEquals(hex2bin(substr($sigConcat, 0, 128)), $sig);
-        }
+        $obj = new Crypto();
+        $sig = $obj->signature($binM, $sk, hex2bin($pktest));
+        $this->assertEquals(hex2bin(substr($sigConcat, 0, 128)), $sig);
     }
 
-    public function testVerify()
+    /**
+     * @dataProvider publicKeyProvider
+     */
+    public function testVerify($skConcat, $pktest, $binM, $sigConcat, $sk)
     {
         if (version_compare(phpversion(), '5.4.0', '<')) {
             $this->markTestSkipped('Test only works in PHP >=5.4.0');
+        }
+
+        $sig = hex2bin(substr($sigConcat, 0, 128));
+        $obj = new Crypto();
+        $this->assertTrue($obj->checkvalid($sig, $binM, hex2bin($pktest)));
+    }
+
+    public function publicKeyProvider()
+    {
+        if (version_compare(phpversion(), '5.4.0', '<')) {
+            return array(array(0,0,0,0,0));
         }
 
         $testData = file_get_contents(dirname(__FILE__).'/../Resources/sign.input');
         //use only a subset of the total data because of how long it takes to run each test
         $fullDataSet = explode("\n", $testData);
         $startofTestSet = rand(0, count($fullDataSet)-10);
-        echo "Starting test set at row $startofTestSet\n";
         $dataRows = array_slice($fullDataSet, $startofTestSet, 10);
+        $array = array();
         foreach ($dataRows as $set) {
-            list($skconcat, $pktest, $m, $sigConcat) = explode(':', $set);
+            list($skConcat, $pktest, $m, $sigConcat) = explode(':', $set);
+            $sk = hex2bin(substr($skConcat, 0, 64));
             $binM = hex2bin($m);
-            $sig = hex2bin(substr($sigConcat, 0, 128));
-            $obj = new Crypto();
-            $this->assertTrue($obj->checkvalid($sig, $binM, hex2bin($pktest)));
+            $array[] = array($skConcat, $pktest, $binM, $sigConcat, $sk);
         }
+
+        return $array;
     }
 }
