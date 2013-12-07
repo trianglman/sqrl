@@ -12,8 +12,8 @@ standard.
 Software Requirements
 ====
 
-* Composer - http://getcomposer.org
-  * Endroid/qrcode Loaded automatically by Composer - https://github.com/endroid/QrCode
+  - Composer - http://getcomposer.org
+  - Endroid/qrcode Loaded automatically by Composer - https://github.com/endroid/QrCode
 
 Purpose
 ====
@@ -28,25 +28,32 @@ Installation
 
 ###Composer
 
-```json
-"repositories": [
-        {
-            "type": "vcs",
-            "url": "https://github.com/trianglman/sqrl"
+1. Download the [`composer.phar`](https://getcomposer.org/composer.phar) executable or use the installer.
+
+    ``` sh
+    $ curl -sS https://getcomposer.org/installer | php
+    ```
+
+2. Create a composer.json defining your dependencies. Note that this example is
+a short version for applications that are not meant to be published as packages
+themselves. To create libraries/packages please read the
+[documentation](http://getcomposer.org/doc/02-libraries.md).
+
+    ``` json
+        "require": {
+            "trianglman/sqrl": "dev-master"
         }
-    ],
-    "require": {
-        "trianglman/sqrl": "dev-master"
-    }
-```
+    ```
+
+3. Run Composer: `php composer.phar update`
 
 Configuration
 ====
 
 If you want to have the library automatically store generated nonces and validated
 public keys, first generate the database tables based on the supplied 
-trianglman/sqrl/sample.sql, then create a JSON config file based on the sample
-provided in trianglman/sqrl/config.sample.json. You can then configure the 
+sqrl/sample.sql, then create a JSON config file based on the sample
+provided in sqrl/config.sample.json. You can then configure the
 generator or validator by calling the appropriate `loadConfigFromJSON($filepath);`
 method.
 
@@ -54,7 +61,7 @@ If you would rather manage storage of this information in your own tables, you c
 configure the generator manually:
 
 ```php
-$generator = new \trianglman\sqrl\SqrlGenerate();
+$generator = new \Trianglman\Sqrl\SqrlGenerate();
 //whether SQRL responses should come back over SSL (sqrl://)
 $generator->setSecure(true);
 //the domain sqrl clients should generate their key off of
@@ -87,7 +94,7 @@ Usage
 **Generate a nonce**
 ```php
 //Initialize the generator
-$generator = new \trianglman\sqrl\SqrlGenerate();
+$generator = new \Trianglman\Sqrl\SqrlGenerate();
 $generator->loadConfigFromJSON('/path/to/config');
 
 //output the QR file to stdout
@@ -100,12 +107,12 @@ $nonce = $generator->getNonce();
 **Verify a user's input**
 ```php
 //initialize the validator
-$validator = new \trianglman\sqrl\SqrlValidate();
+$validator = new \Trianglman\Sqrl\SqrlValidate();
 $validator->loadConfigFromJSON('/path/to/config');
-$validator->setValidator(new \trianglman\sqrl\ed25519\Crypto());
+$validator->setValidator(new \Trianglman\Sqrl\ed25519\Crypto());
 
 //initialize the request handler
-$requestResponse = new \trianglman\sqrl\SqrlRequestHandler($validator);
+$requestResponse = new \Trianglman\Sqrl\SqrlRequestHandler($validator);
 $requestResponse->parseRequest($_GET, $_POST, $_SERVER);
 
 //check validation
