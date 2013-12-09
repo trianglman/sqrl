@@ -7,7 +7,13 @@
             "email": "johnj.a.judy@gmail.com"
         }
     ],
+    "autoload": {
+        "psr-0": {
+            "Trianglman\\Sqrl": "src/"
+        }
+    },
     "require": {
+        "php": ">=5.3.3",
         "endroid/qrcode": "1.1.3",
         "ext-openssl":"*"
     }

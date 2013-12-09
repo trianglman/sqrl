@@ -1,2 +1,4 @@
 /netbeans/
 /vendor/
+composer.lock
+composer.phar
