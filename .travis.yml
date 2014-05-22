@@ -7,5 +7,4 @@ php:
 
 before_script:
   - sudo apt-get install openssl
-  - pyrus install pear.phpunit.de/DbUnit
-  - composer install --dev
+  - composer install
