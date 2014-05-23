@@ -70,16 +70,10 @@ class SqrlStore implements SqrlStoreInterface
      * @throws \InvalidArgumentException If the file does not exist
      * @throws \InvalidArgumentException If the file is not JSON formatted
      */
-    public function loadConfigFromJSON($filePath)
+    public function configure($filePath)
     {
-        if (!file_exists($filePath)) {
-            throw new \InvalidArgumentException('Configuration file not found');
-        }
-        $data = file_get_contents($filePath);
-        $decoded = json_decode($data);
-        if (is_null($decoded)) {
-            throw new \InvalidArgumentException('Configuration data could not be parsed. Is it JSON formatted?');
-        }
+        $decoded = SqrlUtil::loadConfigFromJSON($filePath);
+
         if (!empty($decoded->dsn)) {
             if (empty($decoded->username)) { //sqlite doesn't use usernames and passwords
                 $decoded->username = '';

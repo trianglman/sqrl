@@ -44,7 +44,7 @@ interface SqrlValidateInterface
      * @throws \InvalidArgumentException If the file does not exist
      * @throws \InvalidArgumentException If the file is not JSON formatted
      */
-    public function loadConfigFromJSON($filePath);
+    public function configure($filePath);
 
     /**
      * Sets an object to be used to store and retrieve SQRL information

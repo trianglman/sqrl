@@ -69,9 +69,9 @@ class SqrlValidateIntegrationTest extends \PHPUnit_Extensions_Database_TestCase
     public function testChecksNonceDb()
     {
         $val = new SqrlValidate();
-        $val->loadConfigFromJSON(dirname(__FILE__).'/Resources/functionaltest.json');
+        $val->configure(dirname(__FILE__).'/Resources/functionaltest.json');
         $store = new SqrlStore();
-        $store->loadConfigFromJSON(dirname(__FILE__).'/Resources/functionaltest.json');
+        $store->configure(dirname(__FILE__).'/Resources/functionaltest.json');
         $val->setStorage($store);
         $val->setSignedClientVal('ver=1&opt=enforce&authkey=xLOjlTKNdYFkCx-OMQT7hSoK7Ta54ioKZgWrh2ig0Fs');
         $val->setClientVer('1');
@@ -86,9 +86,9 @@ class SqrlValidateIntegrationTest extends \PHPUnit_Extensions_Database_TestCase
     public function testChecksStaleNonce()
     {
         $val = new SqrlValidate();
-        $val->loadConfigFromJSON(dirname(__FILE__).'/Resources/functionaltest.json');
+        $val->configure(dirname(__FILE__).'/Resources/functionaltest.json');
         $store = new SqrlStore();
-        $store->loadConfigFromJSON(dirname(__FILE__).'/Resources/functionaltest.json');
+        $store->configure(dirname(__FILE__).'/Resources/functionaltest.json');
         $val->setStorage($store);
         $val->setSignedClientVal('ver=1&opt=enforce&authkey=W_yg-zTXTp_9fGnkMfRYYpNZLTD-0TDmFcLK7r3fyZg');
         $val->setClientVer('1');
@@ -102,9 +102,9 @@ class SqrlValidateIntegrationTest extends \PHPUnit_Extensions_Database_TestCase
     public function testChecksEnforceDb()
     {
         $val = new SqrlValidate();
-        $val->loadConfigFromJSON(dirname(__FILE__).'/Resources/functionaltest.json');
+        $val->configure(dirname(__FILE__).'/Resources/functionaltest.json');
         $store = new SqrlStore();
-        $store->loadConfigFromJSON(dirname(__FILE__).'/Resources/functionaltest.json');
+        $store->configure(dirname(__FILE__).'/Resources/functionaltest.json');
         $val->setStorage($store);
         $val->setSignedClientVal('ver=1&opt=enforce&authkey=xLOjlTKNdYFkCx-OMQT7hSoK7Ta54ioKZgWrh2ig0Fs');
         $val->setClientVer('1');
@@ -123,9 +123,9 @@ class SqrlValidateIntegrationTest extends \PHPUnit_Extensions_Database_TestCase
     public function testValidatesSignature()
     {
         $val = new SqrlValidate();
-        $val->loadConfigFromJSON(dirname(__FILE__).'/Resources/functionaltest.json');
+        $val->configure(dirname(__FILE__).'/Resources/functionaltest.json');
         $store = new SqrlStore();
-        $store->loadConfigFromJSON(dirname(__FILE__).'/Resources/functionaltest.json');
+        $store->configure(dirname(__FILE__).'/Resources/functionaltest.json');
         $val->setStorage($store);
         $val->setSignedClientVal('ver=1&opt=enforce&authkey=xLOjlTKNdYFkCx-OMQT7hSoK7Ta54ioKZgWrh2ig0Fs');
         $val->setClientVer('1');
@@ -147,9 +147,9 @@ class SqrlValidateIntegrationTest extends \PHPUnit_Extensions_Database_TestCase
     public function testValidatesSignature2()
     {
         $val = new SqrlValidate();
-        $val->loadConfigFromJSON(dirname(__FILE__).'/Resources/functionaltest.json');
+        $val->configure(dirname(__FILE__).'/Resources/functionaltest.json');
         $store = new SqrlStore();
-        $store->loadConfigFromJSON(dirname(__FILE__).'/Resources/functionaltest.json');
+        $store->configure(dirname(__FILE__).'/Resources/functionaltest.json');
         $val->setStorage($store);
         $val->setSignedClientVal('ver=1&opt=enforce&authkey=W_yg-zTXTp_9fGnkMfRYYpNZLTD-0TDmFcLK7r3fyZg');
         $val->setClientVer('1');
@@ -172,9 +172,9 @@ class SqrlValidateIntegrationTest extends \PHPUnit_Extensions_Database_TestCase
     public function testChecksInvalidSignature()
     {
         $val = new SqrlValidate();
-        $val->loadConfigFromJSON(dirname(__FILE__).'/Resources/functionaltest.json');
+        $val->configure(dirname(__FILE__).'/Resources/functionaltest.json');
         $store = new SqrlStore();
-        $store->loadConfigFromJSON(dirname(__FILE__).'/Resources/functionaltest.json');
+        $store->configure(dirname(__FILE__).'/Resources/functionaltest.json');
         $val->setStorage($store);
         $val->setSignedClientVal('ver=1&opt=&authkey=xLOjlTKNdYFkCx-OMQT7hSoK7Ta54ioKZgWrh2ig0Fs');
         $val->setClientVer('1');

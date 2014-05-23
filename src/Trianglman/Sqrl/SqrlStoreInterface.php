@@ -82,7 +82,7 @@ interface SqrlStoreInterface
      * @throws \InvalidArgumentException If the file does not exist
      * @throws \InvalidArgumentException If the file is not JSON formatted
      */
-    public function loadConfigFromJSON($filePath);
+    public function configure($filePath);
 
     /**
      * Sets the database configuration
