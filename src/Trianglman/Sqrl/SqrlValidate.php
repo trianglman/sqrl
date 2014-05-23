@@ -35,7 +35,7 @@ use Trianglman\Sqrl\SqrlException;
  *
  * @author johnj
  */
-class SqrlValidate implements SqrlValidateInterface
+class SqrlValidate extends SqrlConfigurable implements SqrlValidateInterface
 {
     /**
      * @var SqrlStoreInterface
@@ -120,7 +120,7 @@ class SqrlValidate implements SqrlValidateInterface
      **************************/
     public function configure($filePath)
     {
-        $decoded = SqrlUtil::loadConfigFromJSON($filePath);
+        $decoded = $this->loadConfigFromJSON($filePath);
 
         if (!empty($decoded->secure)) {
             $this->setSecure($decoded->secure > 0);

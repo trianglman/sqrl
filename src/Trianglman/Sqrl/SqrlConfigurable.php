@@ -24,13 +24,15 @@
 namespace Trianglman\Sqrl;
 
 /**
- * Utility class for common functionality
+ * Abstract class for common functionality
  *
  * @author luisc
  */
-class SqrlUtil
+abstract class SqrlConfigurable
 {
-    public static function loadConfigFromJSON($filePath)
+    abstract public function configure($filePath);
+
+    protected function loadConfigFromJSON($filePath)
     {
         if (!file_exists($filePath)) {
             throw new \InvalidArgumentException('Configuration file not found');

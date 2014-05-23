@@ -28,7 +28,7 @@ namespace Trianglman\Sqrl;
  *
  * @author johnj
  */
-class SqrlStore implements SqrlStoreInterface
+class SqrlStore extends SqrlConfigurable implements SqrlStoreInterface
 {
     /**
      * @var string
@@ -72,7 +72,7 @@ class SqrlStore implements SqrlStoreInterface
      */
     public function configure($filePath)
     {
-        $decoded = SqrlUtil::loadConfigFromJSON($filePath);
+        $decoded = $this->loadConfigFromJSON($filePath);
 
         if (!empty($decoded->dsn)) {
             if (empty($decoded->username)) { //sqlite doesn't use usernames and passwords

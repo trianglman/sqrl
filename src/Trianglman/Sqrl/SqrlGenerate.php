@@ -30,7 +30,7 @@ use Endroid\QrCode\QrCode;
  *
  * @author johnj
  */
-class SqrlGenerate implements SqrlGenerateInterface
+class SqrlGenerate extends SqrlConfigurable implements SqrlGenerateInterface
 {
     /**
      * @var SqrlStore
@@ -69,7 +69,7 @@ class SqrlGenerate implements SqrlGenerateInterface
 
     public function configure($filePath)
     {
-        $decoded = SqrlUtil::loadConfigFromJSON($filePath);
+        $decoded = $this->loadConfigFromJSON($filePath);
 
         if (!empty($decoded->secure)) {
             $this->setSecure($decoded->secure > 0);
