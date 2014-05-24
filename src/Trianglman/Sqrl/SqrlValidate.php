@@ -35,7 +35,7 @@ use Trianglman\Sqrl\SqrlException;
  *
  * @author johnj
  */
-class SqrlValidate implements SqrlValidateInterface
+class SqrlValidate extends SqrlConfigurable implements SqrlValidateInterface
 {
     /**
      * @var SqrlStoreInterface
@@ -118,16 +118,10 @@ class SqrlValidate implements SqrlValidateInterface
      * Configuration
      *
      **************************/
-    public function loadConfigFromJSON($filePath)
+    public function configure($filePath)
     {
-        if (!file_exists($filePath)) {
-            throw new \InvalidArgumentException('Configuration file not found');
-        }
-        $data = file_get_contents($filePath);
-        $decoded = json_decode($data);
-        if (is_null($decoded)) {
-            throw new \InvalidArgumentException('Configuration data could not be parsed. Is it JSON formatted?');
-        }
+        $decoded = $this->loadConfigFromJSON($filePath);
+
         if (!empty($decoded->secure)) {
             $this->setSecure($decoded->secure > 0);
         }

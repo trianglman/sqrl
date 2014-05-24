@@ -93,7 +93,7 @@ class SqrlGenerateTest extends \PHPUnit_Framework_TestCase
     public function testRenders()
     {
         $obj = new SQRLGenerate();
-        $obj->loadConfigFromJSON(dirname(__FILE__).'/Resources/unittest.json');
+        $obj->configure(dirname(__FILE__).'/Resources/unittest.json');
         $nonce = $obj->getNonce();
         $expected = new QrCode();
         $expected->setText('sqrl://domain.com/login/sqrlauth.php?nut='.$nonce);

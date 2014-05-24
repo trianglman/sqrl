@@ -48,7 +48,7 @@ class SqrlValidateTest extends \PHPUnit_Framework_TestCase
             $this->returnValue(true)
         );
         $obj = new SqrlValidate();
-        $obj->loadConfigFromJSON(dirname(__FILE__).'/Resources/unittest.json');
+        $obj->configure(dirname(__FILE__).'/Resources/unittest.json');
         $obj->setSignedClientVal(
             'ver=1&opt=&authkey='.str_replace(array('+', '/', '='), array('-', '_', ''), base64_encode('some key'))
         );
@@ -74,7 +74,7 @@ class SqrlValidateTest extends \PHPUnit_Framework_TestCase
             $this->returnValue(true)
         );
         $obj = new SqrlValidate();
-        $obj->loadConfigFromJSON(dirname(__FILE__).'/Resources/unittest.json');
+        $obj->configure(dirname(__FILE__).'/Resources/unittest.json');
         $obj->setSignedClientVal(
             'ver=1&opt=&authkey='.str_replace(array('+', '/', '='), array('-', '_', ''), base64_encode('some key'))
         );
@@ -95,7 +95,7 @@ class SqrlValidateTest extends \PHPUnit_Framework_TestCase
     {
         $validator = $this->getMock('\Trianglman\Sqrl\NonceValidatorInterface');
         $obj = new SqrlValidate();
-        $obj->loadConfigFromJSON(dirname(__FILE__).'/Resources/unittest.json');
+        $obj->configure(dirname(__FILE__).'/Resources/unittest.json');
         $obj->setSignedClientVal(
             'ver=1&opt=enforce&authkey='.str_replace(
                 array('+', '/', '='),
@@ -130,7 +130,7 @@ class SqrlValidateTest extends \PHPUnit_Framework_TestCase
             $this->returnValue(true)
         );
         $obj = new SqrlValidate();
-        $obj->loadConfigFromJSON(dirname(__FILE__).'/Resources/unittest.json');
+        $obj->configure(dirname(__FILE__).'/Resources/unittest.json');
         $obj->setSignedClientVal(
             'ver=1&opt=enforce&authkey='.str_replace(
                 array('+', '/', '='),
@@ -169,7 +169,7 @@ class SqrlValidateTest extends \PHPUnit_Framework_TestCase
             $this->returnValue(false)
         );
         $obj = new SqrlValidate();
-        $obj->loadConfigFromJSON(dirname(__FILE__).'/Resources/unittest.json');
+        $obj->configure(dirname(__FILE__).'/Resources/unittest.json');
         $obj->setSignedClientVal(
             'ver=1&opt=&authkey='.str_replace(array('+', '/', '='), array('-', '_', ''), base64_encode('some key'))
         );
@@ -191,7 +191,7 @@ class SqrlValidateTest extends \PHPUnit_Framework_TestCase
     {
         $validator = $this->getMock('\Trianglman\Sqrl\NonceValidatorInterface');
         $obj = new SqrlValidate();
-        $obj->loadConfigFromJSON(dirname(__FILE__).'/Resources/unittest.json');
+        $obj->configure(dirname(__FILE__).'/Resources/unittest.json');
         $obj->setSignedClientVal(
             'ver=1&opt=&authkey='.str_replace(array('+', '/', '='), array('-', '_', ''), base64_encode('some key'))
         );
