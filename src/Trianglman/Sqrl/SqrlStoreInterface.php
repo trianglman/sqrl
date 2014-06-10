@@ -137,7 +137,7 @@ interface SqrlStoreInterface
      *
      * @throws SqrlException If there is a database issue
      */
-    public function storeNut($nut, $ip, $type = SqrlRequestHandlerInterface::AUTHENTICATION_REQUEST, $key = null);
+    public function storeNut($nut, $ip, $type = SqrlRequestHandlerInterface::INITIAL_REQUEST, $key = null);
 
     /**
      * Retrieves information about the supplied nut

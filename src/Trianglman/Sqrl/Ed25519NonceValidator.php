@@ -32,6 +32,8 @@ class Ed25519NonceValidator extends Ed25519\Crypto implements NonceValidatorInte
 {
     public function validateSignature($orig, $sig, $pk)
     {
-        return $this->checkvalid($sig, $orig, $pk);
+        //return true;//use this to speed up testing of valid keys
+        $check = $this->checkvalid($sig, $orig, $pk);
+        return $check;
     }
 }

@@ -35,20 +35,12 @@ namespace Trianglman\Sqrl;
 interface SqrlRequestHandlerInterface
 {
     /**
-     * The SQRL Server version
-     *
-     * @const
-     * @var int
-     */
-    const VERSION = 1;
-
-    /**
      * A basic SQRL authentication request, no special parameters
      *
      * @const
      * @var int
      */
-    const AUTHENTICATION_REQUEST = 1;
+    const INITIAL_REQUEST = 1;
 
     /**
      * A second loop response from a user who's public key was not recognized
@@ -56,117 +48,109 @@ interface SqrlRequestHandlerInterface
      * @const
      * @var int
      */
-    const NEW_ACCOUNT_REQUEST = 2;
+    const FOLLOW_UP_REQUEST = 2;
 
+    //TIF Codes
     /**
-     * A request from the user to disable their stored authentication key
+     * 	When set, this bit indicates that the web server has 
+     * found an identity association for the user based upon the default (current) 
+     * identity credentials supplied by the client: the IDentity Key (IDK) and 
+     * the IDentity Signature (IDS).
      *
      * @const
      * @var int
      */
-    const DISABLE_REQUEST = 3;
+    const ID_MATCH = 0x01;
 
     /**
-     * A request from the user to replace their current authentication information
+     * When set, this bit indicates that the web server has found an identity 
+     * association for the user based upon the previous identity credentials 
+     * supplied by the client: the previous IDentity Key (pIDK) and the previous 
+     * IDentity Signature (pIDS).
      *
      * @const
      * @var int
      */
-    const REKEY_REQUEST = 4;
+    const PREVIOUS_ID_MATCH = 0x02;
 
     /**
-     * A second loop response from a user to re-enable a disabled key
+     * When set, this bit indicates that the IP address of the entity which 
+     * requested the initial logon web page containing the SQRL link URL (and 
+     * probably encoded into the SQRL link URL's “nut”) is the same IP address 
+     * from which the SQRL client's query was received for this reply.
      *
      * @const
      * @var int
      */
-    const REENABLE_REQUEST = 5;
+    const IP_MATCH = 0x04;
 
     /**
-     * A second loop response from a user to replace their current stored
-     * authentication key
+     * When set, the account associated with the identified user is enabled for 
+     * SQRL-initiated login. This is the normal default case, so this bit will 
+     * be set unless a “disable” command (see below) has most recently been 
+     * received from the identified user.
      *
      * @const
      * @var int
      */
-    const MIGRATE_REQUEST = 6;
+    const SQRL_ENABLED = 0x08;
 
     /**
-     * A second loop response from a user to replace all current authentication
-     * information
+     * When set, the account associated with the identified user has one or more 
+     * active logged in sessions. In the typical case, this bit would be cleared 
+     * in the first status-collection client query and set in the reply to a 
+     * subsequent successful query containing any of the login commands. If it 
+     * was set before the receipt of a successful logout command, it would then 
+     * be reset.
      *
      * @const
      * @var int
      */
-    const REPLACE_REQUEST = 7;
+    const USER_LOGGED_IN = 0x10;
 
     /**
-     * A second loop response from a user to replace their Identity Lock information
+     * When set, the website is indicating that it supports SQRL-initiated, 
+     * anonymous account creation. If the SQRL client received a reply with this 
+     * bit set, and the user was not already known to the server, and the user 
+     * affirmatively indicated that they wished to create an account using their 
+     * SQRL credentials, the client could then issue a “create” command, 
+     * probably accompanied with one of the login commands, to create an account 
+     * and login the user.
      *
      * @const
      * @var int
      */
-    const RELOCK_REQUEST = 8;
+    const ACCOUNT_CREATION_ALLOWED = 0x20;
 
     /**
-     * A second loop response for all Identity Lock related requests
-     *
-     * This should be set and stored with the nonce and will be overriden during
-     * request processing
+     * When set, this bit indicates that the web server had an unspecified 
+     * problem fully processing the client's query. In any such case, no change 
+     * will be made to the user's account status. All SQRL server-side actions 
+     * are atomic. This means that either everything succeeds or nothing is 
+     * changed. This is important since clients can request multiple updates and 
+     * changes at once.
      *
      * @const
      * @var int
      */
-    const REKEY_REQUEST_LOOP2 = 9;
+    const COMMAND_FAILED = 0x40;
 
-    //ERROR CODES
     /**
-     * Request was completed successfully
+     * This bit only has meaning when the preceding “Command failed” bit is set. 
+     * When both bits are set, the web server in indicating that the reason for 
+     * the command failure indicated by that bit was some failure in the SQRL 
+     * protocol sent by the client and not a problem at its end with completing 
+     * the requested command(s). Since the SQRL client will have previously 
+     * obtained everything from the client which is necessary to formulate valid 
+     * and legal command queries, this bit should never be expected to be set. 
+     * So it would typically indicate a logical problem with either the web 
+     * server of the client, a transmission error, or the presence of third-party 
+     * tampering.
      *
      * @const
      * @var int
      */
-    const OK = 1;
-
-    /**
-     * The request was not properly formatted or was missing information
-     *
-     * @const
-     * @var int
-     */
-    const INVALID_REQUEST = 2;
-
-    /**
-     * The IP of the request did not match the nonce IP
-     *
-     * @const
-     * @var int
-     */
-    const ENFORCE_IP_FAILED = 3;
-
-    /**
-     * The serverurl value did not match what was supplied by the server
-     *
-     * @const
-     * @var int
-     */
-    const SERVERURL_MISMATCH = 4;
-
-    /**
-     * The signature did not match the key
-     *
-     * @const
-     * @var int
-     */
-    const INVALID_SIGNATURE = 5;
-
-    /**
-     * A second loop is required to supply more information
-     *
-     * @const
-     * @var int
-     */
-    const MORE_INFORMATION = 6;
+    const SQRL_SERVER_FAILURE = 0x80;
 
     /**
      * Initializes the Request Handler

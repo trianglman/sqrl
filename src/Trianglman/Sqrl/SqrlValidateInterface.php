@@ -74,13 +74,13 @@ interface SqrlValidateInterface
     public function setAuthenticateSignature($sig);
 
     /**
-     * Sets the URL that was signed by the key(s)
+     * Sets the server data that was signed by the key(s)
      *
-     * @param string $url
+     * @param string $val
      *
      * @return void
      */
-    public function setSignedUrl($url);
+    public function setSignedServerVal($val);
 
     /**
      * Sets the clientval value that was signed by the key(s)
@@ -119,6 +119,18 @@ interface SqrlValidateInterface
      * @return void
      */
     public function setValidator(NonceValidatorInterface $validator);
+    
+    /**
+     * Verifies that the server data sent back by the requestor matches
+     * the data that was originally sent with the nonce
+     * 
+     * @param int $requestType The request type the nut is claimed to be sent for
+     * @param boolean $https Whether the request was secure
+     * @param string|array $serverData The server= information sent by the client
+     * 
+     * @return boolean
+     */
+    public function matchServerData($requestType,$https,$serverData);
 
     /**
      * Validates that the supplied signature matches the public key

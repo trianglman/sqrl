@@ -138,7 +138,7 @@ interface SqrlGenerateInterface
      *
      * @return string The one time use number for the QR link
      */
-    public function getNonce($action = SqrlRequestHandlerInterface::AUTHENTICATION_REQUEST, $key = '');
+    public function getNonce($action = SqrlRequestHandlerInterface::INITIAL_REQUEST, $key = '');
 
     /**
      * Gets the validation URL including the nonce
@@ -146,4 +146,21 @@ interface SqrlGenerateInterface
      * @return string
      */
     public function getUrl();
+    
+    /**
+     * Sets the nonce manually
+     * 
+     * This should only be used during testing or when generating an encrypted instead of random nonce
+     * 
+     * @param string $nonce  The pre-generated nonce
+     *
+     * @param int    $action [Optional] The type of action this nonce is being generated for
+     * 
+     * @see SqrlRequestHandler
+     *
+     * @param string $key    [Optional] The public key associated with the nonce
+     * 
+     * @return void
+     */
+    public function setNonce($nonce,$action = SqrlRequestHandlerInterface::INITIAL_REQUEST, $key = '');
 }

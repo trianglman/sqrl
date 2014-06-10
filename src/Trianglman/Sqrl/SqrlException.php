@@ -43,4 +43,6 @@ class SqrlException extends \Exception
     const DATABASE_NOT_CONFIGURED = 6;
 
     const DATABASE_EXCEPTION = 7;
+    
+    const INVALID_REQUEST = 8;
 }

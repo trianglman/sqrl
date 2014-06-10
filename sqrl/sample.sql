@@ -5,6 +5,7 @@ CREATE TABLE `sqrl_nonce` (
     `ip` INT UNSIGNED NOT NULL,
     `action` VARCHAR NOT NULL
     `related_public_key` CHAR(44) DEFAULT NULL,
+    `verified` TINYINT(1) DEFAULT 0,
     UNIQUE (`nonce`)
 );
 

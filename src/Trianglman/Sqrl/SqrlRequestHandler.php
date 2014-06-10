@@ -47,7 +47,13 @@ class SqrlRequestHandler implements SqrlRequestHandlerInterface
     /**
      * @var string
      */
-    protected $requestType = self::AUTHENTICATION_REQUEST;
+    protected $requestType = self::INITIAL_REQUEST;
+    
+    /**
+     *
+     * @var string
+     */
+    protected $cmd = '';
 
     /**
      * @var int
@@ -95,25 +101,27 @@ class SqrlRequestHandler implements SqrlRequestHandlerInterface
     protected $unlockRequestSig = '';
 
     /**
-     * Base 64 new authentication key
+     * pIDK (base 64)
      *
      * @var string
      */
-    protected $newKey = '';
+    protected $oldKey = '';
 
     /**
      * Base 64 signature using the new authentication key
      *
      * @var string
      */
-    protected $newKeySig = '';
+    protected $oldKeySig = '';
 
     /**
      * @var SqrlGenerate
      */
     protected $sqrlGenerator = null;
 
-    protected $responseVersion = self::VERSION;
+    protected $acceptedVersions = 1;
+    
+    protected $sfn = '';
 
     /**
      *
@@ -129,6 +137,11 @@ class SqrlRequestHandler implements SqrlRequestHandlerInterface
         $this->validator = $val;
         $this->sqrlGenerator = $gen;
         $this->store = $store;
+    }
+    
+    public function setSfn($sfn)
+    {
+        $this->sfn = $sfn;
     }
 
     /**
@@ -148,165 +161,216 @@ class SqrlRequestHandler implements SqrlRequestHandlerInterface
      */
     public function parseRequest($get, $post, $server)
     {
-        if (isset($post['clientval'])) {
-            $clientVal = array();
-            parse_str($post['clientval'], $clientVal);
-            $this->validator->setSignedClientVal($post['clientval']);
-        } else {
-            $this->message = $this->formatRequest(
-                'No client response was included in the request',
-                self::INVALID_REQUEST
-            );
-
-            return;
-        }
-        if (isset($clientVal['ver'])) {
-            //after version one, this will need to affect response version
-            $this->clientVer = $clientVal['ver'];
-            $this->validator->setClientVer($clientVal['ver']);
-        } else {
-            $this->message = $this->formatRequest('No version was included in the request', self::INVALID_REQUEST);
-
-            return;
-        }
-        if (isset($get['nut'])) {
+        if (isset($post['client'])) {
+            $this->validator->setSignedClientVal($post['client']);
             try {
-                $reqType = $this->validator->setNonce($get['nut']);
-                //overwrite the request type with the nonce's request type if the 
-                //default hasn't been overwritten and a request type was found
-                if ($this->requestType == self::AUTHENTICATION_REQUEST && $reqType != null) {
-                    $this->requestType = $reqType;
-                }
-            } catch (SqrlException $e) {
-                if ($e->getCode() == SqrlException::NONCE_NOT_FOUND) {
-                    $this->message = $this->formatRequest(
-                        'No nonce was included in the request',
-                        self::INVALID_REQUEST
-                    ); //do we want to be more explicit?
-                } elseif ($e->getCode() == SqrlException::EXPIRED_NONCE) {
-                    $this->message = $this->formatRequest(
-                        'No nonce was included in the request',
-                        self::INVALID_REQUEST
-                    ); //do we want to be more explicit?
+                $this->decodeClientVals($this->base64URLDecode($post['client']));
+            } catch (Trianglman\Sqrl\SqrlException $e) {
+                if ($e->getCode() === SqrlException::INVALID_REQUEST) {
+                    $this->message = $this->formatResponse(
+                        $e->getMessage(),
+                        self::COMMAND_FAILED|self::SQRL_SERVER_FAILURE,
+                        false
+                    );
+                    return;
                 } else {
-                    //no other SQRL related exceptions should happen, but if a 
-                    //user extends the validator and exception class, it may happen.
-                    //Let the user handle it.
                     throw $e;
                 }
-
-                return;
             }
         } else {
-            $this->message = $this->formatRequest('No nonce was included in the request', self::INVALID_REQUEST);
-
-            return;
-        }
-        if (isset($clientVal['opt'])) {
-            $options = explode(' ', $clientVal['opt']);
-            if (in_array('enforce', $options)) {
-                $this->validator->setEnforceIP(true);
-            }
-            if (in_array('disable', $options)) {
-                $this->requestType = self::DISABLE_REQUEST;
-            }
-            if (in_array('rekey', $options)) {
-                $this->requestType = self::REKEY_REQUEST;
-            }
-        }
-        if (isset($clientVal['authkey'])) {
-            $this->authenticateKey = str_replace(array('-', '_'), array('+', '/'), $clientVal['authkey']).'=';
-            $this->validator->setAuthenticateKey($this->authenticateKey);
-        } else {
-            $this->message = $this->formatRequest('No public key was included in the request', self::INVALID_REQUEST);
-
-            return;
-        }
-        if ($this->requestType == self::NEW_ACCOUNT_REQUEST) {
-            if (isset($clientVal['suk'])) {
-                $this->serverUnlockKey = str_replace(array('-', '_'), array('+', '/'), $clientVal['suk']).'=';
-            } else {
-                $this->message = $this->formatRequest(
-                    'No server unlock key was included in the request',
-                    self::INVALID_REQUEST
-                );
-
-                return;
-            }
-            if (isset($clientVal['vuk'])) {
-                $this->verifyUnlockKey = str_replace(array('-', '_'), array('+', '/'), $clientVal['vuk']).'=';
-            } else {
-                $this->message = $this->formatRequest(
-                    'No verify unlock key was included in the request',
-                    self::INVALID_REQUEST
-                );
-
-                return;
-            }
-        }
-        if ($this->requestType == self::REKEY_REQUEST_LOOP2) {
-            if (isset($clientVal['urskey'])) {
-                $this->unlockRequestKey = str_replace(array('-', '_'), array('+', '/'), $clientVal['urskey']).'=';
-            } else {
-                $this->message = $this->formatRequest(
-                    'No unlock request signing key was included in the request',
-                    self::INVALID_REQUEST
-                );
-
-                return;
-            }
-            if (isset($post['urssig'])) {
-                $this->unlockRequestSig = str_replace(array('-', '_'), array('+', '/'), $post['urssig']).'==';
-            } else {
-                $this->message = $this->formatRequest(
-                    'No signature was included in the request',
-                    self::INVALID_REQUEST
-                );
-
-                return;
-            }
-            $this->requestType = self::REENABLE_REQUEST;
-            if (isset($clientVal['newkey'])) {
-                $this->newKey = str_replace(array('-', '_'), array('+', '/'), $clientVal['newkey']).'=';
-                $this->requestType = self::MIGRATE_REQUEST;
-                if (isset($post['newkeysig'])) {
-                    $this->newKeySig = str_replace(array('-', '_'), array('+', '/'), $post['newkeysig']).'==';
-                } else {
-                    $this->message = $this->formatRequest(
-                        'No signature was included in the request',
-                        self::INVALID_REQUEST
-                    );
-
-                    return;
-                }
-            } else {
-                $this->newKey = $this->authenticateKey;
-            }
-            if (isset($clientVal['vuk']) && isset($clientVal['suk'])) {
-                $this->serverUnlockKey = str_replace(array('-', '_'), array('+', '/'), $clientVal['suk']).'=';
-                $this->verifyUnlockKey = str_replace(array('-', '_'), array('+', '/'), $clientVal['vuk']).'=';
-                $this->requestType = $this->requestType == self::MIGRATE_REQUEST ?
-                    self::REPLACE_REQUEST :
-                    self::RELOCK_REQUEST;
-            }
-        }
-        if (isset($post['serverurl'])) {
-            $this->validator->setSignedUrl($post['serverurl']);
-        } else {
-            $this->message = $this->formatRequest('No server URL was included in the request', self::INVALID_REQUEST);
-
-            return;
-        }
-        if (isset($post['authsig'])) {
-            $this->validator->setAuthenticateSignature(
-                str_replace(array('-', '_'), array('+', '/'), $post['authsig']).'=='
+            $this->message = $this->formatResponse(
+                'No client response was included in the request',
+                self::COMMAND_FAILED|self::SQRL_SERVER_FAILURE,
+                false
             );
+            return;
+        }
+        if (isset($post['server'])) {
+            $this->validator->setSignedServerVal($post['server']);
+            try{
+                $this->decodeServerData($this->base64URLDecode($post['server']),$get,$server);
+            } catch (SqrlException $e) {
+                //what exceptions can be caused?
+                $this->message = $this->formatResponse(
+                    $e->getMessage(), 
+                    self::COMMAND_FAILED|self::SQRL_SERVER_FAILURE,
+                    false
+                );
+            }
         } else {
-            $this->message = $this->formatRequest('No signature was included in the request', self::INVALID_REQUEST);
-
+            $this->message = $this->formatResponse(
+                'No server data was included in the request', 
+                self::COMMAND_FAILED|self::SQRL_SERVER_FAILURE,
+                false
+            );
+            return;
+        }
+        if (isset($post['ids'])) {
+            $this->validator->setAuthenticateSignature($this->base64URLDecode($post['ids']));
+        } else {
+            $this->message = $this->formatResponse(
+                'No identity signature was included in the request', 
+                self::COMMAND_FAILED|self::SQRL_SERVER_FAILURE,
+                false
+            );
+            return;
+        }
+        if (isset($post['pids'])) {
+            $this->oldKeySig = $post['pids'];
+            //set up validator, or call it multiple times?
+        } elseif (!empty($this->oldKey)) {
+            $this->message = $this->formatResponse(
+                'No previous identity signature was included in the request, but previous identity key was', 
+                self::COMMAND_FAILED|self::SQRL_SERVER_FAILURE,
+                false
+            );
+            return;
+        }
+        if (isset($post['urs'])) {
+            $this->$unlockRequestSig = $post['urs'];
+            //set up validator, or call it multiple times?
+        } elseif (in_array($this->cmd, array('setkey','setlock','enable','delete'))) {
+            $this->message = $this->formatResponse(
+                'Command requires a matching verify unlock key and unlock request signature. No signature was provided', 
+                self::COMMAND_FAILED|self::SQRL_SERVER_FAILURE,
+                false
+            );
             return;
         }
         $this->validator->setRequestorIp($server['REMOTE_ADDR']);
+    }
+    
+    /**
+     * Takes a (base64Url decoded) client value string and breaks it into its individual values
+     * @param string $clientInput
+     * @return void
+     */
+    protected function decodeClientVals($clientInput)
+    {
+        $inputAsArray = explode("\n", $clientInput);
+        foreach ($inputAsArray as $individualInputs) {
+            list($key,$val) = explode("=", $individualInputs);
+            $val = trim($val);//strip off the \r
+            switch ($key){
+                case 'ver':
+                    $this->clientVer = $val;
+                    $this->validator->setClientVer($val);
+                    break;
+                case 'cmd':
+                    $this->cmd = $val;
+                    break;
+                case 'val':
+                    //do ask parameter stuff
+                    break;
+                case 'idk':
+                    $this->authenticateKey = $this->base64URLDecode($val);
+                    $this->validator->setAuthenticateKey($this->base64URLDecode($val));
+                    break;
+                case 'pidk':
+                    $this->oldKey = $this->base64URLDecode($val);
+                    break;
+                case 'suk':
+                    $this->serverUnlockKey = $this->base64URLDecode($val);
+                    break;
+                case 'vuk':
+                    $this->verifyUnlockKey = $this->base64URLDecode($val);
+                    break;
+            }
+        }
+        if(empty($this->clientVer)){
+            throw new SqrlException(
+                'No version was included in the request', 
+                SqrlException::INVALID_REQUEST
+            );
+        }
+        if(empty($this->authenticateKey)){
+            throw new SqrlException(
+                'No idk was included in the request', 
+                SqrlException::INVALID_REQUEST
+            );
+        }
+        if(empty($this->cmd)){
+            throw new SqrlException(
+                'No command was included in the request', 
+                SqrlException::INVALID_REQUEST
+            );
+        }
+        if(in_array($this->cmd, array('setkey','setlock','enable','delete')) &&
+                empty($this->verifyUnlockKey)){
+            throw new SqrlException(
+                'Command requires a verify unlock key. None was included in the request', 
+                SqrlException::INVALID_REQUEST
+            );
+        }
+    }
+    
+    protected function decodeServerData($serverData,$get,$server)
+    {
+        if (substr($serverData,0,7)==='sqrl://' || substr($serverData,0,6)==='qrl://'){
+            $this->decodeServerUrl($serverData, $get['nut'], !empty($server['HTTPS']));
+        } else {
+            $this->decodeServerResponse($serverData,!empty($server['HTTPS']));
+        }
+    }
+    
+    protected function decodeServerUrl ($url,$nut,$https)
+    {
+        $this->requestType = self::INITIAL_REQUEST;
+        $this->validator->setNonce($nut);
+        if (!$this->validator->matchServerData(self::INITIAL_REQUEST,$https,$url)) {
+            throw new SqrlException(
+                    'Requested URL doesn\'t match expected URL', 
+                    SqrlException::SIGNED_URL_DOESNT_MATCH
+                    );
+        }
+    }
+    
+    protected function decodeServerResponse($data,$https)
+    {
+        $serverVer = 0;
+        $serverQry = '';
+        $serverLnk = '';
+        $serverSfn = '';
+        $serverAsk = '';
+        $inputAsArray = explode("\n",$data);
+        foreach ($inputAsArray as $individualInputs) {
+            list($key,$val)=explode("=",$individualInputs);
+            $val = trim($val);//strip off the \r
+            switch ($key) {
+                case 'ver':
+                    $serverVer = $val;
+                    break;
+                case 'nut':
+                    $this->validator->setNonce($val);
+                    break;
+                case 'tif':
+                    $this->requestType = (int)$val;
+                    break;
+                case 'qry':
+                    $serverQry = $val;
+                    break;
+                case 'lnk':
+                    $serverLnk = $val;
+                    break;
+                case 'sfn':
+                    $serverSfn = $val;
+                    break;
+                case 'ask':
+                    $serverAsk = $val;
+                    break;
+            }
+        }
+        if (!$this->validator->matchServerData($this->requestType,$https,array(
+            'ver'=>$serverVer,
+            'tif'=>$this->requestType,
+            'qry'=>$serverQry,
+            'lnk'=>$serverLnk,
+            'sfn'=>$serverSfn,
+            'ask'=>$serverAsk
+            )
+        )) {
+            throw new SqrlException('Request doesn\'t match expected request', SqrlException::SIGNED_URL_DOESNT_MATCH);
+        }
     }
 
     /**
@@ -330,151 +394,87 @@ class SqrlRequestHandler implements SqrlRequestHandlerInterface
      */
     public function getResponseMessage()
     {
+        //handle initial request parsing errors
         if (!empty($this->message)) {
             return $this->message;
         }
         try {
             $this->verifyRequest();
-            if (!is_null($this->store)) {
-                $this->storeKeyUpdate();
+            $actions = explode('~', $this->cmd);
+            $acceptedActions = array('setKey','setLock','disable','enable','delete','create','login','logme','logoff');
+            $responseCode = self::IP_MATCH;//just set this for now, need to set up no enforce IP handling
+            if ($this->requestType === self::INITIAL_REQUEST) {
+                $continue=true;
+            } else {
+                $continue=false;
             }
-            $this->buildSucessResponse();
-        } catch (SqrlException $exc) {
-            switch ($exc->getCode()) {
+            foreach ($actions as $act) {
+                if (!in_array($act, $acceptedActions)) {
+                    return $this->formatResponse(
+                        'Command not found', 
+                        self::COMMAND_FAILED|self::SQRL_SERVER_FAILURE|self::IP_MATCH,
+                        false
+                    );
+                }
+                $actionResponse = $this->$act($continue);
+                if ($actionResponse&self::COMMAND_FAILED) {
+                    return $this->formatResponse(
+                        $act.' command failed', 
+                        $actionResponse,
+                        false
+                    );
+                }
+                $responseCode |= $actionResponse;
+            }
+            return $this->formatResponse('Commands successful',$responseCode,$continue);
+        } catch (SqrlException $ex) {
+            switch ($ex->getCode()) {
                 case SqrlException::ENFORCE_IP_FAIL:
-                    $this->message = $this->formatRequest("IP check failed.", self::ENFORCE_IP_FAILED);
-                    break;
-                case SqrlException::SIGNED_URL_DOESNT_MATCH:
-                    $this->message = $this->formatRequest(
-                        "The returned URL does not match the initial SQRL challenge.",
-                        self::SERVERURL_MISMATCH
+                    return $this->formatResponse(
+                        'IPs do not match', 
+                        self::COMMAND_FAILED|self::SQRL_SERVER_FAILURE
                     );
-                    break;
                 case SqrlException::SIGNATURE_NOT_VALID:
-                    $this->message = $this->formatRequest("The signature is not valid.", self::INVALID_SIGNATURE);
-                    break;
-                default:
-                    //no other SQRL related exceptions should happen, but if a 
-                    //user extends the validator and exception class, it may happen.
-                    //Let the user handle it.
-                    throw $exc;
-            }
-        }
-
-        return $this->message;
-    }
-
-    protected function storeKeyUpdate()
-    {
-        switch ($this->requestType) {
-            case self::NEW_ACCOUNT_REQUEST:
-                $this->store->storeIdentityLock(
-                    $this->authenticateKey,
-                    $this->serverUnlockKey,
-                    $this->verifyUnlockKey
-                );
-                break;
-            case self::DISABLE_REQUEST:
-                $this->store->lockKey($this->authenticateKey);
-                break;
-            case self::REENABLE_REQUEST:
-            case self::MIGRATE_REQUEST:
-                $this->store->migrateKey($this->authenticateKey, $this->newKey);
-                break;
-            case self::RELOCK_REQUEST:
-                $this->store->storeIdentityLock(
-                    $this->authenticateKey,
-                    $this->serverUnlockKey,
-                    $this->verifyUnlockKey
-                );
-                break;
-            case self::REPLACE_REQUEST:
-                $this->store->migrateKey(
-                    $this->authenticateKey,
-                    $this->newKey,
-                    $this->serverUnlockKey,
-                    $this->verifyUnlockKey
-                );
-        }
-    }
-
-    protected function verifyRequest()
-    {
-        $this->validator->validate();
-        if ($this->requestType != self::AUTHENTICATION_REQUEST) {
-            $idLockReqs = array(
-                self::REENABLE_REQUEST,
-                self::RELOCK_REQUEST,
-                self::MIGRATE_REQUEST,
-                self::REPLACE_REQUEST
-            );
-            if (in_array($this->requestType, $idLockReqs)) {
-                $this->validator->validateSignature(
-                    $this->unlockRequestKey,
-                    $this->unlockRequestSig
-                );
-                if ($this->newKey != $this->authenticateKey) {
-                    $this->validator->validateSignature(
-                        $this->newKey,
-                        $this->newKeySig
+                    return $this->formatResponse(
+                        'Signature did not match', 
+                        self::COMMAND_FAILED|self::SQRL_SERVER_FAILURE|self::IP_MATCH,
+                        false
                     );
-                }
             }
         }
     }
-
-    protected function buildSucessResponse()
+    
+    /**
+     * Performs the log in action
+     * 
+     * @return int
+     */
+    protected function login($continue)
     {
-        switch ($this->requestType) {
-            case self::AUTHENTICATION_REQUEST:
-                $this->message = $this->formatRequest("Successfully authenticated.");
-                if (!is_null($this->store)) {
-                    $check = $this->store->retrieveAuthenticationRecord($this->authenticateKey, SqrlStoreInterface::ID);
-                    if (is_array($check)) {
-                        $this->message = $this->generateSecondLoop(self::NEW_ACCOUNT_REQUEST);
-                    }
+        $userKey = empty($this->oldKey)?$this->authenticateKey:$this->oldKey;
+        $response = 0;
+        if (!is_null($this->store)) {
+            //find the user's key to see if there already is a record
+            $userData = $this->store->retrieveAuthenticationRecord(base64_encode($userKey));
+            if (!empty($userData)) {
+                if ($userData['disabled']==1 && !$continue) {
+                    //if the user is trying to finish logging in with a disabled account, reject it
+                    return self::COMMAND_FAILED|self::SQRL_SERVER_FAILURE|self::IP_MATCH;
                 }
-                break;
-            case self::REKEY_REQUEST:
-                $this->message = $this->generateSecondLoop(self::REKEY_REQUEST_LOOP2);
-                break;
-            case self::NEW_ACCOUNT_REQUEST:
-                $this->message = $this->formatRequest('New account successfully created.');
-                break;
-            case self::DISABLE_REQUEST:
-                $this->message = $this->formatRequest('Account locked.');
-                break;
-            case self::REENABLE_REQUEST:
-                $this->message = $this->formatRequest('Account Re-enabled.');
-                break;
-            case self::MIGRATE_REQUEST:
-                $this->message = $this->formatRequest('Authentication key migrated.');
-                break;
-            case self::RELOCK_REQUEST:
-                $this->message = $this->formatRequest('Identity Lock key migrated.');
-                break;
-            case self::REPLACE_REQUEST:
-                $this->message = $this->formatRequest('Authentication keys migrated.');
-                break;
+                $response |= empty($this->oldKey)?self::ID_MATCH:self::PREVIOUS_ID_MATCH;
+                $response |= $userData['disabled']==0?self::SQRL_ENABLED:0;
+                $response |= $continue?0:self::USER_LOGGED_IN;
+                return $response;
+            } else {
+                //TODO: this should handle allowing a user to create an anonymous account if allowed
+                return 0;
+            }
+        } else {
+            // TODO: How should this be handled modularly?
+            // Should we allow the calling code to set whether or not the key was matched
+            // or should we have a different set of commands to allow the calling
+            // code to interact with the commands more directly?
         }
-    }
-
-    protected function generateSecondLoop($loopPurpose)
-    {
-        $display = '';
-        switch ($loopPurpose) {
-            case self::NEW_ACCOUNT_REQUEST:
-                $display = 'No matching account found. Please supply Identity Lock information.';
-                break;
-            case self::REKEY_REQUEST_LOOP2:
-                $display = 'Second loop required to perform the re-key request.';
-                break;
-        }
-        if (is_null($this->sqrlGenerator)) {
-            return $this->formatRequest($display, self::MORE_INFORMATION);
-        }
-        $this->sqrlGenerator->getNonce($loopPurpose, $this->authenticateKey); //done to build it
-        return $this->formatRequest($display, self::MORE_INFORMATION, $this->sqrlGenerator->getUrl());
     }
 
     /**
@@ -500,13 +500,94 @@ class SqrlRequestHandler implements SqrlRequestHandlerInterface
         echo $this->getResponseMessage();
     }
 
-    protected function formatRequest($display, $code = self::OK, $serverurl = '')
+    protected function verifyRequest()
     {
-        return 'sqrlreply='.urlencode(
-            'ver='.$this->responseVersion
-            .'&result='.$code
-            .'&display='.urlencode($display)
-            .(($code == self::MORE_INFORMATION && !empty($serverurl)) ? '&serverurl='.urlencode($serverurl) : '')
-        );
+        $this->validator->validate();
+        if (!empty($this->oldKey)) {
+            $this->validator->validateSignature($this->oldKey, $this->oldKeySig);
+        }
+        if (!empty($this->unlockRequestKey)) {
+            $this->validator->validateSignature($this->unlockRequestKey, $this->unlockRequestSig);
+        }
+    }
+
+    /**
+     * Formats a response to send back to a client
+     * 
+     * @param string $display A human readable message
+     * @param int $code The TIF code to send back to the user
+     * @param boolean $continue Whether to send a new nut expecting a response back
+     * 
+     * @return string
+     */
+    protected function formatResponse($display, $code,$continue=true)
+    {
+        $resp = 'ver='.$this->acceptedVersions."\r\n"
+            .'tif='.$code."\r\n"
+            .'sfn='.$this->sfn;
+        if ($continue) {//if the command failed, the user can't send a second response
+            $resp.="\r\nnut=".$this->getNonce($code,$this->authenticateKey);
+        }
+        if (!empty($this->lnk)) {
+            $resp.= "\r\nlnk=".$this->lnk;
+        }
+        if (!empty($this->qry)) {
+            $resp.= "\r\nqry=".$this->qry;
+        }
+        if (!empty($this->ask)) {
+            $resp.= "\r\nask=".$this->ask;
+        }
+        return $resp;
+    }
+    
+    protected function getNonce($action,$key)
+    {
+        if(!is_null($this->sqrlGenerator)) {
+            return $this->sqrlGenerator->getNonce($action, $key);
+        }
+        //todo allow direct nonce setting?
+    }
+    
+    /**
+     * Base 64 URL encodes a string
+     * 
+     * Basically the same as base64 encoding, but replacing "+" with "-" and 
+     * "/" with "_" to make it safe to include in a URL
+     * 
+     * Optionally removes trailing "=" padding characters.
+     * 
+     * @param string $string The string to encode
+     * @param type $stripEquals [Optional] Whether to strip the "=" off of the end
+     * 
+     * @return string
+     */
+    protected function base64UrlEncode($string, $stripEquals=true)
+    {
+        $base64 = base64_encode($string);
+        $urlencode = str_replace(array('+','/'), array('-','_'), $base64);
+        if($stripEquals){
+            $urlencode = trim($urlencode, '=');
+        }
+        return $urlencode;
+    }
+    
+    /**
+     * Base 64 URL decodes a string
+     * 
+     * Basically the same as base64 decoding, but replacing URL safe "-" with "+"
+     * and "_" with "/". Automatically detects if the trailing "=" padding has
+     * been removed.
+     * 
+     * @param type $string
+     * @return type
+     */
+    protected function base64URLDecode($string)
+    {
+        $len = strlen($string);
+        if($len%4 > 0){
+            $string = str_pad($string, 4-($len%4), '=');
+        }
+        $base64 = str_replace(array('-','_'), array('+','/'), $string);
+        return base64_decode($base64);
     }
 }

@@ -38,55 +38,122 @@ use Trianglman\Sqrl\SqrlException;
 class SqrlValidate implements SqrlValidateInterface
 {
     /**
+     * Dependencies
+     */
+    /**
      * @var SqrlStoreInterface
      */
     protected $store = null;
 
     /**
-     * @var string
+     * @var NonceValidatorInterface
      */
-    protected $_sig = '';
+    protected $validator = null;
 
     /**
-     *
+     * Server information
+     */
+    /**
+     * The versions of SQRL this server accepts
+     * Should be a comma separated list
+     * 
      * @var string
      */
-    protected $_nonce = '';
+    protected $versions = '';
+    /**
+     * Whether the requests should be secure
+     * 
+     * @var boolean
+     */
+    protected $secure = false;
 
     /**
+     * Site domain for the requests
+     * 
+     * @var string
+     */
+    protected $domain = '';
+
+    /**
+     * path to the authentication script
+     * 
+     * @var string
+     */
+    protected $authPath = '';
+    
+    /**
+     * The configured server friendly name
+     * 
+     * @var string
+     */
+    protected $sfn = '';
+
+    /**
+     * The oldest a nonce can be before being considered expired
+     * 
+     * @var \DateTime
+     */
+    protected $nonceExpirationDate = null;
+
+    /**
+     * Local nonce inromation
+     */
+    /**
+     * 
+     * @var string
+     */
+    protected $nonce = '';
+    
+    /**
+     * The action the nonce is related to
+     * @var int
+     */
+    protected $nonceAction = -1;
+    
+    /**
+     * The ask associated with the nonce
+     * @var string
+     */
+    protected $nonceAsk = '';
+    
+    /**
+     * the qry associated with a nonce
+     * @var string
+     */
+    protected $nonceQry = '';
+    
+    /**
+     * the lnk associated with a nonce
+     * @var string
+     */
+    protected $nonceLnk = '';
+
+    /**
+     * The IP that was originally sent the nonce
      * @var int
      */
     protected $nonceIp = 0;
+    
+    /**
+     * The key the nonce was created for
+     * This is only relevant on second loop requests
+     * 
+     * @var string
+     */
+    protected $nonceIdk = '';
 
+    /**
+     * Request information
+     */
     /**
      * @var int
      */
-    protected $_requestorIP = 0;
+    protected $clientVer = 1;
 
     /**
      * @var string
      */
-    protected $_key = '';
-
-    /**
-     * @var int
-     */
-    protected $_clientVer = 1;
-
-    /**
-     * @var boolean
-     */
-    protected $_enforceIP = false;
-
-    /**
-     * @var NonceValidatorInterface
-     */
-    protected $_validator = null;
-
-    /**
-     * @var string
-     */
-    protected $signedUrl = '';
+    protected $signedServerData = '';
 
     /**
      * @var string
@@ -94,24 +161,25 @@ class SqrlValidate implements SqrlValidateInterface
     protected $clientVal = '';
 
     /**
+     * @var string
+     */
+    protected $ids = '';
+
+    /**
+     * @var string
+     */
+    protected $idk = '';
+
+    /**
      * @var boolean
      */
-    protected $_secure = false;
+    protected $enforceIP = true;
 
     /**
-     * @var string
+     * the current requestor's IP
+     * @var int
      */
-    protected $_domain = '';
-
-    /**
-     * @var string
-     */
-    protected $_authPath = '';
-
-    /**
-     * @var \DateTime
-     */
-    protected $nonceExpirationDate = null;
+    protected $requestorIP = 0;
 
     /**************************
      *
@@ -140,11 +208,25 @@ class SqrlValidate implements SqrlValidateInterface
         if (!empty($decoded->nonce_max_age)) {
             $this->setNonceMaxAge($decoded->nonce_max_age);
         }
+        if (!empty($decoded->nonce_max_age)) {
+            $this->setNonceMaxAge($decoded->nonce_max_age);
+        }
+        if (!empty($decoded->accepted_versions)) {
+            $this->setAcceptedVersions($decoded->accepted_versions);
+        }
+        if (!empty($decoded->friendly_name)) {
+            $this->setFriendlyName($decoded->friendly_name);
+        }
     }
 
     public function setStorage(SqrlStoreInterface $storage)
     {
         $this->store = $storage;
+    }
+
+    public function setValidator(NonceValidatorInterface $validator)
+    {
+        $this->validator = $validator;
     }
 
     public function setNonceMaxAge($minutes)
@@ -156,24 +238,33 @@ class SqrlValidate implements SqrlValidateInterface
         }
     }
 
-    public function setValidator(NonceValidatorInterface $validator)
-    {
-        $this->_validator = $validator;
-    }
-
     public function setAuthenticationPath($path)
     {
-        $this->_authPath = $path;
+        $this->authPath = $path;
     }
 
     public function setKeyDomain($domain)
     {
-        $this->_domain = $domain;
+        $this->domain = $domain;
     }
 
     public function setSecure($sec)
     {
-        $this->_secure = (bool) $sec;
+        $this->secure = (bool) $sec;
+    }
+    
+    public function setAcceptedVersions($ver)
+    {
+        if (is_array($ver)) {
+            $this->versions = implode(',',$ver);
+        } else {
+            $this->version = $ver;
+        }
+    }
+    
+    public function setFriendlyName($sfn)
+    {
+        $this->sfn = $sfn;
     }
 
     /**************************
@@ -181,45 +272,9 @@ class SqrlValidate implements SqrlValidateInterface
      * Request parameters
      *
      **************************/
-    public function setAuthenticateKey($publicKey)
+    public function setSignedServerVal($val)
     {
-        $this->_key = base64_decode($publicKey);
-    }
-
-    public function setAuthenticateSignature($signature)
-    {
-        $this->_sig = base64_decode($signature);
-    }
-
-    public function setSignedUrl($url)
-    {
-        $this->signedUrl = $url;
-    }
-
-    public function setNonce($nonce)
-    {
-        if (!is_null($this->store)) {
-            $nonceData = $this->store->retrieveNutRecord($nonce);
-            if (empty($nonceData)) {
-                throw new SqrlException('Nonce not found', SqrlException::NONCE_NOT_FOUND);
-            }
-            if (!is_null($this->nonceExpirationDate)) {
-                $created = new \DateTime($nonceData['created']);
-                $interval = $this->nonceExpirationDate->diff($created);
-                if ($interval->format('%r') == '-') {
-                    throw new SqrlException('Nonce has expired', SqrlException::EXPIRED_NONCE);
-                }
-            }
-            $this->setNonceIp($nonceData['ip']);
-        }
-        $this->_nonce = $nonce;
-
-        return empty($nonceData) ? null : $nonceData['action'];
-    }
-
-    public function setClientVer($version)
-    {
-        $this->_clientVer = $version;
+        $this->signedServerData = $val;
     }
 
     public function setSignedClientVal($val)
@@ -227,39 +282,24 @@ class SqrlValidate implements SqrlValidateInterface
         $this->clientVal = $val;
     }
 
+    public function setClientVer($version)
+    {
+        $this->clientVer = $version;
+    }
+
+    public function setAuthenticateKey($publicKey)
+    {
+        $this->idk = $publicKey;
+    }
+
+    public function setAuthenticateSignature($signature)
+    {
+        $this->ids = $signature;
+    }
+
     public function setEnforceIP($bool)
     {
-        $this->_enforceIP = $bool;
-    }
-
-    public function setNonceIp($ip)
-    {
-        if (filter_var($ip, FILTER_VALIDATE_INT)) {
-            $this->nonceIp = (int) $ip;
-        } else {
-            $this->nonceIp = ip2long($ip);
-        }
-        if ($this->nonceIp === false) {
-            throw new \InvalidArgumentException('Not a valid IP address.');
-        }
-    }
-
-    public function getPublicKey()
-    {
-        if (empty($this->_key)) {
-            throw new \RuntimeException('No request information has been parsed');
-        }
-
-        return $this->_key;
-    }
-
-    public function getNonce()
-    {
-        if (empty($this->_nonce)) {
-            throw new \RuntimeException('No request information has been parsed');
-        }
-
-        return $this->_nonce;
+        $this->enforceIP = $bool;
     }
 
     /**
@@ -275,44 +315,125 @@ class SqrlValidate implements SqrlValidateInterface
         if (!filter_var($ip, FILTER_VALIDATE_IP, FILTER_FLAG_IPV4)) {
             throw new \InvalidArgumentException('Not a valid IPv4');
         }
-        $this->_requestorIP = ip2long($ip);
+        $this->requestorIP = ip2long($ip);
+    }
+
+    /**************************
+     *
+     * Nonce parameters
+     *
+     **************************/
+    public function setNonce($nonce)
+    {
+        $this->nonce = $nonce;
+        if (!is_null($this->store)) {
+            $nonceData = $this->store->retrieveNutRecord($nonce);
+            if (empty($nonceData)) {
+                throw new SqrlException('Nonce not found', SqrlException::NONCE_NOT_FOUND);
+            }
+            if (!is_null($this->nonceExpirationDate)) {
+                $created = new \DateTime($nonceData['created']);
+                $interval = $this->nonceExpirationDate->diff($created);
+                if ($interval->format('%r') == '-') {
+                    throw new SqrlException('Nonce has expired', SqrlException::EXPIRED_NONCE);
+                }
+            }
+            $this->setNonceIp($nonceData['ip']);
+            $this->setNonceAction($nonceData['action']);
+            $this->setNonceIdk($nonceData['related_public_key']);
+        }
+    }
+
+    public function setNonceIp($ip)
+    {
+        if (filter_var($ip, FILTER_VALIDATE_INT)) {
+            $this->nonceIp = (int) $ip;
+        } else {
+            $this->nonceIp = ip2long($ip);
+        }
+        if ($this->nonceIp === false) {
+            throw new \InvalidArgumentException('Not a valid IP address.');
+        }
+    }
+
+    public function setNonceAction($action)
+    {
+        $this->nonceAction = (int)$action;
+    }
+
+    public function setNonceIdk($key)
+    {
+        $this->nonceIdk = $key;
+    }
+
+    /**
+     * Verifies that the server data sent back by the requestor matches
+     * the data that was originally sent with the nonce
+     * 
+     * @param int $requestType The request type the nut is claimed to be sent for
+     * @param boolean $https Whether the request was secure
+     * @param string|array $serverData The server= information sent by the client
+     * 
+     * @return boolean
+     */
+    public function matchServerData($requestType,$https,$serverData)
+    {
+        if(empty($this->nonce) || empty($this->signedServerData))
+        if (($this->secure !== (bool)$https)) {
+            return false;
+        }
+        if (is_array($serverData)) {
+            if(empty($serverData['ver']) || $this->versions !== $serverData['ver']) {
+                return false;
+            }
+            if (empty($serverData['tif']) || $this->nonceAction !== $serverData['tif']) {
+                return false;
+            }
+            if (empty($serverData['sfn']) || $this->sfn !== $serverData['sfn']) {
+                return false;
+            }
+            if (!empty($this->nonceLnk) && 
+                (empty($serverData['lnk']) || $this->nonceLnk !== $serverData['lnk'])) {
+                return false;
+            }
+            if (!empty($this->nonceQry) && 
+                (empty($serverData['qry']) || $this->nonceQry !== $serverData['qry'])) {
+                return false;
+            }
+            if (!empty($this->nonceAsk) && 
+                (empty($serverData['ask']) || $this->nonceAsk !== $serverData['ask'])) {
+                return false;
+            }
+        } else {
+            $expectedURL = $this->generateUrl($this->nonce);
+            if ($serverData !== $expectedURL) {
+                return false;
+            }
+        }
+        return true;
     }
 
     public function validate()
     {
-        if (is_null($this->_validator)) {
+        if (is_null($this->validator)) {
             throw new \RuntimeException('No validator has been set.');
         }
-        if (empty($this->_sig) || empty($this->_key) || empty($this->_nonce)) {
-            return false;
+        if (empty($this->ids) || empty($this->idk) || empty($this->signedServerData) || empty($this->clientVal)) {
+            throw new \RuntimeException('No signature validation information has been set');
         }
-        $expectedURL = $this->generateUrl($this->_nonce);
-        if (substr($this->signedUrl, 0, strlen($expectedURL)) !== $expectedURL) {
-            throw new SqrlException('Requested URL doesn\'t match expected URL', SqrlException::SIGNED_URL_DOESNT_MATCH);
+        if ($this->enforceIP && $this->nonceIp !== $this->requestorIP) {
+            throw new SqrlException('IPs do not match: '.$this->nonceIp.' vs. '.$this->requestorIP, SqrlException::ENFORCE_IP_FAIL);
         }
-        if ($this->_enforceIP && $this->nonceIp !== $this->_requestorIP) {
-            throw new SqrlException('IPs do not match: '.$this->nonceIp.' vs. '.$this->_requestorIP, SqrlException::ENFORCE_IP_FAIL);
-        }
-        try {
-            $signedValue = 'clientval='.$this->clientVal.'&serverurl='.$this->signedUrl;
-            if (!$this->_validator->validateSignature($signedValue, $this->_sig, $this->_key)) {
-                throw new SqrlException('Signature not valid.', SqrlException::SIGNATURE_NOT_VALID);
-            }
-
-            return true;
-        } catch (\Exception $e) {
-            throw new SqrlException('Signature not valid.', SqrlException::SIGNATURE_NOT_VALID, $e);
-        }
+        return $this->validateSignature($this->idk, $this->ids);
     }
 
     public function validateSignature($key, $sig)
     {
         try {
-            $signedValue = 'clientval='.$this->clientVal.'&serverurl='.$this->signedUrl;
-            if (!$this->_validator->validateSignature($signedValue, $sig, $key)) {
+            $signedValue = 'server='.$this->signedServerData.'&client='.$this->clientVal;
+            if (!$this->validator->validateSignature($signedValue, $sig, $key)) {
                 throw new SqrlException('Signature not valid.', SqrlException::SIGNATURE_NOT_VALID);
             }
-
             return true;
         } catch (\Exception $e) {
             throw new SqrlException('Signature not valid.', SqrlException::SIGNATURE_NOT_VALID, $e);
@@ -321,10 +442,10 @@ class SqrlValidate implements SqrlValidateInterface
 
     protected function generateUrl($nonce)
     {
-        $url = ($this->_secure ? 's' : '').'qrl://'.$this->_domain.(strpos(
-                $this->_domain,
+        $url = ($this->secure ? 's' : '').'qrl://'.$this->domain.(strpos(
+                $this->domain,
                 '/'
-            ) !== false ? '|' : '/').$this->_authPath;
+            ) !== false ? '|' : '/').$this->authPath;
         $currentPathParts = parse_url($url);
         if (!empty($currentPathParts['query'])) {
             $pathAppend = '&nut=';
@@ -333,5 +454,23 @@ class SqrlValidate implements SqrlValidateInterface
         }
 
         return $url.$pathAppend.$nonce;
+    }
+    
+    public function getPublicKey()
+    {
+        if (empty($this->idk)) {
+            throw new \RuntimeException('No request information has been parsed');
+        }
+
+        return $this->idk;
+    }
+
+    public function getNonce()
+    {
+        if (empty($this->nonce)) {
+            throw new \RuntimeException('No request information has been parsed');
+        }
+
+        return $this->nonce;
     }
 }

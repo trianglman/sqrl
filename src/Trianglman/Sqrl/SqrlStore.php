@@ -186,19 +186,24 @@ class SqrlStore implements SqrlStoreInterface
      *
      * @throws SqrlException If there is a database issue
      */
-    public function storeNut($nut, $ip, $type = SqrlRequestHandlerInterface::AUTHENTICATION_REQUEST, $key = null)
+    public function storeNut($nut, $ip, $type = SqrlRequestHandlerInterface::INITIAL_REQUEST, $key = null)
     {
         if (empty($this->nonceTable)) {
             throw new SqrlException('No nonce table configured', SqrlException::DATABASE_NOT_CONFIGURED);
         }
         $columns = array('`nonce`', '`ip`', '`action`');
         $values = array($nut, $ip, $type);
-        if (!is_null($key)) {
+        if (!empty($key)) {
             $columns[] = '`related_public_key`';
             $values[] = $key;
+            $placeholders = implode(',', array_fill(0, count($columns), '?'));
+        }
+        else {
+            $columns[] = '`related_public_key`';
+            $placeholders = implode(',', array_fill(0, count($columns)-1, '?')).', NULL';
         }
         $sql = 'INSERT INTO `'.$this->nonceTable.'` ('.implode(',', $columns).')'
-            .' VALUES ('.implode(',', array_fill(0, count($columns), '?')).')';
+            .' VALUES ('.$placeholders.')';
         $stmt = $this->getDbConn()->prepare($sql);
         $check = false;
         if ($stmt instanceof \PDOStatement) {
@@ -297,7 +302,7 @@ class SqrlStore implements SqrlStoreInterface
     /**
      * Returns information about a supplied authentication key
      *
-     * @param string $key    The key to retrieve information on
+     * @param string $key    The base64 encoded key to retrieve information on
      * @param array  $values [Optional] an array of data columns to return
      *                       Defaults to all if left null
      *

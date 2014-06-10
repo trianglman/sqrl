@@ -37,34 +37,42 @@ class SqrlGenerate implements SqrlGenerateInterface
      */
     protected $store = null;
 
-    protected $_secure = false;
+    protected $secure = false;
 
-    protected $_domain = '';
+    protected $domain = '';
 
-    protected $_authPath = '';
+    protected $authPath = '';
 
-    protected $_qrHeight = 300;
+    protected $qrHeight = 300;
 
-    protected $_qrPad = 10;
+    protected $qrPad = 10;
 
-    protected $_salt = 'asWB^<O]3>H*`a`h_b$XX6r*^6WkNV!;hAgL,X}:#mag"pq)lpUFuj^d5R3i?;X';
+    protected $salt = 'asWB^<O]3>H*`a`h_b$XX6r*^6WkNV!;hAgL,X}:#mag"pq)lpUFuj^d5R3i?;X';
 
-    protected $_nonce = '';
+    protected $nonce = '';
 
-    protected $_requestorIP = 0;
-
-    public function getNonce($action = SqrlRequestHandlerInterface::AUTHENTICATION_REQUEST, $key = '')
+    protected $requestorIP = 0;
+    
+    public function setNonce($nonce,$action = SqrlRequestHandlerInterface::INITIAL_REQUEST, $key = '')
     {
-        if (empty($this->_nonce)) {
-            $this->_generateNonce($action, $key);
+        $this->nonce = $nonce;
+        if (!is_null($this->store)) {
+            $this->store->storeNut($this->nonce, $this->requestorIP, $action, $key);
+        }
+    }
+
+    public function getNonce($action = SqrlRequestHandlerInterface::INITIAL_REQUEST, $key = '')
+    {
+        if (empty($this->nonce)) {
+            $this->generateNonce($action, $key);
         }
 
-        return $this->_nonce;
+        return $this->nonce;
     }
 
     public function getUrl()
     {
-        return $this->_buildUrl();
+        return $this->buildUrl();
     }
 
     public function loadConfigFromJSON($filePath)
@@ -106,28 +114,28 @@ class SqrlGenerate implements SqrlGenerateInterface
     {
         $qrCode = new QrCode();
         $qrCode->setText($this->getUrl());
-        $qrCode->setSize($this->_qrHeight);
-        $qrCode->setPadding($this->_qrPad);
+        $qrCode->setSize($this->qrHeight);
+        $qrCode->setPadding($this->qrPad);
         $qrCode->render($outputFile);
     }
 
     public function setHeight($height)
     {
         if (is_numeric($height)) {
-            $this->_qrHeight = $height;
+            $this->qrHeight = $height;
         }
     }
 
     public function setPadding($pad)
     {
         if (is_numeric($pad)) {
-            $this->_qrPad = $pad;
+            $this->qrPad = $pad;
         }
     }
 
     public function setSalt($salt)
     {
-        $this->_salt = $salt;
+        $this->salt = $salt;
     }
 
     /**
@@ -143,7 +151,7 @@ class SqrlGenerate implements SqrlGenerateInterface
         if (!filter_var($ip, FILTER_VALIDATE_IP, FILTER_FLAG_IPV4)) {
             throw new \InvalidArgumentException('Not a valid IPv4');
         }
-        $this->_requestorIP = ip2long($ip);
+        $this->requestorIP = ip2long($ip);
     }
 
     /**
@@ -162,14 +170,14 @@ class SqrlGenerate implements SqrlGenerateInterface
      *
      * @return string
      */
-    protected function _generateNonce($action = SqrlRequestHandlerInterface::AUTHENTICATION_REQUEST, $key = '')
+    protected function generateNonce($action = SqrlRequestHandlerInterface::INITIAL_REQUEST, $key = '')
     {
-        $this->_nonce = hash_hmac('sha256', uniqid('', true), $this->_salt);
+        $this->nonce = hash_hmac('sha256', uniqid('', true), $this->salt);
         if (!is_null($this->store)) {
-            $this->store->storeNut($this->_nonce, $this->_requestorIP, $action, $key);
+            $this->store->storeNut($this->nonce, $this->requestorIP, $action, $key);
         }
 
-        return $this->_nonce;
+        return $this->nonce;
     }
 
     /**
@@ -182,12 +190,12 @@ class SqrlGenerate implements SqrlGenerateInterface
      *
      * @return string
      */
-    protected function _buildUrl()
+    protected function buildUrl()
     {
-        $url = ($this->_secure ? 's' : '').'qrl://'.$this->_domain.(strpos(
-                $this->_domain,
+        $url = ($this->secure ? 's' : '').'qrl://'.$this->domain.(strpos(
+                $this->domain,
                 '/'
-            ) !== false ? '|' : '/').$this->_authPath;
+            ) !== false ? '|' : '/').$this->authPath;
         $currentPathParts = parse_url($url);
         if (!empty($currentPathParts['query'])) {
             $pathAppend = '&nut=';
@@ -200,16 +208,16 @@ class SqrlGenerate implements SqrlGenerateInterface
 
     public function setAuthenticationPath($path)
     {
-        $this->_authPath = $path;
+        $this->authPath = $path;
     }
 
     public function setKeyDomain($domain)
     {
-        $this->_domain = $domain;
+        $this->domain = $domain;
     }
 
     public function setSecure($sec)
     {
-        $this->_secure = (bool) $sec;
+        $this->secure = (bool) $sec;
     }
 }

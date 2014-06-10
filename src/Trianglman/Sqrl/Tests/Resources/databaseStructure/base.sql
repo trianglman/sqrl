@@ -1,10 +1,11 @@
 CREATE TABLE `sqrl_nonce` (
     `id` INTEGER PRIMARY KEY AUTOINCREMENT,
     `nonce` CHAR(64) NOT NULL,
-    `created` TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    `created` DATE DEFAULT (DATETIME('now','localtime')) ,
     `ip` INT UNSIGNED NOT NULL,
     `action` INT NOT NULL,
     `related_public_key` CHAR(44),
+    `verified` TINYINT(1) DEFAULT 0,
     UNIQUE (`nonce`)
 );
 
