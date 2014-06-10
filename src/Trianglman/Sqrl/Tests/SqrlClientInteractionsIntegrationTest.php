@@ -77,7 +77,7 @@ class SqrlClientInteractionsIntegrationTest extends \PHPUnit_Extensions_Database
     {
         $pub = 'MmDImzNYkpmVk7_Bjw4_WEBWec4rSlOjQvJLfYfGdBs';
         $storage = new SqrlStore();
-        $storage->loadConfigFromJSON(dirname(__FILE__).'/Resources/functionaltest.json');
+        $storage->configure(dirname(__FILE__).'/Resources/functionaltest.json');
         $generator = $this->prepGenerator($storage);
         
         //client will request a SQRL URL
@@ -299,7 +299,7 @@ class SqrlClientInteractionsIntegrationTest extends \PHPUnit_Extensions_Database
     protected function prepValidator($storage)
     {
         $validator = new \Trianglman\Sqrl\SqrlValidate();
-        $validator->loadConfigFromJSON(dirname(__FILE__).'/Resources/functionaltest.json');
+        $validator->configure(dirname(__FILE__).'/Resources/functionaltest.json');
         $validator->setValidator(new Ed25519NonceValidator());
         $validator->setStorage($storage);
         return $validator;
@@ -308,7 +308,7 @@ class SqrlClientInteractionsIntegrationTest extends \PHPUnit_Extensions_Database
     protected function prepGenerator($storage)
     {
         $generator = new \Trianglman\Sqrl\SqrlGenerate();
-        $generator->loadConfigFromJSON(dirname(__FILE__).'/Resources/functionaltest.json');
+        $generator->configure(dirname(__FILE__).'/Resources/functionaltest.json');
         $generator->setStorage($storage);
         return $generator;
     }
