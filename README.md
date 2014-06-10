@@ -54,7 +54,7 @@ If you want to have the library automatically store generated nonces and validat
 public keys, first generate the database tables based on the supplied 
 sqrl/sample.sql, then create a JSON config file based on the sample
 provided in sqrl/config.sample.json. You can then configure the
-generator or validator by calling the appropriate `loadConfigFromJSON($filepath);`
+generator or validator by calling the appropriate `configure($filepath);`
 method.
 
 If you would rather manage storage of this information in your own tables, you can
@@ -95,7 +95,7 @@ Usage
 ```php
 //Initialize the generator
 $generator = new \Trianglman\Sqrl\SqrlGenerate();
-$generator->loadConfigFromJSON('/path/to/config');
+$generator->configure('/path/to/config');
 
 //output the QR file to stdout
 $generator->render();
@@ -108,7 +108,7 @@ $nonce = $generator->getNonce();
 ```php
 //initialize the validator
 $validator = new \Trianglman\Sqrl\SqrlValidate();
-$validator->loadConfigFromJSON('/path/to/config');
+$validator->configure('/path/to/config');
 $validator->setValidator(new \Trianglman\Sqrl\ed25519\Crypto());
 
 //initialize the request handler

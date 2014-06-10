@@ -6,6 +6,6 @@ php:
   - 5.5
 
 before_script:
+  - sudo apt-get update
   - sudo apt-get install openssl
-  - pyrus install pear.phpunit.de/DbUnit
-  - composer install --dev
+  - composer install

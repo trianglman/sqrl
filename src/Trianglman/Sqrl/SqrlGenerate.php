@@ -30,7 +30,7 @@ use Endroid\QrCode\QrCode;
  *
  * @author johnj
  */
-class SqrlGenerate implements SqrlGenerateInterface
+class SqrlGenerate extends SqrlConfigurable implements SqrlGenerateInterface
 {
     /**
      * @var SqrlStore
@@ -75,16 +75,10 @@ class SqrlGenerate implements SqrlGenerateInterface
         return $this->buildUrl();
     }
 
-    public function loadConfigFromJSON($filePath)
+    public function configure($filePath)
     {
-        if (!file_exists($filePath)) {
-            throw new \InvalidArgumentException('Configuration file not found');
-        }
-        $data = file_get_contents($filePath);
-        $decoded = json_decode($data);
-        if (is_null($decoded)) {
-            throw new \InvalidArgumentException('Configuration data could not be parsed. Is it JSON formatted?');
-        }
+        $decoded = $this->loadConfigFromJSON($filePath);
+
         if (!empty($decoded->secure)) {
             $this->setSecure($decoded->secure > 0);
         }
