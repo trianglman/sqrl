@@ -28,82 +28,24 @@ namespace Trianglman\Sqrl;
  *
  * @author johnj
  */
-class SqrlStore extends SqrlConfigurable implements SqrlStoreInterface
+class SqrlStore implements SqrlStoreInterface
 {
     /**
-     * @var string
+     *
+     * @var SqrlConfiguration
      */
-    protected $dsn;
-
-    /**
-     * @var string
-     */
-    protected $username;
-
-    /**
-     * @var string
-     */
-    protected $pass;
-
-    /**
-     * @var string
-     */
-    protected $nonceTable;
-
-    /**
-     * @var string
-     */
-    protected $pubKeyTable;
+    protected $configuration = null;
 
     /**
      * @var \PDO
      */
     protected $dbConn;
 
-    /**
-     * Loads a configuration file from the supplied path
-     *
-     * @param string $filePath Path to a JSON formatted configuration file
-     *
-     * @return void
-     *
-     * @throws \InvalidArgumentException If the file does not exist
-     * @throws \InvalidArgumentException If the file is not JSON formatted
-     */
-    public function configure($filePath)
+    public function setConfiguration(SqrlConfiguration $config)
     {
-        $decoded = $this->loadConfigFromJSON($filePath);
-
-        if (!empty($decoded->dsn)) {
-            if (empty($decoded->username)) { //sqlite doesn't use usernames and passwords
-                $decoded->username = '';
-                $decoded->password = '';
-            }
-            $this->configureDatabase($decoded->dsn, $decoded->username, $decoded->password);
-            if (!empty($decoded->nonce_table)) {
-                $this->setNonceTable($decoded->nonce_table);
-            }
-            if (!empty($decoded->pubkey_table)) {
-                $this->setPublicKeyTable($decoded->pubkey_table);
-            }
-        }
+        $this->configuration = $config;
     }
 
-    /**
-     * Sets the database configuration
-     *
-     * @param string $dsn      A \PDO recognized database dsn
-     * @param string $username [Optional] The user name to connect to the db with
-     * @param string $pass     [Optional] The password to connect to the datbase with
-     *
-     * @return void
-     */
-    public function configureDatabase($dsn, $username = '', $pass = '')
-    {
-        $this->dsn = $dsn;
-        $this->username = $username;
-        $this->pass = $pass;
-    }
 
     /**
      * Directly set the database connection rather than letting SqrlStore create one
@@ -118,30 +60,6 @@ class SqrlStore extends SqrlConfigurable implements SqrlStoreInterface
     }
 
     /**
-     * Sets the table name of the authentication key information
-     *
-     * @param string $table The table name
-     *
-     * @return void
-     */
-    public function setPublicKeyTable($table)
-    {
-        $this->pubKeyTable = $table;
-    }
-
-    /**
-     * Sets the table name of the nut information
-     *
-     * @param string $table The table name
-     *
-     * @return void
-     */
-    public function setNonceTable($table)
-    {
-        $this->nonceTable = $table;
-    }
-
-    /**
      * Gets a connection to the database
      *
      * @return \PDO
@@ -153,11 +71,15 @@ class SqrlStore extends SqrlConfigurable implements SqrlStoreInterface
         if (!is_null($this->dbConn)) {
             return $this->dbConn;
         }
-        if (empty($this->dsn)) {
+        if ($this->configuration->getDsn() === '') {
             throw new SqrlException('No datbase configured', SqrlException::DATABASE_NOT_CONFIGURED);
         }
         try {
-            $this->dbConn = new \PDO($this->dsn, $this->username, $this->pass);
+            $this->dbConn = new \PDO(
+                    $this->configuration->getDsn(), 
+                    $this->configuration->getUsername(), 
+                    $this->configuration->getPassword()
+                    );
 
             return $this->dbConn;
         } catch (\Exception $ex) {
@@ -182,7 +104,7 @@ class SqrlStore extends SqrlConfigurable implements SqrlStoreInterface
      */
     public function storeNut($nut, $ip, $type = SqrlRequestHandlerInterface::INITIAL_REQUEST, $key = null)
     {
-        if (empty($this->nonceTable)) {
+        if ($this->configuration->getNonceTable() === '') {
             throw new SqrlException('No nonce table configured', SqrlException::DATABASE_NOT_CONFIGURED);
         }
         $columns = array('`nonce`', '`ip`', '`action`');
@@ -196,7 +118,7 @@ class SqrlStore extends SqrlConfigurable implements SqrlStoreInterface
             $columns[] = '`related_public_key`';
             $placeholders = implode(',', array_fill(0, count($columns)-1, '?')).', NULL';
         }
-        $sql = 'INSERT INTO `'.$this->nonceTable.'` ('.implode(',', $columns).')'
+        $sql = 'INSERT INTO `'.$this->configuration->getNonceTable().'` ('.implode(',', $columns).')'
             .' VALUES ('.$placeholders.')';
         $stmt = $this->getDbConn()->prepare($sql);
         $check = false;
@@ -221,7 +143,7 @@ class SqrlStore extends SqrlConfigurable implements SqrlStoreInterface
      */
     public function retrieveNutRecord($nut, $values = null)
     {
-        if (empty($this->nonceTable)) {
+        if ($this->configuration->getNonceTable() === '') {
             throw new SqrlException('No nonce table configured', SqrlException::DATABASE_NOT_CONFIGURED);
         }
         if (is_null($values)) {
@@ -245,7 +167,7 @@ class SqrlStore extends SqrlConfigurable implements SqrlStoreInterface
         if ($colVals & self::KEY) {
             $columns[] = '`related_public_key`';
         }
-        $sql = 'SELECT '.implode(',', $columns).' FROM `'.$this->nonceTable
+        $sql = 'SELECT '.implode(',', $columns).' FROM `'.$this->configuration->getNonceTable()
             .'` WHERE `nonce` = ?';
         $stmt = $this->getDbConn()->prepare($sql);
         $stmt->execute(array($nut));
@@ -274,12 +196,12 @@ class SqrlStore extends SqrlConfigurable implements SqrlStoreInterface
      */
     public function storeAuthenticationKey($key)
     {
-        if (empty($this->pubKeyTable)) {
+        if ($this->configuration->getPubKeyTable() === '') {
             throw new SqrlException('No public key table configured', SqrlException::DATABASE_NOT_CONFIGURED);
         }
         $columns = array('`public_key`');
         $values = array($key);
-        $sql = 'INSERT INTO `'.$this->pubKeyTable.'` ('.implode(',', $columns).')'
+        $sql = 'INSERT INTO `'.$this->configuration->getPubKeyTable().'` ('.implode(',', $columns).')'
             .' VALUES ('.implode(',', array_fill(0, count($columns), '?')).')';
         $stmt = $this->getDbConn()->prepare($sql);
         $check = false;
@@ -306,7 +228,7 @@ class SqrlStore extends SqrlConfigurable implements SqrlStoreInterface
      */
     public function retrieveAuthenticationRecord($key, $values = null)
     {
-        if (empty($this->pubKeyTable)) {
+        if ($this->configuration->getPubKeyTable() === '') {
             throw new SqrlException('No public key table configured', SqrlException::DATABASE_NOT_CONFIGURED);
         }
         if (is_null($values)) {
@@ -330,7 +252,7 @@ class SqrlStore extends SqrlConfigurable implements SqrlStoreInterface
         if ($colVals & self::VUK) {
             $columns[] = '`vuk`';
         }
-        $sql = 'SELECT '.implode(',', $columns).' FROM `'.$this->pubKeyTable
+        $sql = 'SELECT '.implode(',', $columns).' FROM `'.$this->configuration->getPubKeyTable()
             .'` WHERE `public_key` = ?';
         $stmt = $this->getDbConn()->prepare($sql);
         $stmt->execute(array($key));
@@ -361,12 +283,12 @@ class SqrlStore extends SqrlConfigurable implements SqrlStoreInterface
      */
     public function storeIdentityLock($key, $suk, $vuk)
     {
-        if (empty($this->pubKeyTable)) {
+        if ($this->configuration->getPubKeyTable() === '') {
             throw new SqrlException('No public key table configured', SqrlException::DATABASE_NOT_CONFIGURED);
         }
         $columns = array('`suk`', '`vuk`');
         $values = array($suk, $vuk, $key);
-        $sql = 'UPDATE `'.$this->pubKeyTable.'` SET '.implode(' = ?, ', $columns).' = ? '
+        $sql = 'UPDATE `'.$this->configuration->getPubKeyTable().'` SET '.implode(' = ?, ', $columns).' = ? '
             .'WHERE `public_key` = ?';
         $stmt = $this->getDbConn()->prepare($sql);
         $check = false;
@@ -389,10 +311,10 @@ class SqrlStore extends SqrlConfigurable implements SqrlStoreInterface
      */
     public function lockKey($key)
     {
-        if (empty($this->pubKeyTable)) {
+        if ($this->configuration->getPubKeyTable() === '') {
             throw new SqrlException('No public key table configured', SqrlException::DATABASE_NOT_CONFIGURED);
         }
-        $sql = 'UPDATE `'.$this->pubKeyTable.'` SET `disabled` = 1 WHERE `public_key` = ?';
+        $sql = 'UPDATE `'.$this->configuration->getPubKeyTable().'` SET `disabled` = 1 WHERE `public_key` = ?';
         $stmt = $this->getDbConn()->prepare($sql);
         $check = false;
         if ($stmt instanceof \PDOStatement) {
@@ -420,7 +342,7 @@ class SqrlStore extends SqrlConfigurable implements SqrlStoreInterface
      */
     public function migrateKey($oldKey, $newKey = null, $newSuk = null, $newVuk = null)
     {
-        if (empty($this->pubKeyTable)) {
+        if ($this->configuration->getPubKeyTable() === '') {
             throw new SqrlException('No public key table configured', SqrlException::DATABASE_NOT_CONFIGURED);
         }
         $columns = array();
@@ -440,7 +362,7 @@ class SqrlStore extends SqrlConfigurable implements SqrlStoreInterface
             $values[] = $newVuk;
         }
         $values[] = $oldKey;
-        $sql = 'UPDATE `'.$this->pubKeyTable.'` SET '.implode(' = ?, ', $columns).' = ? '
+        $sql = 'UPDATE `'.$this->configuration->getPubKeyTable().'` SET '.implode(' = ?, ', $columns).' = ? '
             .'WHERE `public_key` = ?';
         $stmt = $this->getDbConn()->prepare($sql);
         $check = false;

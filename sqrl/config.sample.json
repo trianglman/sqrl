@@ -2,7 +2,7 @@
     "accepted_versions": [1],
     "secure":1,
     "key_domain":"domain.com",
-    "authentication_path":"/login/sqrlauth.php",
+    "authentication_path":"login/sqrlauth.php",
     "friendly_name":"Example Server",
     "allow_anonymous_accounts":0,
             

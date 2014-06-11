@@ -30,28 +30,22 @@ use Endroid\QrCode\QrCode;
  *
  * @author johnj
  */
-class SqrlGenerate extends SqrlConfigurable implements SqrlGenerateInterface
+class SqrlGenerate implements SqrlGenerateInterface
 {
     /**
      * @var SqrlStore
      */
     protected $store = null;
 
-    protected $secure = false;
-
-    protected $domain = '';
-
-    protected $authPath = '';
-
-    protected $qrHeight = 300;
-
-    protected $qrPad = 10;
-
-    protected $salt = 'asWB^<O]3>H*`a`h_b$XX6r*^6WkNV!;hAgL,X}:#mag"pq)lpUFuj^d5R3i?;X';
-
     protected $nonce = '';
 
     protected $requestorIP = 0;
+    
+    /**
+     *
+     * @var SqrlConfiguration
+     */
+    protected $configuration = null;
     
     public function setNonce($nonce,$action = SqrlRequestHandlerInterface::INITIAL_REQUEST, $key = '')
     {
@@ -75,28 +69,9 @@ class SqrlGenerate extends SqrlConfigurable implements SqrlGenerateInterface
         return $this->buildUrl();
     }
 
-    public function configure($filePath)
+    public function setConfiguration(SqrlConfiguration $config)
     {
-        $decoded = $this->loadConfigFromJSON($filePath);
-
-        if (!empty($decoded->secure)) {
-            $this->setSecure($decoded->secure > 0);
-        }
-        if (!empty($decoded->key_domain)) {
-            $this->setKeyDomain($decoded->key_domain);
-        }
-        if (!empty($decoded->authentication_path)) {
-            $this->setAuthenticationPath($decoded->authentication_path);
-        }
-        if (!empty($decoded->height)) {
-            $this->setHeight($decoded->height);
-        }
-        if (!empty($decoded->padding)) {
-            $this->setPadding($decoded->padding);
-        }
-        if (!empty($decoded->nonce_salt)) {
-            $this->setSalt($decoded->nonce_salt);
-        }
+        $this->configuration = $config;
     }
 
     public function setStorage(SqrlStoreInterface $storage)
@@ -108,28 +83,9 @@ class SqrlGenerate extends SqrlConfigurable implements SqrlGenerateInterface
     {
         $qrCode = new QrCode();
         $qrCode->setText($this->getUrl());
-        $qrCode->setSize($this->qrHeight);
-        $qrCode->setPadding($this->qrPad);
+        $qrCode->setSize($this->configuration->getQrHeight());
+        $qrCode->setPadding($this->configuration->getQrPadding());
         $qrCode->render($outputFile);
-    }
-
-    public function setHeight($height)
-    {
-        if (is_numeric($height)) {
-            $this->qrHeight = $height;
-        }
-    }
-
-    public function setPadding($pad)
-    {
-        if (is_numeric($pad)) {
-            $this->qrPad = $pad;
-        }
-    }
-
-    public function setSalt($salt)
-    {
-        $this->salt = $salt;
     }
 
     /**
@@ -166,7 +122,7 @@ class SqrlGenerate extends SqrlConfigurable implements SqrlGenerateInterface
      */
     protected function generateNonce($action = SqrlRequestHandlerInterface::INITIAL_REQUEST, $key = '')
     {
-        $this->nonce = hash_hmac('sha256', uniqid('', true), $this->salt);
+        $this->nonce = hash_hmac('sha256', uniqid('', true), $this->configuration->getNonceSalt());
         if (!is_null($this->store)) {
             $this->store->storeNut($this->nonce, $this->requestorIP, $action, $key);
         }
@@ -186,10 +142,10 @@ class SqrlGenerate extends SqrlConfigurable implements SqrlGenerateInterface
      */
     protected function buildUrl()
     {
-        $url = ($this->secure ? 's' : '').'qrl://'.$this->domain.(strpos(
-                $this->domain,
-                '/'
-            ) !== false ? '|' : '/').$this->authPath;
+        $url = ($this->configuration->getSecure() ? 's' : '').'qrl://'
+                .$this->configuration->getDomain()
+                .(strpos($this->configuration->getDomain(),'/') !== false ? '|' : '/')
+                .$this->configuration->getAuthenticationPath();
         $currentPathParts = parse_url($url);
         if (!empty($currentPathParts['query'])) {
             $pathAppend = '&nut=';
@@ -200,18 +156,4 @@ class SqrlGenerate extends SqrlConfigurable implements SqrlGenerateInterface
         return $url.$pathAppend.$this->getNonce();
     }
 
-    public function setAuthenticationPath($path)
-    {
-        $this->authPath = $path;
-    }
-
-    public function setKeyDomain($domain)
-    {
-        $this->domain = $domain;
-    }
-
-    public function setSecure($sec)
-    {
-        $this->secure = (bool) $sec;
-    }
 }

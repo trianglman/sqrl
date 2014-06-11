@@ -73,27 +73,13 @@ interface SqrlStoreInterface
     const VUK = 64;
 
     /**
-     * Loads a configuration file from the supplied path
+     * Sets the configuration
      *
-     * @param string $filePath Path to a JSON formatted configuration file
-     *
-     * @return void
-     *
-     * @throws \InvalidArgumentException If the file does not exist
-     * @throws \InvalidArgumentException If the file is not JSON formatted
-     */
-    public function configure($filePath);
-
-    /**
-     * Sets the database configuration
-     *
-     * @param string $dsn      A \PDO recognized database dsn
-     * @param string $username [Optional] The user name to connect to the db with
-     * @param string $pass     [Optional] The password to connect to the datbase with
+     * @param SqrlConfiguration $config
      *
      * @return void
      */
-    public function configureDatabase($dsn, $username = '', $pass = '');
+    public function setConfiguration(SqrlConfiguration $config);
 
     /**
      * Directly set the database connection rather than letting SqrlStore create one
@@ -103,24 +89,6 @@ interface SqrlStoreInterface
      * @return void
      */
     public function setDatabaseConnection(\PDO $db);
-
-    /**
-     * Sets the table name of the authentication key information
-     *
-     * @param string $table The table name
-     *
-     * @return void
-     */
-    public function setPublicKeyTable($table);
-
-    /**
-     * Sets the table name of the nut information
-     *
-     * @param string $table The table name
-     *
-     * @return void
-     */
-    public function setNonceTable($table);
 
     /**
      * Stores a nonce and the related information

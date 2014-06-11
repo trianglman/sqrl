@@ -76,9 +76,11 @@ class SqrlClientInteractionsIntegrationTest extends \PHPUnit_Extensions_Database
     public function testStandardValidAuthentication()
     {
         $pub = 'MmDImzNYkpmVk7_Bjw4_WEBWec4rSlOjQvJLfYfGdBs';
+        $config = new \Trianglman\Sqrl\SqrlConfiguration();
+        $config->load(__DIR__.'/Resources/functionaltest.json');
         $storage = new SqrlStore();
-        $storage->configure(dirname(__FILE__).'/Resources/functionaltest.json');
-        $generator = $this->prepGenerator($storage);
+        $storage->setConfiguration($config);
+        $generator = $this->prepGenerator($storage,$config);
         
         //client will request a SQRL URL
         $generator->setRequestorIp('192.168.0.5');
@@ -98,8 +100,8 @@ class SqrlClientInteractionsIntegrationTest extends \PHPUnit_Extensions_Database
             );
         
         //server will verify the client response
-        $validator1 = $this->prepValidator($storage);
-        $gen2 = $this->prepGenerator($storage);
+        $validator1 = $this->prepValidator($storage,$config);
+        $gen2 = $this->prepGenerator($storage,$config);
         $gen2->setRequestorIp('192.168.0.5');
         $gen2->setNonce(
                 'interactionsTestNonce2', 
@@ -147,8 +149,8 @@ class SqrlClientInteractionsIntegrationTest extends \PHPUnit_Extensions_Database
         
         //verify the server responds with ID match(0x01), IP match(0x04), SQRL enabled(0x08), and 
         //user logged in(0x10)
-        $validator2 = $this->prepValidator($storage);
-        $gen3 = $this->prepGenerator($storage);
+        $validator2 = $this->prepValidator($storage,$config);
+        $gen3 = $this->prepGenerator($storage,$config);
         $requestResponse2 = new \Trianglman\Sqrl\SqrlRequestHandler($validator2,$storage,$gen3);
         $requestResponse2->setSfn('Example Server');
         $requestResponse2->parseRequest(
@@ -296,19 +298,19 @@ class SqrlClientInteractionsIntegrationTest extends \PHPUnit_Extensions_Database
         return trim($urlencode, '=');
     }
     
-    protected function prepValidator($storage)
+    protected function prepValidator($storage,$config)
     {
         $validator = new \Trianglman\Sqrl\SqrlValidate();
-        $validator->configure(dirname(__FILE__).'/Resources/functionaltest.json');
+        $validator->setConfiguration($config);
         $validator->setValidator(new Ed25519NonceValidator());
         $validator->setStorage($storage);
         return $validator;
     }
     
-    protected function prepGenerator($storage)
+    protected function prepGenerator($storage,$config)
     {
         $generator = new \Trianglman\Sqrl\SqrlGenerate();
-        $generator->configure(dirname(__FILE__).'/Resources/functionaltest.json');
+        $generator->setConfiguration($config);
         $generator->setStorage($storage);
         return $generator;
     }

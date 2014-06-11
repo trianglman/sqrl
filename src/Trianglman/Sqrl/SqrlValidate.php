@@ -35,7 +35,7 @@ use Trianglman\Sqrl\SqrlException;
  *
  * @author johnj
  */
-class SqrlValidate extends SqrlConfigurable implements SqrlValidateInterface
+class SqrlValidate implements SqrlValidateInterface
 {
     /**
      * Dependencies
@@ -49,51 +49,12 @@ class SqrlValidate extends SqrlConfigurable implements SqrlValidateInterface
      * @var NonceValidatorInterface
      */
     protected $validator = null;
-
-    /**
-     * Server information
-     */
-    /**
-     * The versions of SQRL this server accepts
-     * Should be a comma separated list
-     * 
-     * @var string
-     */
-    protected $versions = '';
-    /**
-     * Whether the requests should be secure
-     * 
-     * @var boolean
-     */
-    protected $secure = false;
-
-    /**
-     * Site domain for the requests
-     * 
-     * @var string
-     */
-    protected $domain = '';
-
-    /**
-     * path to the authentication script
-     * 
-     * @var string
-     */
-    protected $authPath = '';
     
     /**
-     * The configured server friendly name
-     * 
-     * @var string
+     *
+     * @var SqrlConfiguration
      */
-    protected $sfn = '';
-
-    /**
-     * The oldest a nonce can be before being considered expired
-     * 
-     * @var \DateTime
-     */
-    protected $nonceExpirationDate = null;
+    protected $configuration = null;
 
     /**
      * Local nonce inromation
@@ -181,36 +142,9 @@ class SqrlValidate extends SqrlConfigurable implements SqrlValidateInterface
      */
     protected $requestorIP = 0;
 
-    /**************************
-     *
-     * Configuration
-     *
-     **************************/
-    public function configure($filePath)
+    public function setConfiguration(SqrlConfiguration $config)
     {
-        $decoded = $this->loadConfigFromJSON($filePath);
-
-        if (!empty($decoded->secure)) {
-            $this->setSecure($decoded->secure > 0);
-        }
-        if (!empty($decoded->key_domain)) {
-            $this->setKeyDomain($decoded->key_domain);
-        }
-        if (!empty($decoded->authentication_path)) {
-            $this->setAuthenticationPath($decoded->authentication_path);
-        }
-        if (!empty($decoded->nonce_max_age)) {
-            $this->setNonceMaxAge($decoded->nonce_max_age);
-        }
-        if (!empty($decoded->nonce_max_age)) {
-            $this->setNonceMaxAge($decoded->nonce_max_age);
-        }
-        if (!empty($decoded->accepted_versions)) {
-            $this->setAcceptedVersions($decoded->accepted_versions);
-        }
-        if (!empty($decoded->friendly_name)) {
-            $this->setFriendlyName($decoded->friendly_name);
-        }
+        $this->configuration = $config;
     }
 
     public function setStorage(SqrlStoreInterface $storage)
@@ -221,44 +155,6 @@ class SqrlValidate extends SqrlConfigurable implements SqrlValidateInterface
     public function setValidator(NonceValidatorInterface $validator)
     {
         $this->validator = $validator;
-    }
-
-    public function setNonceMaxAge($minutes)
-    {
-        if (is_null($minutes)) {
-            $this->nonceExpirationDate = null;
-        } else {
-            $this->nonceExpirationDate = new \DateTime('-'.$minutes.' Minutes');
-        }
-    }
-
-    public function setAuthenticationPath($path)
-    {
-        $this->authPath = $path;
-    }
-
-    public function setKeyDomain($domain)
-    {
-        $this->domain = $domain;
-    }
-
-    public function setSecure($sec)
-    {
-        $this->secure = (bool) $sec;
-    }
-    
-    public function setAcceptedVersions($ver)
-    {
-        if (is_array($ver)) {
-            $this->versions = implode(',',$ver);
-        } else {
-            $this->version = $ver;
-        }
-    }
-    
-    public function setFriendlyName($sfn)
-    {
-        $this->sfn = $sfn;
     }
 
     /**************************
@@ -325,9 +221,10 @@ class SqrlValidate extends SqrlConfigurable implements SqrlValidateInterface
             if (empty($nonceData)) {
                 throw new SqrlException('Nonce not found', SqrlException::NONCE_NOT_FOUND);
             }
-            if (!is_null($this->nonceExpirationDate)) {
+            if ($this->configuration->getNonceMaxAge() > 0) {
+                $nonceExpirationDate = new \DateTime('-'.$this->configuration->getNonceMaxAge().' Minutes');
                 $created = new \DateTime($nonceData['created']);
-                $interval = $this->nonceExpirationDate->diff($created);
+                $interval = $nonceExpirationDate->diff($created);
                 if ($interval->format('%r') == '-') {
                     throw new SqrlException('Nonce has expired', SqrlException::EXPIRED_NONCE);
                 }
@@ -377,13 +274,14 @@ class SqrlValidate extends SqrlConfigurable implements SqrlValidateInterface
             return false;
         }
         if (is_array($serverData)) {
-            if(empty($serverData['ver']) || $this->versions !== $serverData['ver']) {
+            if(empty($serverData['ver']) 
+                    || implode(',',$this->configuration->getAcceptedVersions()) !== $serverData['ver']) {
                 return false;
             }
             if (empty($serverData['tif']) || $this->nonceAction !== $serverData['tif']) {
                 return false;
             }
-            if (empty($serverData['sfn']) || $this->sfn !== $serverData['sfn']) {
+            if (empty($serverData['sfn']) || $this->configuration->getFriendlyName() !== $serverData['sfn']) {
                 return false;
             }
             if (!empty($this->nonceLnk) && 
@@ -436,10 +334,10 @@ class SqrlValidate extends SqrlConfigurable implements SqrlValidateInterface
 
     protected function generateUrl($nonce)
     {
-        $url = ($this->secure ? 's' : '').'qrl://'.$this->domain.(strpos(
-                $this->domain,
-                '/'
-            ) !== false ? '|' : '/').$this->authPath;
+        $url = ($this->configuration->getSecure() ? 's' : '').'qrl://'
+                .$this->configuration->getDomain()
+                .(strpos($this->configuration->getDomain(),'/') !== false ? '|' : '/')
+                .$this->configuration->getAuthenticationPath();
         $currentPathParts = parse_url($url);
         if (!empty($currentPathParts['query'])) {
             $pathAppend = '&nut=';

@@ -1,0 +1,6 @@
+{
+    "accepted_versions": [1],
+    "key_domain":"domain.com",
+    "authentication_path":"login/sqrlauth.php",
+    "friendly_name":"Example Server"
+}

@@ -35,16 +35,13 @@ namespace Trianglman\Sqrl;
 interface SqrlValidateInterface
 {
     /**
-     * Loads a configuration file from the supplied path
+     * Sets the configuration
      *
-     * @param string $filePath Path to a JSON formatted configuration file
+     * @param SqrlConfiguration $config
      *
      * @return void
-     *
-     * @throws \InvalidArgumentException If the file does not exist
-     * @throws \InvalidArgumentException If the file is not JSON formatted
      */
-    public function configure($filePath);
+    public function setConfiguration(SqrlConfiguration $config);
 
     /**
      * Sets an object to be used to store and retrieve SQRL information
