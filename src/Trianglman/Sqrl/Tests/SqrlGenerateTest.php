@@ -34,19 +34,26 @@ use Trianglman\Sqrl\SqrlGenerate;
  */
 class SqrlGenerateTest extends \PHPUnit_Framework_TestCase
 {
+    
+    protected $config = null;
+    
+    public function setup()
+    {
+        $this->config = $this->getMock('\Trianglman\Sqrl\SqrlConfiguration');
+        $this->config->expects($this->any())->method('getNonceSalt')
+                ->will($this->returnValue('randomsalt'));
+    }
+    
     public function testGeneratesUniqueNonce()
     {
-        $config = $this->getMock('\Trianglman\Sqrl\SqrlConfiguration');
-        $config->expects($this->any())->method('getNonceSalt')
-                ->will($this->returnValue('randomsalt'));
 
         $createdNonces = array();
         $obj = new SqrlGenerate();
-        $obj->setConfiguration($config);
+        $obj->setConfiguration($this->config);
         $createdNonces[] = $obj->getNonce();
         for ($x = 0; $x < 10; $x++) {
             $checkObj = new SqrlGenerate();
-            $checkObj->setConfiguration($config);
+            $checkObj->setConfiguration($this->config);
             $checkNonce = $checkObj->getNonce();
             $this->assertFalse(in_array($checkNonce, $createdNonces));
             $createdNonces[] = $checkNonce;
@@ -59,18 +66,15 @@ class SqrlGenerateTest extends \PHPUnit_Framework_TestCase
      */
     public function testGeneratesUrlNoQueryString()
     {
-        $config = $this->getMock('\Trianglman\Sqrl\SqrlConfiguration');
-        $config->expects($this->any())->method('getNonceSalt')
-                ->will($this->returnValue('randomsalt'));
-        $config->expects($this->any())->method('getSecure')
+        $this->config->expects($this->any())->method('getSecure')
                 ->will($this->returnValue(true));
-        $config->expects($this->any())->method('getDomain')
+        $this->config->expects($this->any())->method('getDomain')
                 ->will($this->returnValue('example.com'));
-        $config->expects($this->any())->method('getAuthenticationPath')
+        $this->config->expects($this->any())->method('getAuthenticationPath')
                 ->will($this->returnValue('sqrl'));
         
         $obj = new SqrlGenerate();
-        $obj->setConfiguration($config);
+        $obj->setConfiguration($this->config);
         $nonce = $obj->getNonce();
         $this->assertEquals('sqrl://example.com/sqrl?nut='.$nonce, $obj->getUrl());
     }
@@ -80,18 +84,15 @@ class SqrlGenerateTest extends \PHPUnit_Framework_TestCase
      */
     public function testGeneratesUrlQueryString()
     {
-        $config = $this->getMock('\Trianglman\Sqrl\SqrlConfiguration');
-        $config->expects($this->any())->method('getNonceSalt')
-                ->will($this->returnValue('randomsalt'));
-        $config->expects($this->any())->method('getSecure')
+        $this->config->expects($this->any())->method('getSecure')
                 ->will($this->returnValue(false));
-        $config->expects($this->any())->method('getDomain')
+        $this->config->expects($this->any())->method('getDomain')
                 ->will($this->returnValue('example.com/unique'));
-        $config->expects($this->any())->method('getAuthenticationPath')
+        $this->config->expects($this->any())->method('getAuthenticationPath')
                 ->will($this->returnValue('sqrl?foo=bar'));
         
         $obj = new SqrlGenerate();
-        $obj->setConfiguration($config);
+        $obj->setConfiguration($this->config);
         $nonce = $obj->getNonce();
         $this->assertEquals('qrl://example.com/unique|sqrl?foo=bar&nut='.$nonce, $obj->getUrl());
     }
@@ -101,23 +102,20 @@ class SqrlGenerateTest extends \PHPUnit_Framework_TestCase
      */
     public function testRenders()
     {
-        $config = $this->getMock('\Trianglman\Sqrl\SqrlConfiguration');
-        $config->expects($this->any())->method('getNonceSalt')
-                ->will($this->returnValue('randomsalt'));
-        $config->expects($this->any())->method('getSecure')
+        $this->config->expects($this->any())->method('getSecure')
                 ->will($this->returnValue(true));
-        $config->expects($this->any())->method('getDomain')
+        $this->config->expects($this->any())->method('getDomain')
                 ->will($this->returnValue('domain.com'));
-        $config->expects($this->any())->method('getAuthenticationPath')
+        $this->config->expects($this->any())->method('getAuthenticationPath')
                 ->will($this->returnValue('login/sqrlauth.php'));
-        $config->expects($this->any())->method('getQrHeight')
+        $this->config->expects($this->any())->method('getQrHeight')
                 ->will($this->returnValue(30));
-        $config->expects($this->any())->method('getQrPadding')
+        $this->config->expects($this->any())->method('getQrPadding')
                 ->will($this->returnValue(1));
         
         
         $obj = new SQRLGenerate();
-        $obj->setConfiguration($config);
+        $obj->setConfiguration($this->config);
         $nonce = $obj->getNonce();
         $expected = new QrCode();
         $expected->setText('sqrl://domain.com/login/sqrlauth.php?nut='.$nonce);

@@ -49,13 +49,21 @@ class SqrlStoreTest extends \PHPUnit_Framework_TestCase
      */
     protected $obj;
 
+    protected $config = null;
+    
     public function setUp()
     {
         parent::setUp();
 
+        $this->config = $this->getMock('\Trianglman\Sqrl\SqrlConfiguration');
+        $this->config->expects($this->any())->method('getNonceTable')
+                ->will($this->returnValue('nonces'));
+        $this->config->expects($this->any())->method('getPubKeyTable')
+                ->will($this->returnValue('pubkeys'));
         $this->db = $this->getMock('Trianglman\Sqrl\Tests\TestPDO');
         $this->stmt = $this->getMock('PDOStatement');
         $this->obj = new SqrlStore();
+        $this->obj->setConfiguration($this->config);
         $this->obj->setDatabaseConnection($this->db);
     }
 
@@ -72,13 +80,12 @@ class SqrlStoreTest extends \PHPUnit_Framework_TestCase
 
     public function testStoresNonceNoPubKey()
     {
-        $sql = 'INSERT INTO `nonces` (`nonce`,`ip`,`action`) VALUES (?,?,?)';
+        $sql = 'INSERT INTO `nonces` (`nonce`,`ip`,`action`,`related_public_key`) VALUES (?,?,?, NULL)';
         $this->db->expects($this->once())->method('prepare')
             ->with($this->equalTo($sql))->will($this->returnValue($this->stmt));
         $this->stmt->expects($this->once())->method('execute')
             ->with($this->equalTo(array('123456', '654322', '1')))
             ->will($this->returnValue(true));
-        $this->obj->setNonceTable('nonces');
         $this->obj->storeNut('123456', '654322');
     }
 
@@ -91,10 +98,9 @@ class SqrlStoreTest extends \PHPUnit_Framework_TestCase
         $this->db->expects($this->once())->method('prepare')
             ->with($this->equalTo($sql))->will($this->returnValue($this->stmt));
         $this->stmt->expects($this->once())->method('execute')
-            ->with($this->equalTo(array('123456', '654322', '2', 'pubkey')))
+            ->with($this->equalTo(array('123456', '654322', SqrlRequestHandlerInterface::ID_MATCH, 'pubkey')))
             ->will($this->returnValue(true));
-        $this->obj->setNonceTable('nonces');
-        $this->obj->storeNut('123456', '654322', SqrlRequestHandlerInterface::NEW_ACCOUNT_REQUEST, 'pubkey');
+        $this->obj->storeNut('123456', '654322', SqrlRequestHandlerInterface::ID_MATCH, 'pubkey');
     }
 
     public function testRetrievesNutInfo()
@@ -108,13 +114,12 @@ class SqrlStoreTest extends \PHPUnit_Framework_TestCase
         $result = array(
             'id' => '1',
             'created' => '2013-11-18 00:00:00',
-            'action' => SqrlRequestHandlerInterface::AUTHENTICATION_REQUEST,
+            'action' => SqrlRequestHandlerInterface::INITIAL_REQUEST,
             'ip' => '654322',
             'related_public_key' => 'pubkey'
         );
         $this->stmt->expects($this->once())->method('fetchAll')->with($this->equalTo(\PDO::FETCH_ASSOC))
             ->will($this->returnValue(array($result)));
-        $this->obj->setNonceTable('nonces');
         $this->assertEquals($result, $this->obj->retrieveNutRecord('a nonce'));
     }
 
@@ -126,7 +131,6 @@ class SqrlStoreTest extends \PHPUnit_Framework_TestCase
         $this->stmt->expects($this->once())->method('execute')
             ->with($this->equalTo(array('pubkey')))
             ->will($this->returnValue(true));
-        $this->obj->setPublicKeyTable('pubkeys');
         $this->obj->storeAuthenticationKey('pubkey');
     }
 
@@ -147,7 +151,6 @@ class SqrlStoreTest extends \PHPUnit_Framework_TestCase
         );
         $this->stmt->expects($this->once())->method('fetchAll')->with($this->equalTo(\PDO::FETCH_ASSOC))
             ->will($this->returnValue(array($result)));
-        $this->obj->setPublicKeyTable('pubkeys');
         $this->assertEquals($result, $this->obj->retrieveAuthenticationRecord('pubkey'));
     }
 
@@ -168,7 +171,6 @@ class SqrlStoreTest extends \PHPUnit_Framework_TestCase
         $result = array('id' => '1');
         $this->stmt->expects($this->once())->method('fetchAll')->with($this->equalTo(\PDO::FETCH_ASSOC))
             ->will($this->returnValue(array($result)));
-        $this->obj->setPublicKeyTable('pubkeys');
         $this->assertEquals('1', $this->obj->retrieveAuthenticationRecord('pubkey', array(SqrlStoreInterface::ID)));
     }
 
@@ -180,7 +182,6 @@ class SqrlStoreTest extends \PHPUnit_Framework_TestCase
         $this->stmt->expects($this->once())->method('execute')
             ->with($this->equalTo(array('serverkey', 'verifyunlock', 'pubkey')))
             ->will($this->returnValue(true));
-        $this->obj->setPublicKeyTable('pubkeys');
         $this->obj->storeIdentityLock('pubkey', 'serverkey', 'verifyunlock');
     }
 
@@ -192,7 +193,6 @@ class SqrlStoreTest extends \PHPUnit_Framework_TestCase
         $this->stmt->expects($this->once())->method('execute')
             ->with($this->equalTo(array('pubkey')))
             ->will($this->returnValue(true));
-        $this->obj->setPublicKeyTable('pubkeys');
         $this->obj->lockKey('pubkey');
     }
 
@@ -204,7 +204,6 @@ class SqrlStoreTest extends \PHPUnit_Framework_TestCase
         $this->stmt->expects($this->once())->method('execute')
             ->with($this->equalTo(array('newpubkey', 0, 'serverkey', 'verifyunlock', 'oldpubkey')))
             ->will($this->returnValue(true));
-        $this->obj->setPublicKeyTable('pubkeys');
         $this->obj->migrateKey('oldpubkey', 'newpubkey', 'serverkey', 'verifyunlock');
     }
 
@@ -219,7 +218,6 @@ class SqrlStoreTest extends \PHPUnit_Framework_TestCase
         $this->stmt->expects($this->once())->method('execute')
             ->with($this->equalTo(array('newpubkey', 0, 'oldpubkey')))
             ->will($this->returnValue(true));
-        $this->obj->setPublicKeyTable('pubkeys');
         $this->obj->migrateKey('oldpubkey', 'newpubkey');
     }
 
@@ -234,7 +232,6 @@ class SqrlStoreTest extends \PHPUnit_Framework_TestCase
         $this->stmt->expects($this->once())->method('execute')
             ->with($this->equalTo(array('serverkey', 'verifyunlock', 'oldpubkey')))
             ->will($this->returnValue(true));
-        $this->obj->setPublicKeyTable('pubkeys');
         $this->obj->migrateKey('oldpubkey', null, 'serverkey', 'verifyunlock');
     }
 }
