@@ -362,7 +362,6 @@ class SqrlRequestHandler implements SqrlRequestHandlerInterface
         }
         if (!$this->validator->matchServerData($this->requestType,$https,array(
             'ver'=>$serverVer,
-            'tif'=>$this->requestType,
             'qry'=>$serverQry,
             'lnk'=>$serverLnk,
             'sfn'=>$serverSfn,

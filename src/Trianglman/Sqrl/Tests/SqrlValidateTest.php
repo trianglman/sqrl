@@ -25,6 +25,7 @@
 namespace Trianglman\Sqrl\Tests;
 
 use Trianglman\Sqrl\SqrlValidate;
+use Trianglman\Sqrl\SqrlRequestHandler;
 
 /**
  * Unit tests for the SqrlValidate class
@@ -33,175 +34,78 @@ use Trianglman\Sqrl\SqrlValidate;
  */
 class SqrlValidateTest extends \PHPUnit_Framework_TestCase
 {
-    public function testValidatesWithoutEnforceFlagAndNoDatabase()
+    protected $config = null;
+    
+    public function setup()
     {
-        $validator = $this->getMock('\Trianglman\Sqrl\NonceValidatorInterface');
-        $orig = 'clientval=ver=1&opt=&authkey='.str_replace(
-                array('+', '/', '='),
-                array('-', '_', ''),
-                base64_encode('some key')
-            )
-            .'&serverurl=sqrl://domain.com/login/sqrlauth.php?nut=a valid nut';
-        $sig = 'valid signature';
-        $pk = 'some key';
-        $validator->expects($this->once())->method('validateSignature')->with($orig, $sig, $pk)->will(
-            $this->returnValue(true)
-        );
-        $obj = new SqrlValidate();
-        $obj->configure(dirname(__FILE__).'/Resources/unittest.json');
-        $obj->setSignedClientVal(
-            'ver=1&opt=&authkey='.str_replace(array('+', '/', '='), array('-', '_', ''), base64_encode('some key'))
-        );
-        $obj->setClientVer('1');
-        $obj->setNonce('a valid nut');
-        $obj->setAuthenticateKey(base64_encode('some key'));
-        $obj->setSignedUrl('sqrl://domain.com/login/sqrlauth.php?nut=a valid nut');
-        $obj->setAuthenticateSignature(base64_encode('valid signature'));
-        $obj->setValidator($validator);
-        $this->assertTrue($obj->validate());
+        $this->config = $this->getMock('\Trianglman\Sqrl\SqrlConfiguration');
+        $this->config->expects($this->any())->method('getNonceSalt')
+                ->will($this->returnValue('randomsalt'));
     }
-
-    public function testValidatesSecondarySignature()
+    
+    public function testMatchesUrlSuccess()
     {
-        $validator = $this->getMock('\Trianglman\Sqrl\NonceValidatorInterface');
-        $orig = 'clientval=ver=1&opt=&authkey='.str_replace(
-                array('+', '/', '='),
-                array('-', '_', ''),
-                base64_encode('some key')
-            )
-            .'&serverurl=sqrl://domain.com/login/sqrlauth.php?nut=a valid nut';
-        $validator->expects($this->once())->method('validateSignature')->with($orig, 'otherSig', 'other key')->will(
-            $this->returnValue(true)
-        );
+        $this->config->expects($this->any())->method('getSecure')
+                ->will($this->returnValue(true));
+        $this->config->expects($this->any())->method('getDomain')
+                ->will($this->returnValue('example.com'));
+        $this->config->expects($this->any())->method('getAuthenticationPath')
+                ->will($this->returnValue('sqrl.php'));
+        
         $obj = new SqrlValidate();
-        $obj->configure(dirname(__FILE__).'/Resources/unittest.json');
-        $obj->setSignedClientVal(
-            'ver=1&opt=&authkey='.str_replace(array('+', '/', '='), array('-', '_', ''), base64_encode('some key'))
-        );
-        $obj->setClientVer('1');
-        $obj->setNonce('a valid nut');
-        $obj->setAuthenticateKey(base64_encode('some key'));
-        $obj->setSignedUrl('sqrl://domain.com/login/sqrlauth.php?nut=a valid nut');
-        $obj->setAuthenticateSignature(base64_encode('valid signature'));
-        $obj->setValidator($validator);
-        $this->assertTrue($obj->validateSignature('other key', 'otherSig'));
+        $obj->setConfiguration($this->config);
+        $obj->setNonce('test nonce');
+        
+        $this->assertTrue($obj->matchServerData(
+                SqrlRequestHandler::INITIAL_REQUEST, 
+                true, 
+                'sqrl://example.com/sqrl.php?nut=test nonce'
+                ));
+        
     }
-
-    /**
-     * @expectedException \Trianglman\Sqrl\SqrlException
-     * @expectedExceptionCode 1
-     */
-    public function testChecksEnforceIPWithNoDatabase()
+    
+    public function testMatchesServerResponseSuccess()
     {
-        $validator = $this->getMock('\Trianglman\Sqrl\NonceValidatorInterface');
+        $this->config->expects($this->any())->method('getSecure')
+                ->will($this->returnValue(true));
+        $this->config->expects($this->any())->method('getAcceptedVersions')
+                ->will($this->returnValue(array(1)));
+        $this->config->expects($this->any())->method('getFriendlyName')
+                ->will($this->returnValue('Example Server'));
+        $data = array();
+        $data['ver'] = '1';
+        $data['sfn'] = 'Example Server';
+        
         $obj = new SqrlValidate();
-        $obj->configure(dirname(__FILE__).'/Resources/unittest.json');
-        $obj->setSignedClientVal(
-            'ver=1&opt=enforce&authkey='.str_replace(
-                array('+', '/', '='),
-                array('-', '_', ''),
-                base64_encode('some key')
-            )
-        );
-        $obj->setClientVer('1');
-        $obj->setNonce('a valid nut');
-        $obj->setAuthenticateKey(base64_encode('some key'));
-        $obj->setSignedUrl('sqrl://domain.com/login/sqrlauth.php?nut=a valid nut');
-        $obj->setAuthenticateSignature(base64_encode('valid signature'));
-        $obj->setRequestorIp('127.0.0.1');
-        $obj->setEnforceIP(true);
+        $obj->setConfiguration($this->config);
+        $obj->setNonce('test nonce');
+        $obj->setNonceAction(SqrlRequestHandler::ID_MATCH);
+        
+        $this->assertTrue($obj->matchServerData(SqrlRequestHandler::ID_MATCH, true, $data));
+    }
+    
+    public function testValidatesSuccess()
+    {
+        $val = $this->getMock('\Trianglman\Sqrl\NonceValidatorInterface');
+        $val->expects($this->any())->method('validateSignature')
+                ->with(
+                        $this->equalTo('server=datafromserver&client=datafromclient'),
+                        $this->equalTo('the signature of the message'),
+                        $this->equalTo('the test key')
+                        )
+                ->will($this->returnValue(true));
+        
+        $obj = new SqrlValidate();
+        $obj->setConfiguration($this->config);
+        $obj->setValidator($val);
+        $obj->setSignedServerVal('datafromserver');
+        $obj->setSignedClientVal('datafromclient');
+        $obj->setAuthenticateKey('the test key');
+        $obj->setAuthenticateSignature('the signature of the message');
         $obj->setNonceIp('192.168.0.1');
-        $obj->setValidator($validator);
-        $obj->validate();
-    }
-
-    public function testValidatesEnforceFlagGoodAndNoDatabase()
-    {
-        $validator = $this->getMock('\Trianglman\Sqrl\NonceValidatorInterface');
-        $orig = 'clientval=ver=1&opt=enforce&authkey='.str_replace(
-                array('+', '/', '='),
-                array('-', '_', ''),
-                base64_encode('some key')
-            )
-            .'&serverurl=sqrl://domain.com/login/sqrlauth.php?nut=a valid nut';
-        $sig = 'valid signature';
-        $pk = 'some key';
-        $validator->expects($this->once())->method('validateSignature')->with($orig, $sig, $pk)->will(
-            $this->returnValue(true)
-        );
-        $obj = new SqrlValidate();
-        $obj->configure(dirname(__FILE__).'/Resources/unittest.json');
-        $obj->setSignedClientVal(
-            'ver=1&opt=enforce&authkey='.str_replace(
-                array('+', '/', '='),
-                array('-', '_', ''),
-                base64_encode('some key')
-            )
-        );
-        $obj->setClientVer('1');
-        $obj->setNonce('a valid nut');
-        $obj->setAuthenticateKey(base64_encode('some key'));
-        $obj->setSignedUrl('sqrl://domain.com/login/sqrlauth.php?nut=a valid nut');
-        $obj->setAuthenticateSignature(base64_encode('valid signature'));
-        $obj->setRequestorIp('127.0.0.1');
-        $obj->setEnforceIP(true);
-        $obj->setNonceIp('127.0.0.1');
-        $obj->setValidator($validator);
-        $obj->validate();
-    }
-
-    /**
-     * @expectedException \Trianglman\Sqrl\SqrlException
-     * @expectedExceptionCode 4
-     */
-    public function testValidatesInvalidSignature()
-    {
-        $validator = $this->getMock('\Trianglman\Sqrl\NonceValidatorInterface');
-        $orig = 'clientval=ver=1&opt=&authkey='.str_replace(
-                array('+', '/', '='),
-                array('-', '_', ''),
-                base64_encode('some key')
-            )
-            .'&serverurl=sqrl://domain.com/login/sqrlauth.php?nut=a valid nut';
-        $sig = 'invalid signature';
-        $pk = 'some key';
-        $validator->expects($this->once())->method('validateSignature')->with($orig, $sig, $pk)->will(
-            $this->returnValue(false)
-        );
-        $obj = new SqrlValidate();
-        $obj->configure(dirname(__FILE__).'/Resources/unittest.json');
-        $obj->setSignedClientVal(
-            'ver=1&opt=&authkey='.str_replace(array('+', '/', '='), array('-', '_', ''), base64_encode('some key'))
-        );
-        $obj->setClientVer('1');
-        $obj->setNonce('a valid nut');
-        $obj->setAuthenticateKey(base64_encode('some key'));
-        $obj->setSignedUrl('sqrl://domain.com/login/sqrlauth.php?nut=a valid nut');
-        $obj->setAuthenticateSignature(base64_encode('invalid signature'));
-        $obj->setRequestorIp('127.0.0.1');
-        $obj->setValidator($validator);
+        $obj->setRequestorIp('192.168.0.1');
+        
         $this->assertTrue($obj->validate());
     }
-
-    /**
-     * @expectedException \Trianglman\Sqrl\SqrlException
-     * @expectedExceptionCode 2
-     */
-    public function testValidatesUrlsMatch()
-    {
-        $validator = $this->getMock('\Trianglman\Sqrl\NonceValidatorInterface');
-        $obj = new SqrlValidate();
-        $obj->configure(dirname(__FILE__).'/Resources/unittest.json');
-        $obj->setSignedClientVal(
-            'ver=1&opt=&authkey='.str_replace(array('+', '/', '='), array('-', '_', ''), base64_encode('some key'))
-        );
-        $obj->setClientVer('1');
-        $obj->setNonce('a valid nut');
-        $obj->setAuthenticateKey(base64_encode('some key'));
-        $obj->setSignedUrl('qrl://domain.com/login/sqrlauth.php?nut=a valid nut');
-        $obj->setAuthenticateSignature(base64_encode('invalid signature'));
-        $obj->setRequestorIp('127.0.0.1');
-        $obj->setValidator($validator);
-        $this->assertTrue($obj->validate());
-    }
+    
 }

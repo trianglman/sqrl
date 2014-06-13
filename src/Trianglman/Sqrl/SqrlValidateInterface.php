@@ -137,24 +137,6 @@ interface SqrlValidateInterface
     public function validate();
 
     /**
-     * Gets the public key parsed from the request
-     *
-     * @return string
-     *
-     * @throws \RuntimeException if no request information has been parsed
-     */
-    public function getPublicKey();
-
-    /**
-     * Gets the nonce being returned in the request
-     *
-     * @return string
-     *
-     * @throws \RuntimeException if no request information has been parsed
-     */
-    public function getNonce();
-
-    /**
      * Sets whether to enforce the same IP check
      *
      * @param boolean $bool

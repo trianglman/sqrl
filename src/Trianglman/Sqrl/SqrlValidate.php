@@ -269,8 +269,10 @@ class SqrlValidate implements SqrlValidateInterface
      */
     public function matchServerData($requestType,$https,$serverData)
     {
-        if(empty($this->nonce) || empty($this->signedServerData))
-        if (($this->secure !== (bool)$https)) {
+        if (empty($this->nonce)) {
+            return false;
+        }
+        if ($this->configuration->getSecure() !== (bool)$https) {
             return false;
         }
         if (is_array($serverData)) {
@@ -278,7 +280,7 @@ class SqrlValidate implements SqrlValidateInterface
                     || implode(',',$this->configuration->getAcceptedVersions()) !== $serverData['ver']) {
                 return false;
             }
-            if (empty($serverData['tif']) || $this->nonceAction !== $serverData['tif']) {
+            if ($this->nonceAction !== $requestType) {
                 return false;
             }
             if (empty($serverData['sfn']) || $this->configuration->getFriendlyName() !== $serverData['sfn']) {
@@ -298,7 +300,7 @@ class SqrlValidate implements SqrlValidateInterface
             }
         } else {
             $expectedURL = $this->generateUrl($this->nonce);
-            if ($serverData !== $expectedURL) {
+            if ($serverData !== $expectedURL || $requestType !== SqrlRequestHandler::INITIAL_REQUEST) {
                 return false;
             }
         }
@@ -348,21 +350,4 @@ class SqrlValidate implements SqrlValidateInterface
         return $url.$pathAppend.$nonce;
     }
     
-    public function getPublicKey()
-    {
-        if (empty($this->idk)) {
-            throw new \RuntimeException('No request information has been parsed');
-        }
-
-        return $this->idk;
-    }
-
-    public function getNonce()
-    {
-        if (empty($this->nonce)) {
-            throw new \RuntimeException('No request information has been parsed');
-        }
-
-        return $this->nonce;
-    }
 }
