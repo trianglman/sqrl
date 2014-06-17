@@ -41,12 +41,11 @@ class SqrlStore implements SqrlStoreInterface
      */
     protected $dbConn;
 
-    public function setConfiguration(SqrlConfiguration $config)
+    public function __construct(SqrlConfiguration $config=null)
     {
         $this->configuration = $config;
     }
-
-
+    
     /**
      * Directly set the database connection rather than letting SqrlStore create one
      *

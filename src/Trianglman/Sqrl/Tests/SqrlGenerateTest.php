@@ -48,12 +48,10 @@ class SqrlGenerateTest extends \PHPUnit_Framework_TestCase
     {
 
         $createdNonces = array();
-        $obj = new SqrlGenerate();
-        $obj->setConfiguration($this->config);
+        $obj = new SqrlGenerate($this->config);
         $createdNonces[] = $obj->getNonce();
         for ($x = 0; $x < 10; $x++) {
-            $checkObj = new SqrlGenerate();
-            $checkObj->setConfiguration($this->config);
+            $checkObj = new SqrlGenerate($this->config);
             $checkNonce = $checkObj->getNonce();
             $this->assertFalse(in_array($checkNonce, $createdNonces));
             $createdNonces[] = $checkNonce;
@@ -73,8 +71,7 @@ class SqrlGenerateTest extends \PHPUnit_Framework_TestCase
         $this->config->expects($this->any())->method('getAuthenticationPath')
                 ->will($this->returnValue('sqrl'));
         
-        $obj = new SqrlGenerate();
-        $obj->setConfiguration($this->config);
+        $obj = new SqrlGenerate($this->config);
         $nonce = $obj->getNonce();
         $this->assertEquals('sqrl://example.com/sqrl?nut='.$nonce, $obj->getUrl());
     }
@@ -91,8 +88,7 @@ class SqrlGenerateTest extends \PHPUnit_Framework_TestCase
         $this->config->expects($this->any())->method('getAuthenticationPath')
                 ->will($this->returnValue('sqrl?foo=bar'));
         
-        $obj = new SqrlGenerate();
-        $obj->setConfiguration($this->config);
+        $obj = new SqrlGenerate($this->config);
         $nonce = $obj->getNonce();
         $this->assertEquals('qrl://example.com/unique|sqrl?foo=bar&nut='.$nonce, $obj->getUrl());
     }
@@ -114,8 +110,7 @@ class SqrlGenerateTest extends \PHPUnit_Framework_TestCase
                 ->will($this->returnValue(1));
         
         
-        $obj = new SQRLGenerate();
-        $obj->setConfiguration($this->config);
+        $obj = new SQRLGenerate($this->config);
         $nonce = $obj->getNonce();
         $expected = new QrCode();
         $expected->setText('sqrl://domain.com/login/sqrlauth.php?nut='.$nonce);

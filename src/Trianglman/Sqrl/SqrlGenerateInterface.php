@@ -31,15 +31,6 @@ namespace Trianglman\Sqrl;
 interface SqrlGenerateInterface
 {
     /**
-     * Sets the configuration
-     *
-     * @param SqrlConfiguration $config
-     *
-     * @return void
-     */
-    public function setConfiguration(SqrlConfiguration $config);
-
-    /**
      * Sets an object to be used to store and retrieve SQRL information
      *
      * @param SqrlStoreInterface $storage

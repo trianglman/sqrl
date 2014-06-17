@@ -47,6 +47,15 @@ class SqrlGenerate implements SqrlGenerateInterface
      */
     protected $configuration = null;
     
+    public function __construct(
+        SqrlConfiguration $config, 
+        SqrlStoreInterface $storage=null
+        )
+    {
+        $this->configuration = $config;
+        $this->store = $storage;
+    }
+    
     public function setNonce($nonce,$action = SqrlRequestHandlerInterface::INITIAL_REQUEST, $key = '')
     {
         $this->nonce = $nonce;
@@ -67,11 +76,6 @@ class SqrlGenerate implements SqrlGenerateInterface
     public function getUrl()
     {
         return $this->buildUrl();
-    }
-
-    public function setConfiguration(SqrlConfiguration $config)
-    {
-        $this->configuration = $config;
     }
 
     public function setStorage(SqrlStoreInterface $storage)

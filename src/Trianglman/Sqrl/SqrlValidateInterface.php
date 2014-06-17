@@ -35,15 +35,6 @@ namespace Trianglman\Sqrl;
 interface SqrlValidateInterface
 {
     /**
-     * Sets the configuration
-     *
-     * @param SqrlConfiguration $config
-     *
-     * @return void
-     */
-    public function setConfiguration(SqrlConfiguration $config);
-
-    /**
      * Sets an object to be used to store and retrieve SQRL information
      *
      * @param SqrlStoreInterface $storage
@@ -108,15 +99,6 @@ interface SqrlValidateInterface
      */
     public function setNonce($nonce);
 
-    /**
-     * Sets the class that will handle the validation
-     *
-     * @param NonceValidatorInterface $validator
-     *
-     * @return void
-     */
-    public function setValidator(NonceValidatorInterface $validator);
-    
     /**
      * Verifies that the server data sent back by the requestor matches
      * the data that was originally sent with the nonce

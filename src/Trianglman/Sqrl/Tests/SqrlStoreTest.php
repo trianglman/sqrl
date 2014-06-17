@@ -62,8 +62,7 @@ class SqrlStoreTest extends \PHPUnit_Framework_TestCase
                 ->will($this->returnValue('pubkeys'));
         $this->db = $this->getMock('Trianglman\Sqrl\Tests\TestPDO');
         $this->stmt = $this->getMock('PDOStatement');
-        $this->obj = new SqrlStore();
-        $this->obj->setConfiguration($this->config);
+        $this->obj = new SqrlStore($this->config);
         $this->obj->setDatabaseConnection($this->db);
     }
 

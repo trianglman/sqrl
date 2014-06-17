@@ -73,15 +73,6 @@ interface SqrlStoreInterface
     const VUK = 64;
 
     /**
-     * Sets the configuration
-     *
-     * @param SqrlConfiguration $config
-     *
-     * @return void
-     */
-    public function setConfiguration(SqrlConfiguration $config);
-
-    /**
      * Directly set the database connection rather than letting SqrlStore create one
      *
      * @param \PDO $db The database connection

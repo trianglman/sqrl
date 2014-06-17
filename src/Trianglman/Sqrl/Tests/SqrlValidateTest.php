@@ -35,12 +35,14 @@ use Trianglman\Sqrl\SqrlRequestHandler;
 class SqrlValidateTest extends \PHPUnit_Framework_TestCase
 {
     protected $config = null;
+    protected $val = null;
     
     public function setup()
     {
         $this->config = $this->getMock('\Trianglman\Sqrl\SqrlConfiguration');
         $this->config->expects($this->any())->method('getNonceSalt')
                 ->will($this->returnValue('randomsalt'));
+        $this->val = $this->getMock('\Trianglman\Sqrl\NonceValidatorInterface');
     }
     
     public function testMatchesUrlSuccess()
@@ -52,8 +54,7 @@ class SqrlValidateTest extends \PHPUnit_Framework_TestCase
         $this->config->expects($this->any())->method('getAuthenticationPath')
                 ->will($this->returnValue('sqrl.php'));
         
-        $obj = new SqrlValidate();
-        $obj->setConfiguration($this->config);
+        $obj = new SqrlValidate($this->config,$this->val);
         $obj->setNonce('test nonce');
         
         $this->assertTrue($obj->matchServerData(
@@ -76,8 +77,7 @@ class SqrlValidateTest extends \PHPUnit_Framework_TestCase
         $data['ver'] = '1';
         $data['sfn'] = 'Example Server';
         
-        $obj = new SqrlValidate();
-        $obj->setConfiguration($this->config);
+        $obj = new SqrlValidate($this->config,$this->val);
         $obj->setNonce('test nonce');
         $obj->setNonceAction(SqrlRequestHandler::ID_MATCH);
         
@@ -86,8 +86,7 @@ class SqrlValidateTest extends \PHPUnit_Framework_TestCase
     
     public function testValidatesSuccess()
     {
-        $val = $this->getMock('\Trianglman\Sqrl\NonceValidatorInterface');
-        $val->expects($this->any())->method('validateSignature')
+        $this->val->expects($this->any())->method('validateSignature')
                 ->with(
                         $this->equalTo('server=datafromserver&client=datafromclient'),
                         $this->equalTo('the signature of the message'),
@@ -95,9 +94,7 @@ class SqrlValidateTest extends \PHPUnit_Framework_TestCase
                         )
                 ->will($this->returnValue(true));
         
-        $obj = new SqrlValidate();
-        $obj->setConfiguration($this->config);
-        $obj->setValidator($val);
+        $obj = new SqrlValidate($this->config,$this->val);
         $obj->setSignedServerVal('datafromserver');
         $obj->setSignedClientVal('datafromclient');
         $obj->setAuthenticateKey('the test key');

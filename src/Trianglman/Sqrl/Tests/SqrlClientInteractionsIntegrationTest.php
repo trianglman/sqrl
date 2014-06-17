@@ -27,6 +27,8 @@ use Trianglman\Sqrl\SqrlException;
 use Trianglman\Sqrl\SqrlStore;
 use Trianglman\Sqrl\SqrlValidate;
 use Trianglman\Sqrl\Ed25519NonceValidator;
+use Trianglman\Sqrl\SqrlGenerate;
+use Trianglman\Sqrl\SqrlRequestHandler;
 
 /**
  * Description of SqrlValidateIntegrationTest
@@ -76,15 +78,13 @@ class SqrlClientInteractionsIntegrationTest extends \PHPUnit_Extensions_Database
     public function testStandardValidAuthentication()
     {
         $pub = 'MmDImzNYkpmVk7_Bjw4_WEBWec4rSlOjQvJLfYfGdBs';
+        
         $config = new \Trianglman\Sqrl\SqrlConfiguration();
         $config->load(__DIR__.'/Resources/functionaltest.json');
-        $storage = new SqrlStore();
-        $storage->setConfiguration($config);
-        $generator = $this->prepGenerator($storage,$config);
+        $storage = new SqrlStore($config);
         
         //client will request a SQRL URL
-        $generator->setRequestorIp('192.168.0.5');
-        $sqrlUrl = $this->createInitialSqrlUrl($generator, '192.168.0.5');
+        $sqrlUrl = $this->createInitialSqrlUrl(new SqrlGenerate($config,$storage), '192.168.0.5');
         
         //client will sign the URL, supply the IDK, and return the values
         //  server=base64url({SQRL URL})&
@@ -100,8 +100,8 @@ class SqrlClientInteractionsIntegrationTest extends \PHPUnit_Extensions_Database
             );
         
         //server will verify the client response
-        $validator1 = $this->prepValidator($storage,$config);
-        $gen2 = $this->prepGenerator($storage,$config);
+        $validator1 = new SqrlValidate($config,new Ed25519NonceValidator(),$storage);
+        $gen2 = new SqrlGenerate($config,$storage);
         $gen2->setRequestorIp('192.168.0.5');
         $gen2->setNonce(
                 'interactionsTestNonce2', 
@@ -119,7 +119,7 @@ class SqrlClientInteractionsIntegrationTest extends \PHPUnit_Extensions_Database
                 'verified'=>0
             )
         );
-        $requestResponse = new \Trianglman\Sqrl\SqrlRequestHandler($validator1,$storage,$gen2);
+        $requestResponse = new SqrlRequestHandler($config,$validator1,$storage,$gen2);
         $requestResponse->setSfn('Example Server');
         $requestResponse->parseRequest(
                 array('nut'=>'interactionsTestNonce1'), 
@@ -149,9 +149,9 @@ class SqrlClientInteractionsIntegrationTest extends \PHPUnit_Extensions_Database
         
         //verify the server responds with ID match(0x01), IP match(0x04), SQRL enabled(0x08), and 
         //user logged in(0x10)
-        $validator2 = $this->prepValidator($storage,$config);
-        $gen3 = $this->prepGenerator($storage,$config);
-        $requestResponse2 = new \Trianglman\Sqrl\SqrlRequestHandler($validator2,$storage,$gen3);
+        $validator2 = new SqrlValidate($config,new Ed25519NonceValidator(),$storage);
+        $gen3 = new \Trianglman\Sqrl\SqrlGenerate($config,$storage);
+        $requestResponse2 = new SqrlRequestHandler($config,$validator2,$storage,$gen3);
         $requestResponse2->setSfn('Example Server');
         $requestResponse2->parseRequest(
                 array('nut'=>'interactionsTestNonce1'), //request is made back to original URL since no qry= was supplied
@@ -298,25 +298,9 @@ class SqrlClientInteractionsIntegrationTest extends \PHPUnit_Extensions_Database
         return trim($urlencode, '=');
     }
     
-    protected function prepValidator($storage,$config)
-    {
-        $validator = new \Trianglman\Sqrl\SqrlValidate();
-        $validator->setConfiguration($config);
-        $validator->setValidator(new Ed25519NonceValidator());
-        $validator->setStorage($storage);
-        return $validator;
-    }
-    
-    protected function prepGenerator($storage,$config)
-    {
-        $generator = new \Trianglman\Sqrl\SqrlGenerate();
-        $generator->setConfiguration($config);
-        $generator->setStorage($storage);
-        return $generator;
-    }
-    
     protected function createInitialSqrlUrl($generator,$ip,$nonce='interactionsTestNonce1')
     {
+        $generator->setRequestorIp($ip);
         $generator->setNonce($nonce);
         $sqrlUrl = $generator->getUrl();
         $this->assertEquals('sqrl://domain.com/login/sqrlauth.php?nut='.$nonce,$sqrlUrl);

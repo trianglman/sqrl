@@ -118,32 +118,35 @@ class SqrlRequestHandler implements SqrlRequestHandlerInterface
      * @var SqrlGenerate
      */
     protected $sqrlGenerator = null;
-
-    protected $acceptedVersions = 1;
     
-    protected $sfn = '';
+    /**
+     *
+     * @var SqrlConfiguration
+     */
+    protected $config = null;
 
     /**
      *
      * @var SqrlStoreInterface
      */
     protected $store = null;
+    
+    protected $lnk = '';
+    protected $qry = '';
+    protected $ask = '';
 
     public function __construct(
+        SqrlConfiguration $config,
         SqrlValidateInterface $val,
         SqrlStoreInterface $store = null,
         SqrlGenerateInterface $gen = null
     ) {
+        $this->config = $config;
         $this->validator = $val;
         $this->sqrlGenerator = $gen;
         $this->store = $store;
     }
     
-    public function setSfn($sfn)
-    {
-        $this->sfn = $sfn;
-    }
-
     /**
      * Parses a user request
      *
@@ -521,9 +524,9 @@ class SqrlRequestHandler implements SqrlRequestHandlerInterface
      */
     protected function formatResponse($display, $code,$continue=true)
     {
-        $resp = 'ver='.$this->acceptedVersions."\r\n"
+        $resp = 'ver='.implode(',',$this->config->getAcceptedVersions())."\r\n"
             .'tif='.$code."\r\n"
-            .'sfn='.$this->sfn;
+            .'sfn='.$this->config->getFriendlyName();
         if ($continue) {//if the command failed, the user can't send a second response
             $resp.="\r\nnut=".$this->getNonce($code,$this->authenticateKey);
         }

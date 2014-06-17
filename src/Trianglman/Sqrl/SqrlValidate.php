@@ -135,26 +135,33 @@ class SqrlValidate implements SqrlValidateInterface
      * @var boolean
      */
     protected $enforceIP = true;
-
+    
     /**
      * the current requestor's IP
      * @var int
      */
     protected $requestorIP = 0;
 
-    public function setConfiguration(SqrlConfiguration $config)
+    /**
+     * 
+     * @param \Trianglman\Sqrl\SqrlConfiguration $config
+     * @param \Trianglman\Sqrl\NonceValidatorInterface $validator
+     * @param \Trianglman\Sqrl\SqrlStoreInterface $storage [Optional]
+     */
+    public function __construct(
+        SqrlConfiguration $config, 
+        NonceValidatorInterface $validator,
+        SqrlStoreInterface $storage=null
+        )
     {
         $this->configuration = $config;
+        $this->validator = $validator;
+        $this->store = $storage;
     }
 
     public function setStorage(SqrlStoreInterface $storage)
     {
         $this->store = $storage;
-    }
-
-    public function setValidator(NonceValidatorInterface $validator)
-    {
-        $this->validator = $validator;
     }
 
     /**************************
@@ -309,9 +316,6 @@ class SqrlValidate implements SqrlValidateInterface
 
     public function validate()
     {
-        if (is_null($this->validator)) {
-            throw new \RuntimeException('No validator has been set.');
-        }
         if (empty($this->ids) || empty($this->idk) || empty($this->signedServerData) || empty($this->clientVal)) {
             throw new \RuntimeException('No signature validation information has been set');
         }
