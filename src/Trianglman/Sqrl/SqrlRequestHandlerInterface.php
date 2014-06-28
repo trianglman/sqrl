@@ -161,7 +161,12 @@ interface SqrlRequestHandlerInterface
      *
      * @return SqrlRequestHandlerInterface
      */
-    public function __construct(SqrlValidateInterface $val, SqrlStoreInterface $store = null, SqrlGenerateInterface $gen = null);
+    public function __construct(
+        SqrlConfiguration $config,
+        SqrlValidateInterface $val,
+        SqrlStoreInterface $store = null,
+        SqrlGenerateInterface $gen = null
+    );
 
     /**
      * Parses a user request

@@ -442,6 +442,8 @@ class SqrlRequestHandler implements SqrlRequestHandlerInterface
                         self::COMMAND_FAILED|self::SQRL_SERVER_FAILURE|self::IP_MATCH,
                         false
                     );
+                default:
+                    throw $ex;
             }
         }
     }
@@ -466,10 +468,15 @@ class SqrlRequestHandler implements SqrlRequestHandlerInterface
                 $response |= empty($this->oldKey)?self::ID_MATCH:self::PREVIOUS_ID_MATCH;
                 $response |= $userData['disabled']==0?self::SQRL_ENABLED:0;
                 $response |= $continue?0:self::USER_LOGGED_IN;
-                return $response;
             } else {
-                //TODO: this should handle allowing a user to create an anonymous account if allowed
-                return 0;
+                if ($this->config->getAnonAllowed()) {
+                    if ($continue) {
+                        $response = (self::SQRL_ENABLED|self::ACCOUNT_CREATION_ALLOWED);
+                    } else {
+                        $this->store->storeAuthenticationKey(base64_encode($userKey));
+                        $response = (self::SQRL_ENABLED|self::ID_MATCH|self::USER_LOGGED_IN);
+                    }
+                }
             }
         } else {
             // TODO: How should this be handled modularly?
@@ -477,6 +484,7 @@ class SqrlRequestHandler implements SqrlRequestHandlerInterface
             // or should we have a different set of commands to allow the calling
             // code to interact with the commands more directly?
         }
+                return $response;
     }
 
     /**

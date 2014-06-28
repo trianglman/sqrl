@@ -17,10 +17,10 @@ $pk = $obj->publickey($sk);
 
 $sig = $obj->signature($m, $sk, $pk);
 
-echo 'Message: "'.$messageSrc."\"\n";
+echo 'Message: "'.$m."\"\n";
 echo 'Public Key(base64url): '.base64UrlEncode($pk)."\n";
 echo 'Signature(base64Url) : '.base64UrlEncode($sig)."\n";
-echo 'Verifies? '.($obj->checkvalid($sig, $messageSrc, $pk)?'yes':'no')."\n";
+echo 'Verifies? '.($obj->checkvalid($sig, $m, $pk)?'yes':'no')."\n";
 
 
 

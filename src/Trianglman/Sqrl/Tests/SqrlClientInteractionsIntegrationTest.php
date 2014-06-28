@@ -23,12 +23,12 @@
  */
 namespace Trianglman\Sqrl\Tests;
 
-use Trianglman\Sqrl\SqrlException;
 use Trianglman\Sqrl\SqrlStore;
 use Trianglman\Sqrl\SqrlValidate;
 use Trianglman\Sqrl\Ed25519NonceValidator;
 use Trianglman\Sqrl\SqrlGenerate;
 use Trianglman\Sqrl\SqrlRequestHandler;
+use Trianglman\Sqrl\Tests\Resources\AlwaysTrueSignatureValidator;
 
 /**
  * Description of SqrlValidateIntegrationTest
@@ -77,7 +77,7 @@ class SqrlClientInteractionsIntegrationTest extends \PHPUnit_Extensions_Database
     
     public function testStandardValidAuthentication()
     {
-        $pub = 'MmDImzNYkpmVk7_Bjw4_WEBWec4rSlOjQvJLfYfGdBs';
+        $pub = 'MmDImzNYkpmVk7_Bjw4_WEBWec4rSlOjQvJLfYfGdBs';//secret = "primary test user key"
         
         $config = new \Trianglman\Sqrl\SqrlConfiguration();
         $config->load(__DIR__.'/Resources/functionaltest.json');
@@ -120,7 +120,6 @@ class SqrlClientInteractionsIntegrationTest extends \PHPUnit_Extensions_Database
             )
         );
         $requestResponse = new SqrlRequestHandler($config,$validator1,$storage,$gen2);
-        $requestResponse->setSfn('Example Server');
         $requestResponse->parseRequest(
                 array('nut'=>'interactionsTestNonce1'), 
                 $clientResp, 
@@ -152,7 +151,6 @@ class SqrlClientInteractionsIntegrationTest extends \PHPUnit_Extensions_Database
         $validator2 = new SqrlValidate($config,new Ed25519NonceValidator(),$storage);
         $gen3 = new \Trianglman\Sqrl\SqrlGenerate($config,$storage);
         $requestResponse2 = new SqrlRequestHandler($config,$validator2,$storage,$gen3);
-        $requestResponse2->setSfn('Example Server');
         $requestResponse2->parseRequest(
                 array('nut'=>'interactionsTestNonce1'), //request is made back to original URL since no qry= was supplied
                 $clientResp2, 
@@ -170,19 +168,109 @@ class SqrlClientInteractionsIntegrationTest extends \PHPUnit_Extensions_Database
 
     public function testNewUserAuthenticationAccountCreationAllowed()
     {
-        $this->markTestIncomplete();
+        $pub = 'ZWWeSJZAUvcim2IGizK755D0gkOkP3dluiAywyIhmyI';//secret = "another test key"
+        
+        $config = new \Trianglman\Sqrl\SqrlConfiguration();
+        $config->load(__DIR__.'/Resources/functionaltest.json');
+        $config->setAnonAllowed(true);
+        $storage = new SqrlStore($config);
+        
         //client will request a SQRL URL
+        $sqrlUrl = $this->createInitialSqrlUrl(new SqrlGenerate($config,$storage), '192.168.0.5');
         
-        //client will sign the URL, supply the IDK and return the values
+        //client will sign the URL, supply the IDK, and return the values
+        //  server=base64url({SQRL URL})&
+        //  client=base64url(ver=1
+        //  idk={blob}
+        //  cmd=login)&
+        //  ids={blob}
+        $sig = 'MPffpsQ44_ioOpCEVVN9_3h9BtMch9o4OKKzbZH9uiLORZLom4SOhzJl4fRQeZEXGXr-xM1Rt5yukH905nl0Dw';
+        $clientResp = array(
+            'server'=>$this->base64UrlEncode($sqrlUrl),
+            'client'=>$this->base64UrlEncode("ver=1\r\nidk=$pub\r\ncmd=login"),
+            'ids'=>$sig
+            );
         
+        
+        //server will verify the client response
+        $validator1 = new SqrlValidate($config,new Ed25519NonceValidator(),$storage);
+        $gen2 = new SqrlGenerate($config,$storage);
+        $gen2->setRequestorIp('192.168.0.5');
+        $gen2->setNonce(
+                'interactionsTestNonce2', 
+                (0x2C), 
+                'ZWWeSJZAUvcim2IGizK755D0gkOkP3dluiAywyIhmyI=');
+        //do this here to keep the created time lined up
+        $this->addNonce(
+            array(
+                'id'=>5,
+                'nonce'=>'interactionsTestNonce2',
+                'created'=>date('Y-m-d H:i:s'),
+                'ip'=>ip2long('192.168.0.5'),
+                'action'=>  (0x2C),
+                'related_public_key'=>'ZWWeSJZAUvcim2IGizK755D0gkOkP3dluiAywyIhmyI=',
+                'verified'=>0
+            )
+        );
+        $requestResponse = new SqrlRequestHandler($config,$validator1,$storage,$gen2);
+        $requestResponse->parseRequest(
+                array('nut'=>'interactionsTestNonce1'), 
+                $clientResp, 
+                array('REMOTE_ADDR'=>'192.168.0.5','HTTPS'=>'1'));
+        $serverResp1 = $requestResponse->getResponseMessage();
         //verify the basic server response includes a the new nut, no current 
-        //ID match,  IP match, SQRL enabled, account creation allowed, the link, 
+        //ID match,  IP match(0x04), SQRL enabled(0x08), account creation allowed(0x20), 
         //and the friendly name
+        $expectedResp1 = "ver=1\r\ntif=".(0x2C)."\r\nsfn=Example Server\r\nnut=interactionsTestNonce2";
+        $this->assertEquals($expectedResp1,$serverResp1);
+        $this->changeNonce(4,array('verified'=>1));
+        $queryTable = $this->getConnection()->createQueryTable(
+            'sqrl_nonce', 'SELECT * FROM sqrl_nonce'
+        );
+        $expectedSet = new DbUnitArrayDataSet($this->nonceData);
+        $expectedTable = $expectedSet->getTable("sqrl_nonce");
+        $this->assertTablesEqual($expectedTable, $queryTable);
         
-        //the user will sign the server response and send a login command and SUK/VUK
+        $sig2 = 'X6oDhCBADBpYiVrpXHTJO1PfAZCQ7StQDALmZRDYEokjhNh7imoe81OB-yioQpHglp1-lipO_T0ahjR0VPwQBg';
+        $clientResp2 = array(
+            'server'=>$this->base64UrlEncode($expectedResp1),
+            'client'=>$this->base64UrlEncode("ver=1\r\nidk=$pub\r\ncmd=login"),
+            'ids'=>$sig2
+            );
         
-        //verify the server responds with without ID match, IP match, SQRL enabled, 
-        //and user logged in
+        //verify the server responds with ID match(0x01), IP match(0x04), SQRL enabled(0x08), and 
+        //user logged in(0x10)
+        $validator2 = new SqrlValidate($config,new Ed25519NonceValidator(),$storage);
+        $gen3 = new \Trianglman\Sqrl\SqrlGenerate($config,$storage);
+        $requestResponse2 = new SqrlRequestHandler($config,$validator2,$storage,$gen3);
+        $requestResponse2->parseRequest(
+                array('nut'=>'interactionsTestNonce1'), //request is made back to original URL since no qry= was supplied
+                $clientResp2, 
+                array('REMOTE_ADDR'=>'192.168.0.5','HTTPS'=>'1'));
+        $serverResp2 = $requestResponse2->getResponseMessage();
+        $expectedResp2 = "ver=1\r\ntif=".(0x1D)."\r\nsfn=Example Server";
+        $this->assertEquals($expectedResp2,$serverResp2);
+        $queryTable2 = $this->getConnection()->createQueryTable(
+            'sqrl_nonce', 'SELECT * FROM sqrl_nonce'
+        );
+        $expectedSet2 = new DbUnitArrayDataSet($this->nonceData);
+        $expectedTable2 = $expectedSet2->getTable("sqrl_nonce");
+        $this->assertTablesEqual($expectedTable2, $queryTable2);
+        
+        //verify new public key is saved
+        $this->addUser(array(
+            'id'=>4,
+            'public_key'=>'ZWWeSJZAUvcim2IGizK755D0gkOkP3dluiAywyIhmyI=',
+            'vuk'=>null,
+            'suk'=>null,
+            'disabled'=>0
+            ));
+        $keyQueryTable = $this->getConnection()->createQueryTable(
+            'sqrl_pubkey', 'SELECT * FROM sqrl_pubkey'
+        );
+        $keyExpectedSet = new DbUnitArrayDataSet($this->userdata);
+        $keyExpectedTable = $keyExpectedSet->getTable("sqrl_pubkey");
+        $this->assertTablesEqual($keyExpectedTable, $keyQueryTable);
     }
     
     public function testNewUserAuthentciationAccountCreationNotAllowed()

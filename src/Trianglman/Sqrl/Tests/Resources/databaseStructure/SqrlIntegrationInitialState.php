@@ -30,20 +30,20 @@ $tables['sqrl_nonce'][]=array('id'=>3,
 $tables['sqrl_pubkey']=array();
 $tables['sqrl_pubkey'][]=array('id'=>1,
     'public_key'=>'xLOjlTKNdYFkCx+OMQT7hSoK7Ta54ioKZgWrh2ig0Fs=',
-    'vuk'=>'',
-    'suk'=>'',
+    'vuk'=>null,
+    'suk'=>null,
     'disabled'=>0
     );
 $tables['sqrl_pubkey'][]=array('id'=>2,
     'public_key'=>'another public key value',
-    'vuk'=>'',
-    'suk'=>'',
+    'vuk'=>null,
+    'suk'=>null,
     'disabled'=>0
     );
 $tables['sqrl_pubkey'][]=array('id'=>3,
     'public_key'=>'MmDImzNYkpmVk7/Bjw4/WEBWec4rSlOjQvJLfYfGdBs=',
-    'vuk'=>'',
-    'suk'=>'',
+    'vuk'=>null,
+    'suk'=>null,
     'disabled'=>0
     );
 

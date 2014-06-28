@@ -37,8 +37,8 @@ $fp = fopen($outfile,'w');
 $data = "server=".  base64UrlEncode($serverData).'&';
 $data.= 'client='.base64UrlEncode(
     "ver=$version\r\n".
-    "cmd=$command\r\n".
-    "idk=$idk".
+    "idk=$idk\r\n".
+    "cmd=$command".
     (isset($pidk)?"\r\npidk=$pidk":'').
     (isset($suk)?"\r\nsuk=$suk":'').
     (isset($vuk)?"\r\nvuk=$vuk":'').

@@ -12,8 +12,8 @@ CREATE TABLE `sqrl_nonce` (
 CREATE TABLE `sqrl_pubkey` (
     `id` INTEGER PRIMARY KEY AUTOINCREMENT,
     `public_key` CHAR(44) NOT NULL,
-    `vuk` CHAR(44) NOT NULL,
-    `suk` CHAR(44) NOT NULL,
-    `disabled` INT(1) NOT NULL,
+    `vuk` CHAR(44) DEFAULT NULL,
+    `suk` CHAR(44) DEFAULT NULL,
+    `disabled` INT(1) DEFAULT 0,
     UNIQUE (`public_key`)
 );

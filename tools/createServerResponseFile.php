@@ -27,14 +27,13 @@ if(isset($suppliedOpts['a'])){
 
 $outfile = $argv[$argc-1];
 $fp = fopen($outfile,'w');
-$data = "ver=$version\r\nnut=$nut\r\ntif=$tif\r\n";
+$data = "ver=$version\r\ntif=$tif\r\nsfn=$friendlyName\r\nnut=$nut\r\n";
 if(isset($query)){
     $data.= "qry=$query\r\n";
 }
 if(isset($link)){
     $data.= "lnk=$link\r\n";
 }
-$data.= "sfn=$friendlyName\r\n";
 if(isset($ask)){
     $data.= "ask=$ask";
 }
