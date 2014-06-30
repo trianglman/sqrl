@@ -28,7 +28,7 @@ use Trianglman\Sqrl\SqrlValidate;
 use Trianglman\Sqrl\Ed25519NonceValidator;
 use Trianglman\Sqrl\SqrlGenerate;
 use Trianglman\Sqrl\SqrlRequestHandler;
-use Trianglman\Sqrl\Tests\Resources\AlwaysTrueSignatureValidator;
+//use Trianglman\Sqrl\Tests\Resources\AlwaysTrueSignatureValidator as Ed25519NonceValidator;
 
 /**
  * Description of SqrlValidateIntegrationTest
@@ -79,6 +79,7 @@ class SqrlClientInteractionsIntegrationTest extends \PHPUnit_Extensions_Database
     
     public function setup()
     {
+        parent::setup();
         $this->config = new \Trianglman\Sqrl\SqrlConfiguration();
         $this->config->load(__DIR__.'/Resources/functionaltest.json');
         
@@ -260,14 +261,36 @@ class SqrlClientInteractionsIntegrationTest extends \PHPUnit_Extensions_Database
     
     public function testNewUserAuthentciationAccountCreationNotAllowed()
     {
-        $this->markTestIncomplete();
+        $pub = 'ZWWeSJZAUvcim2IGizK755D0gkOkP3dluiAywyIhmyI';//secret = "another test key"
+        
+        $this->config->setAnonAllowed(false);
+        
         //client will request a SQRL URL
+        $sqrlUrl = $this->createInitialSqrlUrl(new SqrlGenerate($this->config,$this->storage), '192.168.0.5');
         
-        //client will sign the URL, with the IDK and return the values
+        //client will sign the URL, supply the IDK, and return the values
+        $clientResp = array(
+            'server'=>$this->base64UrlEncode($sqrlUrl),
+            'client'=>$this->base64UrlEncode("ver=1\r\nidk=$pub\r\ncmd=login"),
+            'ids'=>'MPffpsQ44_ioOpCEVVN9_3h9BtMch9o4OKKzbZH9uiLORZLom4SOhzJl4fRQeZEXGXr-xM1Rt5yukH905nl0Dw'
+            );
         
-        //verify the basic server response includes a the new nut, without current 
-        //ID match,  IP match, SQRL enabled,the link, and the friendly name and 
-        //command failed
+        
+        //server will verify the client response
+        $requestResponse = new SqrlRequestHandler(
+                $this->config,
+                new SqrlValidate($this->config,new Ed25519NonceValidator(),$this->storage),
+                $this->storage,
+                new SqrlGenerate($this->config,$this->storage));
+        $requestResponse->parseRequest(
+                array('nut'=>'interactionsTestNonce1'), 
+                $clientResp, 
+                array('REMOTE_ADDR'=>'192.168.0.5','HTTPS'=>'1'));
+        //verify the basic server response includes IP match(0x04), 
+        //command failed(0x40), and the friendly name
+        $this->assertEquals("ver=1\r\ntif=".(0x44)."\r\nsfn=Example Server",$requestResponse->getResponseMessage());
+        $this->changeNonce(4,array('verified'=>1));
+        $this->validateNonceTable();
         
     }
     

@@ -477,6 +477,9 @@ class SqrlRequestHandler implements SqrlRequestHandlerInterface
                         $response = (self::SQRL_ENABLED|self::ID_MATCH|self::USER_LOGGED_IN);
                     }
                 }
+                else{
+                    return self::COMMAND_FAILED|self::IP_MATCH;
+                }
             }
         } else {
             // TODO: How should this be handled modularly?
