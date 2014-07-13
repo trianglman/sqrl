@@ -34,6 +34,9 @@ class Ed25519NonceValidator extends Ed25519\Crypto implements NonceValidatorInte
     {
         //return true;//use this to speed up testing of valid keys
         $check = $this->checkvalid($sig, $orig, $pk);
+        if(!$check){
+            var_dump($orig, base64_encode($pk), base64_encode($sig));
+        }
         return $check;
     }
 }

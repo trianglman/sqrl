@@ -166,6 +166,8 @@ class SqrlClientInteractionsIntegrationTest extends \PHPUnit_Extensions_Database
     public function testNewUserAuthenticationAccountCreationAllowed()
     {
         $pub = 'ZWWeSJZAUvcim2IGizK755D0gkOkP3dluiAywyIhmyI';//secret = "another test key"
+        $suk = '123456';
+        $vuk = 'BUT6BeRSuWpxmcH2yZrLFvGOfE2y11bmozBPm1V5hnM';//secret = "another test idlock key"
         
         $this->config->setAnonAllowed(true);
         
@@ -222,11 +224,13 @@ class SqrlClientInteractionsIntegrationTest extends \PHPUnit_Extensions_Database
         $this->changeNonce(4,array('verified'=>1));
         $this->validateNonceTable();
         
-        $sig2 = 'X6oDhCBADBpYiVrpXHTJO1PfAZCQ7StQDALmZRDYEokjhNh7imoe81OB-yioQpHglp1-lipO_T0ahjR0VPwQBg';
+        $sig2 = '8jCCHFF0CY-JsQP_qPQKTImNL_jzptXlW57nMIJsd1kTbSh8IF1ECjYzfqrWOAC4WsLQoRuhFT4iLyI2iKL4CA';
+        $vukSig = 'MfPmNen3F_fUTrYiqP6T0Dy-Sx9jNsXIgFyrkhY-I0NLLfKzLu5nu7AoOZZglgXK1hymHvOs-4A2KTgiRf-XCg';
         $clientResp2 = array(
             'server'=>$this->base64UrlEncode($expectedResp1),
-            'client'=>$this->base64UrlEncode("ver=1\r\nidk=$pub\r\ncmd=login"),
-            'ids'=>$sig2
+            'client'=>$this->base64UrlEncode("ver=1\r\nidk=$pub\r\ncmd=login~create\r\nsuk=$suk\r\nvuk=$vuk"),
+            'ids'=>$sig2,
+            'urs'=>$vukSig
             );
         
         //verify the server responds with ID match(0x01), IP match(0x04), SQRL enabled(0x08), and 
@@ -247,8 +251,8 @@ class SqrlClientInteractionsIntegrationTest extends \PHPUnit_Extensions_Database
         $this->addUser(array(
             'id'=>4,
             'public_key'=>'ZWWeSJZAUvcim2IGizK755D0gkOkP3dluiAywyIhmyI=',
-            'vuk'=>null,
-            'suk'=>null,
+            'vuk'=>'BUT6BeRSuWpxmcH2yZrLFvGOfE2y11bmozBPm1V5hnM=',
+            'suk'=>'12345w==',
             'disabled'=>0
             ));
         $keyQueryTable = $this->getConnection()->createQueryTable(

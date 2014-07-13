@@ -230,7 +230,7 @@ class SqrlRequestHandler implements SqrlRequestHandlerInterface
             return;
         }
         if (isset($post['urs'])) {
-            $this->$unlockRequestSig = $post['urs'];
+            $this->unlockRequestSig = $post['urs'];
             //set up validator, or call it multiple times?
         } elseif (in_array($this->cmd, array('setkey','setlock','enable','delete'))) {
             $this->message = $this->formatResponse(
@@ -473,7 +473,6 @@ class SqrlRequestHandler implements SqrlRequestHandlerInterface
                     if ($continue) {
                         $response = (self::SQRL_ENABLED|self::ACCOUNT_CREATION_ALLOWED);
                     } else {
-                        $this->store->storeAuthenticationKey(base64_encode($userKey));
                         $response = (self::SQRL_ENABLED|self::ID_MATCH|self::USER_LOGGED_IN);
                     }
                 }
@@ -488,6 +487,22 @@ class SqrlRequestHandler implements SqrlRequestHandlerInterface
             // code to interact with the commands more directly?
         }
                 return $response;
+    }
+    
+    protected function create($continue)
+    {
+        if ($continue) {
+            return;
+        }
+        if (!$this->config->getAnonAllowed()) {
+            return self::COMMAND_FAILED;
+        }
+        $this->store->storeAuthenticationKey(base64_encode($this->authenticateKey));
+        $this->store->storeIdentityLock(
+                base64_encode($this->authenticateKey), 
+                base64_encode($this->serverUnlockKey), 
+                base64_encode($this->verifyUnlockKey)
+                );
     }
 
     /**
