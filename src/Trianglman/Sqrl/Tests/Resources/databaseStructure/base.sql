@@ -17,3 +17,8 @@ CREATE TABLE `sqrl_pubkey` (
     `disabled` INT(1) DEFAULT 0,
     UNIQUE (`public_key`)
 );
+
+CREATE TABLE `sqrl_nonce_relationship` (
+    `old_nonce` CHAR(64) NOT NULL,
+    `new_nonce` CHAR(64) NOT NULL
+);

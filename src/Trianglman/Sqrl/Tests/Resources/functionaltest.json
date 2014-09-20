@@ -7,6 +7,7 @@
             
     "dsn":"sqlite:/tmp/sqrl_test_db.db",
     "nonce_table":"sqrl_nonce",
+    "nonce_relationship_table":"sqrl_nonce_relationship",
     "pubkey_table":"sqrl_pubkey",
     
     "nonce_max_age":"5",

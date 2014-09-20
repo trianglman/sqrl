@@ -114,6 +114,13 @@ class SqrlConfiguration
      */
     protected $nonceTable = '';
     /**
+     * The database table where nonce relationships are stored
+     * Required if SQRL will manage reading and storing nonces
+     * 
+     * @var string
+     */
+    protected $nonceRelationshipTable = '';
+    /**
      * The database table where SQRL public keys are stored
      * Required if SQRL will manage reading and storing public keys
      * 
@@ -193,6 +200,7 @@ class SqrlConfiguration
         $this->setUsername(!empty($decoded->username)?$decoded->username:'');
         $this->setPassword(!empty($decoded->password)?$decoded->password:'');
         $this->setNonceTable(!empty($decoded->nonce_table)?$decoded->nonce_table:'');
+        $this->setNonceRelationshipTable(!empty($decoded->nonce_relationship_table)?$decoded->nonce_relationship_table:'');
         $this->setPubKeyTable(!empty($decoded->pubkey_table)?$decoded->pubkey_table:'');
         if (!empty($decoded->nonce_max_age)) {
             $this->setNonceMaxAge($decoded->nonce_max_age);
@@ -293,6 +301,11 @@ class SqrlConfiguration
      */
     public function getNonceTable() {
         return $this->nonceTable;
+    }
+    
+    public function getNonceRelationshipTable()
+    {
+        return $this->nonceRelationshipTable;
     }
 
     /**
@@ -459,6 +472,19 @@ class SqrlConfiguration
      */
     public function setNonceTable($nonceTable) {
         $this->nonceTable = $nonceTable;
+        return $this;
+    }
+    
+    /**
+     * Sets the database table where nonce relationships are stored
+     * 
+     * @param string $table
+     * 
+     * @return SqrlConfiguration
+     */
+    public function setNonceRelationshipTable($table)
+    {
+        $this->nonceRelationshipTable = $table;
         return $this;
     }
 

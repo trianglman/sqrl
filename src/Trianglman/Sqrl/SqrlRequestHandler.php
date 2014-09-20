@@ -53,6 +53,12 @@ class SqrlRequestHandler implements SqrlRequestHandlerInterface
      *
      * @var string
      */
+    protected $requestNut = '';
+    
+    /**
+     *
+     * @var string
+     */
     protected $cmd = '';
 
     /**
@@ -318,6 +324,7 @@ class SqrlRequestHandler implements SqrlRequestHandlerInterface
     
     protected function decodeServerUrl ($url,$nut,$https)
     {
+        $this->requestNut = $nut;
         $this->requestType = self::INITIAL_REQUEST;
         $this->validator->setNonce($nut);
         if (!$this->validator->matchServerData(self::INITIAL_REQUEST,$https,$url)) {
@@ -344,6 +351,7 @@ class SqrlRequestHandler implements SqrlRequestHandlerInterface
                     $serverVer = $val;
                     break;
                 case 'nut':
+                    $this->requestNut = $val;
                     $this->validator->setNonce($val);
                     break;
                 case 'tif':
@@ -427,6 +435,9 @@ class SqrlRequestHandler implements SqrlRequestHandlerInterface
                     );
                 }
                 $responseCode |= $actionResponse;
+            }
+            if (!$continue) {
+                $this->store->validateNut($this->requestNut);
             }
             return $this->formatResponse('Commands successful',$responseCode,$continue);
         } catch (SqrlException $ex) {
@@ -571,7 +582,11 @@ class SqrlRequestHandler implements SqrlRequestHandlerInterface
     protected function getNonce($action,$key)
     {
         if(!is_null($this->sqrlGenerator)) {
-            return $this->sqrlGenerator->getNonce($action, $key);
+            $newNonce =  $this->sqrlGenerator->getNonce($action, $key);
+            if (!empty($this->requestNut)) {
+                $this->store->associateNuts($this->requestNut,$newNonce);
+            }
+            return $newNonce;
         }
         //todo allow direct nonce setting?
     }

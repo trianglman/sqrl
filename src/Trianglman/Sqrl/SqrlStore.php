@@ -128,6 +128,59 @@ class SqrlStore implements SqrlStoreInterface
             throw new SqrlException('Failed to insert nonce', SqrlException::DATABASE_EXCEPTION);
         }
     }
+    
+    /**
+     * Marks a nonce as validated
+     * 
+     * @param string $nut
+     *
+     * @return void
+     *
+     * @throws SqrlException If there is a database issue
+     */
+    public function validateNut($nut)
+    {
+        if ($this->configuration->getNonceTable() === '') {
+            throw new SqrlException('No nonce table configured', SqrlException::DATABASE_NOT_CONFIGURED);
+        }
+        $sql = 'UPDATE `'.$this->configuration->getNonceTable().'` '
+                . 'SET `verified` = 1 '
+                . 'WHERE `nonce` IN (:nonce,(SELECT old_nonce FROM `'.$this->configuration->getNonceRelationshipTable().'` WHERE new_nonce = :nonce))';
+        $stmt = $this->getDbConn()->prepare($sql);
+        $check = false;
+        if ($stmt instanceof \PDOStatement) {
+            $check = $stmt->execute(array('nonce'=>$nut));
+        }
+        if ($check === false) {
+            throw new SqrlException('Failed to insert relationship. SQL error: '.implode(' ',$this->getDbConn()->errorInfo()), SqrlException::DATABASE_EXCEPTION);
+        }
+    }
+    
+    /**
+     * Connects two nonces so that when one is validated, the other is as well
+     * 
+     * @param string $oldNut
+     * @param string $newNut
+     * 
+     * @return void
+     * 
+     * @throws SqrlException If there is a database issue
+     */
+    public function associateNuts($oldNut,$newNut)
+    {
+        if ($this->configuration->getNonceRelationshipTable() === '') {
+            throw new SqrlException('No nonce table configured', SqrlException::DATABASE_NOT_CONFIGURED);
+        }
+        $sql = 'INSERT INTO `'.$this->configuration->getNonceRelationshipTable().'` (old_nonce,new_nonce) VALUES (?,?)';
+        $stmt = $this->getDbConn()->prepare($sql);
+        $check = false;
+        if ($stmt instanceof \PDOStatement) {
+            $check = $stmt->execute(array($oldNut,$newNut));
+        }
+        if ($check === false) {
+            throw new SqrlException('Failed to insert relationship. SQL error: '.implode(' ',$this->getDbConn()->errorInfo()), SqrlException::DATABASE_EXCEPTION);
+        }
+    }
 
     /**
      * Retrieves information about the supplied nut

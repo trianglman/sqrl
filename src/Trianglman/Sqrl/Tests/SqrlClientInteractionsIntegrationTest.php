@@ -142,7 +142,6 @@ class SqrlClientInteractionsIntegrationTest extends \PHPUnit_Extensions_Database
         //Also verify the database was updated with new data
         $expectedResp1 = "ver=1\r\ntif=".(0x0D)."\r\nsfn=Example Server\r\nnut=interactionsTestNonce2";
         $this->assertEquals($expectedResp1,$requestResponse->getResponseMessage());
-        $this->changeNonce(4,array('verified'=>1));
         $this->validateNonceTable();
         
         //the user will sign the server response and send a login command
@@ -164,6 +163,8 @@ class SqrlClientInteractionsIntegrationTest extends \PHPUnit_Extensions_Database
                 $clientResp2, 
                 array('REMOTE_ADDR'=>'192.168.0.5','HTTPS'=>'1'));
         $this->assertEquals("ver=1\r\ntif=".(0x1D)."\r\nsfn=Example Server",$requestResponse2->getResponseMessage());
+        $this->changeNonce(4,array('verified'=>1));
+        $this->changeNonce(5,array('verified'=>1));
         $this->validateNonceTable();
     }
 
@@ -225,7 +226,6 @@ class SqrlClientInteractionsIntegrationTest extends \PHPUnit_Extensions_Database
         //and the friendly name
         $expectedResp1 = "ver=1\r\ntif=".(0x2C)."\r\nsfn=Example Server\r\nnut=interactionsTestNonce2";
         $this->assertEquals($expectedResp1,$requestResponse->getResponseMessage());
-        $this->changeNonce(4,array('verified'=>1));
         $this->validateNonceTable();
         
         $sig2 = '8jCCHFF0CY-JsQP_qPQKTImNL_jzptXlW57nMIJsd1kTbSh8IF1ECjYzfqrWOAC4WsLQoRuhFT4iLyI2iKL4CA';
@@ -249,6 +249,8 @@ class SqrlClientInteractionsIntegrationTest extends \PHPUnit_Extensions_Database
                 $clientResp2, 
                 array('REMOTE_ADDR'=>'192.168.0.5','HTTPS'=>'1'));
         $this->assertEquals("ver=1\r\ntif=".(0x1D)."\r\nsfn=Example Server",$requestResponse2->getResponseMessage());
+        $this->changeNonce(4,array('verified'=>1));
+        $this->changeNonce(5,array('verified'=>1));
         $this->validateNonceTable();
         
         //verify new public key is saved
@@ -297,7 +299,6 @@ class SqrlClientInteractionsIntegrationTest extends \PHPUnit_Extensions_Database
         //verify the basic server response includes IP match(0x04), 
         //command failed(0x40), and the friendly name
         $this->assertEquals("ver=1\r\ntif=".(0x44)."\r\nsfn=Example Server",$requestResponse->getResponseMessage());
-        $this->changeNonce(4,array('verified'=>1));
         $this->validateNonceTable();
         
     }
@@ -438,7 +439,7 @@ class SqrlClientInteractionsIntegrationTest extends \PHPUnit_Extensions_Database
         foreach ($this->nonceData['sqrl_nonce'] as &$nonce) {
             if ($nonce['id']==$id) {
                 foreach ($updates as $key=>$value) {
-                    $$nonce[$key] = $value;
+                    $nonce[$key] = $value;
                 }
             }
         }
