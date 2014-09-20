@@ -25,7 +25,6 @@ namespace Trianglman\Sqrl\Tests;
 
 use Trianglman\Sqrl\SqrlStore;
 use Trianglman\Sqrl\SqrlValidate;
-use Trianglman\Sqrl\Ed25519NonceValidator;
 use Trianglman\Sqrl\SqrlGenerate;
 use Trianglman\Sqrl\SqrlRequestHandler;
 //use Trianglman\Sqrl\Tests\Resources\AlwaysTrueSignatureValidator as Ed25519NonceValidator;
@@ -43,6 +42,7 @@ class SqrlClientInteractionsIntegrationTest extends \PHPUnit_Extensions_Database
     protected $userdata = array();
     protected $config = null;
     protected $storage = null;
+    protected $nonceValidatorName = '';
     /**
      * @return \PHPUnit_Extensions_Database_DB_IDatabaseConnection
      */
@@ -82,7 +82,11 @@ class SqrlClientInteractionsIntegrationTest extends \PHPUnit_Extensions_Database
         parent::setup();
         $this->config = new \Trianglman\Sqrl\SqrlConfiguration();
         $this->config->load(__DIR__.'/Resources/functionaltest.json');
-        
+        if(extension_loaded("ellipticCurveSignature")) {
+            $this->nonceValidatorName = 'Trianglman\Sqrl\EcEd25519NonceValidator';
+        } else {
+            $this->nonceValidatorName = 'Trianglman\Sqrl\Ed25519NonceValidator';
+        }
         $this->storage = new SqrlStore($this->config);
     }
     
@@ -126,7 +130,7 @@ class SqrlClientInteractionsIntegrationTest extends \PHPUnit_Extensions_Database
         );
         $requestResponse = new SqrlRequestHandler(
                 $this->config,
-                new SqrlValidate($this->config,new Ed25519NonceValidator(),$this->storage),
+                new SqrlValidate($this->config,new $this->nonceValidatorName(),$this->storage),
                 $this->storage,
                 $gen2);
         $requestResponse->parseRequest(
@@ -152,7 +156,7 @@ class SqrlClientInteractionsIntegrationTest extends \PHPUnit_Extensions_Database
         //user logged in(0x10)
         $requestResponse2 = new SqrlRequestHandler(
                 $this->config,
-                new SqrlValidate($this->config,new Ed25519NonceValidator(),$this->storage),
+                new SqrlValidate($this->config,new $this->nonceValidatorName(),$this->storage),
                 $this->storage,
                 new \Trianglman\Sqrl\SqrlGenerate($this->config,$this->storage));
         $requestResponse2->parseRequest(
@@ -209,7 +213,7 @@ class SqrlClientInteractionsIntegrationTest extends \PHPUnit_Extensions_Database
         );
         $requestResponse = new SqrlRequestHandler(
                 $this->config,
-                new SqrlValidate($this->config,new Ed25519NonceValidator(),$this->storage),
+                new SqrlValidate($this->config,new $this->nonceValidatorName(),$this->storage),
                 $this->storage,
                 $gen2);
         $requestResponse->parseRequest(
@@ -237,7 +241,7 @@ class SqrlClientInteractionsIntegrationTest extends \PHPUnit_Extensions_Database
         //user logged in(0x10)
         $requestResponse2 = new SqrlRequestHandler(
                 $this->config,
-                new SqrlValidate($this->config,new Ed25519NonceValidator(),$this->storage),
+                new SqrlValidate($this->config,new $this->nonceValidatorName(),$this->storage),
                 $this->storage,
                 new \Trianglman\Sqrl\SqrlGenerate($this->config,$this->storage));
         $requestResponse2->parseRequest(
@@ -283,7 +287,7 @@ class SqrlClientInteractionsIntegrationTest extends \PHPUnit_Extensions_Database
         //server will verify the client response
         $requestResponse = new SqrlRequestHandler(
                 $this->config,
-                new SqrlValidate($this->config,new Ed25519NonceValidator(),$this->storage),
+                new SqrlValidate($this->config,new $this->nonceValidatorName(),$this->storage),
                 $this->storage,
                 new SqrlGenerate($this->config,$this->storage));
         $requestResponse->parseRequest(
