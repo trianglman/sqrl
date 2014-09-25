@@ -199,7 +199,7 @@ class SqrlStore implements SqrlStoreInterface
             throw new SqrlException('No nonce table configured', SqrlException::DATABASE_NOT_CONFIGURED);
         }
         if (is_null($values)) {
-            $colVals = self::ID | self::CREATED | self::TYPE | self::IP | self::KEY;
+            $colVals = self::ID | self::CREATED | self::TYPE | self::IP | self::KEY | self::VERIFIED;
         } else {
             $colVals = array_sum($values);
         }
@@ -218,6 +218,9 @@ class SqrlStore implements SqrlStoreInterface
         }
         if ($colVals & self::KEY) {
             $columns[] = '`related_public_key`';
+        }
+        if ($colVals & self::VERIFIED) {
+            $columns[] = '`verified`';
         }
         $sql = 'SELECT '.implode(',', $columns).' FROM `'.$this->configuration->getNonceTable()
             .'` WHERE `nonce` = ?';

@@ -71,6 +71,11 @@ interface SqrlStoreInterface
      * The verify unlock key in the public key table
      */
     const VUK = 64;
+    
+    /**
+     * Whether a nonce has been verified
+     */
+    const VERIFIED = 256;
 
     /**
      * Directly set the database connection rather than letting SqrlStore create one
