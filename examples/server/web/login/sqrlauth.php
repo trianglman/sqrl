@@ -30,8 +30,10 @@
     $config = new \Trianglman\Sqrl\SqrlConfiguration();
     $config->load(__DIR__.'/../../config/sqrlconfig.json');
     $store = new \Trianglman\Sqrl\SqrlStore($config);
-    $generator = new \Trianglman\Sqrl\SqrlGenerate($config);
-    $generator->setStorage($store);
+    //the generator is used on this page to handle creating/storing the second loop nonce, where necessary
+    $generator = new \Trianglman\Sqrl\SqrlGenerate($config,$store);
+    //I strongly recommend using an extension for ED25519 validation. The PHP version is incredibly slow.
+    //TODO: add a built in validator that uses the libsodium-php extension
     if(extension_loaded("ellipticCurveSignature")) {
         $sigValidator = new \Trianglman\Sqrl\EcEd25519NonceValidator();
     } else {

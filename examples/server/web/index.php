@@ -29,18 +29,17 @@
     
     //configuration stuff
     $config = new \Trianglman\Sqrl\SqrlConfiguration();
-    $config->load(__DIR__.'/../config/sqrlconfig.json');
-    $store = new \Trianglman\Sqrl\SqrlStore($config);
+    $config->load(__DIR__.'/../config/sqrlconfig.json');//you can also manually set config values
     $generator = new \Trianglman\Sqrl\SqrlGenerate($config);
     
     if(!isset($_SESSION['nonce']) || $_SESSION['generatedTime']<=time()-(60*$config->getNonceMaxAge())) {
         //If the user doesn't have a valid nonce, create a new one and store it
-        $generator->setStorage($store);
+        $generator->setStorage(new \Trianglman\Sqrl\SqrlStore($config));
         $generator->setRequestorIp($_SERVER['REMOTE_ADDR']);
         $nonce = $generator->getNonce();
         $sqrlUrl = $generator->getUrl();
-        $_SESSION['nonce'] = $nonce;
-        $_SESSION['generatedTime'] = time();
+        $_SESSION['nonce'] = $nonce;//storing this in the session keeps attackers from tampering with it
+        $_SESSION['generatedTime'] = time();//this is just used to make it easy to check if the nonce needs to be refreshed
     } else {
         //the user already has a nonce, so just set up the generator with that nonce
         $generator->setNonce($_SESSION['nonce']);

@@ -33,7 +33,7 @@
     $store = new \Trianglman\Sqrl\SqrlStore($config);
     
     if (isset($_SESSION['publicKey'])) {
-        $acccount = $store['SqrlStorage']->retrieveAuthenticationRecord(
+        $acccount = $store->retrieveAuthenticationRecord(
                 $_SESSION['publicKey'], 
                 array(SqrlStoreInterface::SUK,  SqrlStoreInterface::VUK)
                 );

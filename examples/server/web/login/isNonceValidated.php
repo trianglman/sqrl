@@ -40,10 +40,12 @@
                 array(\Trianglman\Sqrl\SqrlStoreInterface::VERIFIED)
                 ) > 0;
         if ($validated) {
+            //TODO: create a utility function in SqrlStore that will do this work for the developer
             $SQL = "SELECT related_public_key FROM sqrl_nonce n JOIN sqrl_nonce_relationship r ON r.new_nonce = n.nonce WHERE r.old_nonce = ?";
             $stmt = $db->prepare($SQL);
             $stmt->execute(array($_SESSION['nonce']));
             $result = $stmt->fetchColumn(0);
+            //Update the session with a user identifier instead of the nonce
             $_SESSION['publicKey'] = $result[0];
             unset($_SESSION['nonce']);
             unset($_SESSION['generatedTime']);
