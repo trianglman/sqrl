@@ -1,0 +1,20 @@
+{
+    "accepted_versions": [1],
+    "secure":0,
+    "key_domain":"localhost",
+    "authentication_path":"login/sqrlauth.php",
+    "friendly_name":"Example SQRL Server",
+    "allow_anonymous_accounts":1,
+            
+    "dsn":"mysql:host=localhost;dbname=sqrl",
+    "username":"example",
+    "password":"bar",
+    "nonce_table":"sqrl_nonce",
+    "pubkey_table":"sqrl_pubkey",
+    
+    "nonce_max_age":"5",
+    
+    "height":"150",
+    "padding":"10",
+    "nonce_salt":"replace this with some unique random data"
+}
