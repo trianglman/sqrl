@@ -202,7 +202,10 @@ class SqrlRequestHandler implements SqrlRequestHandlerInterface
                 //what exceptions can be caused?
                 $this->message = $this->formatResponse(
                     $e->getMessage(), 
-                    self::COMMAND_FAILED|self::SQRL_SERVER_FAILURE,
+                    ($e->getCode()==SqrlException::EXPIRED_NONCE?
+                            self::SQRL_STALE_NONCE_FAILURE://notify the user of the expired nonce
+                            self::COMMAND_FAILED)//handle all other errors with the same message
+                        |self::SQRL_SERVER_FAILURE,
                     false
                 );
             }

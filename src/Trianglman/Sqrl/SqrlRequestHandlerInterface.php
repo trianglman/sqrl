@@ -153,6 +153,26 @@ interface SqrlRequestHandlerInterface
     const SQRL_SERVER_FAILURE = 0x80;
 
     /**
+     * This bit is set when a user nut has passed its expiration period.
+     * 
+     * From the NNTP group:
+     * 
+     * This is a useful error to return separately, since it represents 
+     * a very possible and very fixable soft error in the protocol.
+     * 
+     * If at any point in the client-to-server back and forth, the 
+     * "nonce" expires due to it being issued and not used within some 
+     * time horizon to be determined by the server's implementation, 
+     * this error (along with the more general "command failure" 0x80
+     * bit) will be set to indicate that refreshing the page, or 
+     * restarting a back-and-forth, will likely makes things okay.
+     *
+     * @const
+     * @var int
+     */
+    const SQRL_STALE_NONCE_FAILURE = 0x100;
+
+    /**
      * Initializes the Request Handler
      *
      * @param SqrlValidateInterface $val   Sets the validator that will check the response
