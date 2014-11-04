@@ -33,8 +33,9 @@
     //the generator is used on this page to handle creating/storing the second loop nonce, where necessary
     $generator = new \Trianglman\Sqrl\SqrlGenerate($config,$store);
     //I strongly recommend using an extension for ED25519 validation. The PHP version is incredibly slow.
-    //TODO: add a built in validator that uses the libsodium-php extension
-    if(extension_loaded("ellipticCurveSignature")) {
+    if(extension_loaded("libsodium")) {
+        $sigValidator = new \Trianglman\Sqrl\SodiumNonceValidator();
+    } elseif(extension_loaded("ellipticCurveSignature")) {
         $sigValidator = new \Trianglman\Sqrl\EcEd25519NonceValidator();
     } else {
         $sigValidator = new \Trianglman\Sqrl\Ed25519NonceValidator();

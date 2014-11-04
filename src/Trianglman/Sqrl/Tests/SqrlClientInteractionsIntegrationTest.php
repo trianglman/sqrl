@@ -82,7 +82,9 @@ class SqrlClientInteractionsIntegrationTest extends \PHPUnit_Extensions_Database
         parent::setup();
         $this->config = new \Trianglman\Sqrl\SqrlConfiguration();
         $this->config->load(__DIR__.'/Resources/functionaltest.json');
-        if(extension_loaded("ellipticCurveSignature")) {
+        if(extension_loaded("libsodium")) {
+            $this->nonceValidatorName = 'Trianglman\Sqrl\SodiumNonceValidator';
+        } elseif(extension_loaded("ellipticCurveSignature")) {
             $this->nonceValidatorName = 'Trianglman\Sqrl\EcEd25519NonceValidator';
         } else {
             $this->nonceValidatorName = 'Trianglman\Sqrl\Ed25519NonceValidator';
