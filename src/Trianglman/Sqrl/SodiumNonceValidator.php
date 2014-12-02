@@ -36,6 +36,12 @@ class SodiumNonceValidator implements NonceValidatorInterface
     {
         // Bob verifies and removes the signature
         $msg_orig = \Sodium::crypto_sign_open($sig.$orig, $pk);
-        return $msg_orig !== false;
+        $check = $msg_orig !== false;
+        if(!$check){
+            var_dump($orig);
+            var_dump(base64_encode($sig));
+            var_dump(base64_encode($pk));
+        }
+        return $check;
     }
 }

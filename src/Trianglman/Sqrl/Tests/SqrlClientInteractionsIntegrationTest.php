@@ -307,19 +307,83 @@ class SqrlClientInteractionsIntegrationTest extends \PHPUnit_Extensions_Database
     
     public function testUserDisableRequest()
     {
-        $this->markTestIncomplete();
+        $pub = 'MmDImzNYkpmVk7_Bjw4_WEBWec4rSlOjQvJLfYfGdBs';//secret = "primary test user key"
+        
         //client will request a SQRL URL
+        $sqrlUrl = $this->createInitialSqrlUrl(new SqrlGenerate($this->config,$this->storage), '192.168.0.5');
         
         //client will sign the URL, supply the IDK and disable command, and return 
         //the values
+        //  server=base64url({SQRL URL})&
+        //  client=base64url(ver=1
+        //  idk={blob}
+        //  cmd=login)&
+        //  ids={blob}
+        $clientResp = array(
+            'server'=>$this->base64UrlEncode($sqrlUrl),
+            'client'=>$this->base64UrlEncode("ver=1\r\nidk=$pub\r\ncmd=disable"),
+            'ids'=>'L-5VXIDJ2iCFR8mGYin8oNR7IQO9792aEabpJLpDWZFt5nAmptGSlZdZxu2_jIywEHUPV3PB9a4vpRb36UoQDQ'
+            );
+        
+        //server will verify the client response
+        $gen2 = new SqrlGenerate($this->config,$this->storage);
+        $gen2->setRequestorIp('192.168.0.5');
+        $gen2->setNonce(
+                'interactionsTestNonce2', 
+                (0x05), 
+                'MmDImzNYkpmVk7/Bjw4/WEBWec4rSlOjQvJLfYfGdBs=');
+        //do this here to keep the created time lined up
+        $this->addNonce(
+            array(
+                'id'=>5,
+                'nonce'=>'interactionsTestNonce2',
+                'created'=>date('Y-m-d H:i:s'),
+                'ip'=>ip2long('192.168.0.5'),
+                'action'=>  (0x05),
+                'related_public_key'=>'MmDImzNYkpmVk7/Bjw4/WEBWec4rSlOjQvJLfYfGdBs=',
+                'verified'=>0
+            )
+        );
+        $requestResponse = new SqrlRequestHandler(
+                $this->config,
+                new SqrlValidate($this->config,new $this->nonceValidatorName(),$this->storage),
+                $this->storage,
+                $gen2);
+        $requestResponse->parseRequest(
+                array('nut'=>'interactionsTestNonce1'), 
+                $clientResp, 
+                array('REMOTE_ADDR'=>'192.168.0.5','HTTPS'=>'1'));
         
         //verify the basic server response includes a the new nut, current 
-        //ID match,  IP match, no SQRL enabled, and the friendly name
+        //ID match(0x01), IP match(0x04), no SQRL enabled, and the friendly name
+        $expectedResp1 = "ver=1\r\ntif=".(0x05)."\r\nsfn=Example Server\r\nnut=interactionsTestNonce2";
+        $this->assertEquals($expectedResp1,$requestResponse->getResponseMessage());
+        $this->validateNonceTable();
         
-        //the user will sign the server response and send a login command
+        //the user will sign the server response and resend the disable command
+        $clientResp2 = array(
+            'server'=>$this->base64UrlEncode($expectedResp1),
+            'client'=>$this->base64UrlEncode("ver=1\r\nidk=$pub\r\ncmd=disable"),
+            'ids'=>'S_hxa0xGHXqfRyLToRRyhb0BQhZ-Oy9OBlee8QkKpsRugNZXyBnkZX2dX8Kkg_jsA3DAKlz4lWJYp8fX01SAAg'
+            );
         
-        //verify the server responds with ID match, IP match, and no SQRL 
+        //verify the server responds with ID match(0x01), IP match(0x04), and no SQRL 
         //enabled
+        $requestResponse2 = new SqrlRequestHandler(
+                $this->config,
+                new SqrlValidate($this->config,new $this->nonceValidatorName(),$this->storage),
+                $this->storage,
+                new \Trianglman\Sqrl\SqrlGenerate($this->config,$this->storage));
+        $requestResponse2->parseRequest(
+                array('nut'=>'interactionsTestNonce1'), //request is made back to original URL since no qry= was supplied
+                $clientResp2, 
+                array('REMOTE_ADDR'=>'192.168.0.5','HTTPS'=>'1'));
+        $this->assertEquals("ver=1\r\ntif=".(0x05)."\r\nsfn=Example Server",$requestResponse2->getResponseMessage());
+        $this->changeNonce(4,array('verified'=>1));
+        $this->changeNonce(5,array('verified'=>1));
+        $this->changeUser(3,array('disabled'=>1));
+        $this->validateNonceTable();
+        
     }
     
     public function testUserEnableUnlockCurrentKey()
@@ -448,6 +512,17 @@ class SqrlClientInteractionsIntegrationTest extends \PHPUnit_Extensions_Database
             if ($nonce['id']==$id) {
                 foreach ($updates as $key=>$value) {
                     $nonce[$key] = $value;
+                }
+            }
+        }
+    }
+    
+    protected function changeUser($id,array $updates)
+    {
+        foreach ($this->userdata['sqrl_pubkey'] as &$user) {
+            if ($user['id']==$id) {
+                foreach ($updates as $key=>$value) {
+                    $user[$key] = $value;
                 }
             }
         }

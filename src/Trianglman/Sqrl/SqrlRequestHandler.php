@@ -500,7 +500,7 @@ class SqrlRequestHandler implements SqrlRequestHandlerInterface
             // or should we have a different set of commands to allow the calling
             // code to interact with the commands more directly?
         }
-                return $response;
+        return $response;
     }
     
     protected function create($continue)
@@ -517,6 +517,29 @@ class SqrlRequestHandler implements SqrlRequestHandlerInterface
                 base64_encode($this->serverUnlockKey), 
                 base64_encode($this->verifyUnlockKey)
                 );
+    }
+    
+    protected function disable($continue)
+    {
+        $response = 0;
+        if (!is_null($this->store)) {
+            //find the user's key to see if there already is a record
+            $userData = $this->store->retrieveAuthenticationRecord(base64_encode($this->authenticateKey));
+            if (!empty($userData)) {
+                $response |= self::ID_MATCH;
+                if (!$continue) {
+                    $this->store->lockKey($this->authenticateKey);
+                }
+            } else {
+                return self::COMMAND_FAILED|self::IP_MATCH;
+            }
+        } else {
+            // TODO: How should this be handled modularly?
+            // Should we allow the calling code to set whether or not the key was matched
+            // or should we have a different set of commands to allow the calling
+            // code to interact with the commands more directly?
+        }
+        return $response;
     }
 
     /**
