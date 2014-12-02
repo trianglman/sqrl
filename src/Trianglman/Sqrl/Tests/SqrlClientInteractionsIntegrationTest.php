@@ -398,6 +398,12 @@ class SqrlClientInteractionsIntegrationTest extends \PHPUnit_Extensions_Database
         //and user logged in
     }
     
+    public function testQuery()
+    {
+        $this->markTestIncomplete();
+        //TODO: Get details of this interaction from the news group
+    }
+    
     protected function base64UrlEncode($string)
     {
         $base64 = base64_encode($string);
