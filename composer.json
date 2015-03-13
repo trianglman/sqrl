@@ -18,6 +18,6 @@
         "ext-openssl": "*"
     },
     "require-dev": {
-        "phpunit/dbunit": "1.3.*@dev"
+        "phpunit/phpunit": "*"
     }
 }

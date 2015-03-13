@@ -57,11 +57,7 @@ class SqrlValidateTest extends \PHPUnit_Framework_TestCase
         $obj = new SqrlValidate($this->config,$this->val);
         $obj->setNonce('test nonce');
         
-        $this->assertTrue($obj->matchServerData(
-                SqrlRequestHandler::INITIAL_REQUEST, 
-                true, 
-                'sqrl://example.com/sqrl.php?nut=test nonce'
-                ));
+        $this->assertTrue($obj->matchServerData(0, true, 'sqrl://example.com/sqrl.php?nut=test nonce'));
         
     }
     

@@ -307,7 +307,7 @@ class SqrlValidate implements SqrlValidateInterface
             }
         } else {
             $expectedURL = $this->generateUrl($this->nonce);
-            if ($serverData !== $expectedURL || $requestType !== SqrlRequestHandler::INITIAL_REQUEST) {
+            if ($serverData !== $expectedURL || $requestType !== 0) {
                 return false;
             }
         }

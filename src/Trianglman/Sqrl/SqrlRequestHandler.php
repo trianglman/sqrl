@@ -35,93 +35,12 @@ namespace Trianglman\Sqrl;
 class SqrlRequestHandler implements SqrlRequestHandlerInterface
 {
     /**
-     * @var SqrlValidate
+     * @var SqrlValidateInterface
      */
     protected $validator = null;
 
     /**
-     * @var string
-     */
-    protected $message = '';
-
-    /**
-     * @var string
-     */
-    protected $requestType = self::INITIAL_REQUEST;
-    
-    /**
-     *
-     * @var string
-     */
-    protected $requestNut = '';
-    
-    /**
-     *
-     * @var string
-     */
-    protected $cmd = '';
-
-    /**
-     * @var int
-     */
-    protected $responseCode = 200;
-
-    /**
-     * @var int
-     */
-    protected $clientVer = 1;
-
-    /**
-     * Base 64 encoded authentication key
-     *
-     * @var string
-     */
-    protected $authenticateKey = '';
-
-    /**
-     * Base 64 encoded server unlock key
-     *
-     * @var string
-     */
-    protected $serverUnlockKey = '';
-
-    /**
-     * Base 64 verify unlock key
-     *
-     * @var string
-     */
-    protected $verifyUnlockKey = '';
-
-    /**
-     * Base 64 unlock request signing key
-     *
-     * @var string
-     */
-    protected $unlockRequestKey = '';
-
-    /**
-     * Base 64 signature using the unlock request key
-     *
-     * @var string
-     */
-    protected $unlockRequestSig = '';
-
-    /**
-     * pIDK (base 64)
-     *
-     * @var string
-     */
-    protected $oldKey = '';
-
-    /**
-     * Base 64 signature using the new authentication key
-     *
-     * @var string
-     */
-    protected $oldKeySig = '';
-
-    /**
-     * @var SqrlGenerate
+     * @var SqrlGenerateInterface
      */
     protected $sqrlGenerator = null;
     
@@ -137,10 +56,17 @@ class SqrlRequestHandler implements SqrlRequestHandlerInterface
      */
     protected $store = null;
     
-    protected $lnk = '';
-    protected $qry = '';
-    protected $ask = '';
-
+    protected $ipMatch = false;
+    protected $actions = array();
+    protected $clientOptions = array();
+    protected $responseCode = 200;
+    protected $tif = 0x0;
+    protected $authenticationKey = '';
+    protected $clientSUK = '';
+    protected $clientVUK = '';
+    protected $requestNut = '';
+    protected $previousIdKey = '';
+    
     public function __construct(
         SqrlConfiguration $config,
         SqrlValidateInterface $val,
@@ -170,86 +96,73 @@ class SqrlRequestHandler implements SqrlRequestHandlerInterface
      */
     public function parseRequest($get, $post, $server)
     {
-        if (isset($post['client'])) {
-            $this->validator->setSignedClientVal($post['client']);
-            try {
-                $this->decodeClientVals($this->base64URLDecode($post['client']));
-            } catch (Trianglman\Sqrl\SqrlException $e) {
-                if ($e->getCode() === SqrlException::INVALID_REQUEST) {
-                    $this->message = $this->formatResponse(
-                        $e->getMessage(),
-                        self::COMMAND_FAILED|self::SQRL_SERVER_FAILURE,
-                        false
-                    );
-                    return;
+        //check that all the right pieces exist
+        if (isset($post['client']) && isset($post['server']) && isset($post['ids']) && isset($get['nut'])) {
+            $serverInfo = $this->parseServer($post['server']);
+            $clientInfo = $this->parseClient($post['client']);
+            $this->requestNut = $get['nut'];
+            if (empty($serverInfo) || empty($clientInfo)) {
+                $this->tif|= (self::COMMAND_FAILED|self::CLIENT_FAILURE);
+                return;
+            }
+            if (!$this->validator->validateServer($serverInfo,$this->requestNut,$server['HTTPS'])) {
+                $this->tif|= (self::COMMAND_FAILED|self::CLIENT_FAILURE);
+                return;
+            }
+            $this->tif|= $this->validator->nutIPMatches($get['nut'],$server['REMOTE_ADDR'])?self::IP_MATCH:0;
+            $nutStatus = $this->validator->validateNut($this->requestNut);
+            if ($nutStatus !== \Trianglman\Sqrl\SqrlValidateInterface::VALID_NUT) {
+                if ($nutStatus === \Trianglman\Sqrl\SqrlValidateInterface::EXPIRED_NUT) {
+                    $this->tif|= (self::COMMAND_FAILED|self::TRANSIENT_ERROR);
                 } else {
-                    throw $e;
+                    $this->tif|= (self::COMMAND_FAILED|self::CLIENT_FAILURE);
                 }
+                return;
             }
-        } else {
-            $this->message = $this->formatResponse(
-                'No client response was included in the request',
-                self::COMMAND_FAILED|self::SQRL_SERVER_FAILURE,
-                false
-            );
-            return;
-        }
-        if (isset($post['server'])) {
-            $this->validator->setSignedServerVal($post['server']);
-            try{
-                $this->decodeServerData($this->base64URLDecode($post['server']),$get,$server);
-            } catch (SqrlException $e) {
-                //what exceptions can be caused?
-                $this->message = $this->formatResponse(
-                    $e->getMessage(), 
-                    ($e->getCode()==SqrlException::EXPIRED_NONCE?
-                            self::SQRL_STALE_NONCE_FAILURE://notify the user of the expired nonce
-                            self::COMMAND_FAILED)//handle all other errors with the same message
-                        |self::SQRL_SERVER_FAILURE,
-                    false
-                );
+            if (!$this->validateSignatures($post, $clientInfo)) {
+                $this->tif|= (self::COMMAND_FAILED|self::CLIENT_FAILURE);
+                return;
             }
-        } else {
-            $this->message = $this->formatResponse(
-                'No server data was included in the request', 
-                self::COMMAND_FAILED|self::SQRL_SERVER_FAILURE,
-                false
-            );
+            $this->authenticationKey = $clientInfo['idk'];
+            if (isset($clientInfo['vuk'])) {
+                $this->clientSUK = $clientInfo['suk'];
+                $this->clientVUK = $clientInfo['vuk'];
+            }
+            if (isset($clientInfo['pidk'])) {
+                $this->previousIdKey = $clientInfo['pidk'];
+            }
+            $this->actions = $clientInfo['actions'];
+            $this->clientOptions = isset($clientInfo['options'])?$clientInfo['options']:array();
             return;
         }
-        if (isset($post['ids'])) {
-            $this->validator->setAuthenticateSignature($this->base64URLDecode($post['ids']));
-        } else {
-            $this->message = $this->formatResponse(
-                'No identity signature was included in the request', 
-                self::COMMAND_FAILED|self::SQRL_SERVER_FAILURE,
-                false
-            );
-            return;
+        $this->tif = (self::COMMAND_FAILED|self::CLIENT_FAILURE);
+        return;
+    }
+    
+    private function validateSignatures($post,$clientInfo)
+    {
+        if (!$this->validator->validateSignature(
+                $post['client'].$post['server'],
+                $clientInfo['idk'],
+                $this->base64URLDecode($post['ids'])
+                )) {
+            return false;
         }
-        if (isset($post['pids'])) {
-            $this->oldKeySig = $post['pids'];
-            //set up validator, or call it multiple times?
-        } elseif (!empty($this->oldKey)) {
-            $this->message = $this->formatResponse(
-                'No previous identity signature was included in the request, but previous identity key was', 
-                self::COMMAND_FAILED|self::SQRL_SERVER_FAILURE,
-                false
-            );
-            return;
-        }
-        if (isset($post['urs'])) {
-            $this->unlockRequestSig = $post['urs'];
-            //set up validator, or call it multiple times?
-        } elseif (in_array($this->cmd, array('setkey','setlock','enable','delete'))) {
-            $this->message = $this->formatResponse(
-                'Command requires a matching verify unlock key and unlock request signature. No signature was provided', 
-                self::COMMAND_FAILED|self::SQRL_SERVER_FAILURE,
-                false
-            );
-            return;
-        }
-        $this->validator->setRequestorIp($server['REMOTE_ADDR']);
+        if (isset($post['urs']) && isset($clientInfo['vuk']) && !$this->validator->validateSignature(
+                $post['client'].$post['server'],
+                $clientInfo['vuk'],
+                $this->base64URLDecode($post['urs'])
+                )) {
+            return false;
+        } 
+        if (isset($post['pids']) && isset($clientInfo['pidk']) && !$this->validator->validateSignature(
+                $post['client'].$post['server'],
+                $clientInfo['pidk'],
+                $this->base64URLDecode($post['pids'])
+                )) {
+            return false;
+        } 
+        return true;
     }
     
     /**
@@ -257,147 +170,61 @@ class SqrlRequestHandler implements SqrlRequestHandlerInterface
      * @param string $clientInput
      * @return void
      */
-    protected function decodeClientVals($clientInput)
+    protected function parseClient($clientInput)
     {
-        $inputAsArray = explode("\n", $clientInput);
-        foreach ($inputAsArray as $individualInputs) {
+        $inputAsArray = explode("\n", $this->base64URLDecode($clientInput));
+        $return = array();
+        foreach (array_filter($inputAsArray) as $individualInputs) {
+            if (strpos($individualInputs, '=') === false) {
+                continue;
+            }
             list($key,$val) = explode("=", $individualInputs);
             $val = trim($val);//strip off the \r
-            switch ($key){
+            switch (trim($key)){
                 case 'ver':
-                    $this->clientVer = $val;
-                    $this->validator->setClientVer($val);
+                    $return['ver']=$val;
                     break;
                 case 'cmd':
-                    $this->cmd = $val;
-                    break;
-                case 'val':
-                    //do ask parameter stuff
+                    $return['actions'] = explode('~',$val);
                     break;
                 case 'idk':
-                    $this->authenticateKey = $this->base64URLDecode($val);
-                    $this->validator->setAuthenticateKey($this->base64URLDecode($val));
+                    $return['idk']=$this->base64URLDecode($val);
                     break;
                 case 'pidk':
-                    $this->oldKey = $this->base64URLDecode($val);
-                    break;
-                case 'suk':
-                    $this->serverUnlockKey = $this->base64URLDecode($val);
+                    $return['pidk']=$this->base64URLDecode($val);
                     break;
                 case 'vuk':
-                    $this->verifyUnlockKey = $this->base64URLDecode($val);
+                    $return['vuk']=$this->base64URLDecode($val);
+                    break;
+                case 'suk':
+                    $return['suk']=$this->base64URLDecode($val);
+                    break;
+                case 'opt':
+                    $return['options'] = explode('~',$val);
                     break;
             }
         }
-        if(empty($this->clientVer)){
-            throw new SqrlException(
-                'No version was included in the request', 
-                SqrlException::INVALID_REQUEST
-            );
-        }
-        if(empty($this->authenticateKey)){
-            throw new SqrlException(
-                'No idk was included in the request', 
-                SqrlException::INVALID_REQUEST
-            );
-        }
-        if(empty($this->cmd)){
-            throw new SqrlException(
-                'No command was included in the request', 
-                SqrlException::INVALID_REQUEST
-            );
-        }
-        if(in_array($this->cmd, array('setkey','setlock','enable','delete')) &&
-                empty($this->verifyUnlockKey)){
-            throw new SqrlException(
-                'Command requires a verify unlock key. None was included in the request', 
-                SqrlException::INVALID_REQUEST
-            );
-        }
+        return $return;
     }
     
-    protected function decodeServerData($serverData,$get,$server)
+    protected function parseServer($serverData)
     {
-        if (substr($serverData,0,7)==='sqrl://' || substr($serverData,0,6)==='qrl://'){
-            $this->decodeServerUrl($serverData, $get['nut'], !empty($server['HTTPS']));
+        $decoded = $this->base64URLDecode($serverData);
+        if (substr($decoded,0,7)==='sqrl://' || substr($decoded,0,6)==='qrl://'){
+            return $decoded;
         } else {
-            $this->decodeServerResponse($serverData,!empty($server['HTTPS']));
-        }
-    }
-    
-    protected function decodeServerUrl ($url,$nut,$https)
-    {
-        $this->requestNut = $nut;
-        $this->requestType = self::INITIAL_REQUEST;
-        $this->validator->setNonce($nut);
-        if (!$this->validator->matchServerData(self::INITIAL_REQUEST,$https,$url)) {
-            throw new SqrlException(
-                    'Requested URL doesn\'t match expected URL', 
-                    SqrlException::SIGNED_URL_DOESNT_MATCH
-                    );
-        }
-    }
-    
-    protected function decodeServerResponse($data,$https)
-    {
-        $serverVer = 0;
-        $serverQry = '';
-        $serverLnk = '';
-        $serverSfn = '';
-        $serverAsk = '';
-        $inputAsArray = explode("\n",$data);
-        foreach ($inputAsArray as $individualInputs) {
-            list($key,$val)=explode("=",$individualInputs);
-            $val = trim($val);//strip off the \r
-            switch ($key) {
-                case 'ver':
-                    $serverVer = $val;
-                    break;
-                case 'nut':
-                    $this->requestNut = $val;
-                    $this->validator->setNonce($val);
-                    break;
-                case 'tif':
-                    $this->requestType = (int)$val;
-                    break;
-                case 'qry':
-                    $serverQry = $val;
-                    break;
-                case 'lnk':
-                    $serverLnk = $val;
-                    break;
-                case 'sfn':
-                    $serverSfn = $val;
-                    break;
-                case 'ask':
-                    $serverAsk = $val;
-                    break;
+            $serverValues = explode("\r\n", $decoded);
+            $parsedResult = array();
+            foreach ($serverValues as $value) {
+                $splitStop = strpos($value, '=');
+                $key = substr($value, 0, $splitStop);
+                $val = substr($value, $splitStop+1);
+                $parsedResult[$key]=$val;
             }
-        }
-        if (!$this->validator->matchServerData($this->requestType,$https,array(
-            'ver'=>$serverVer,
-            'qry'=>$serverQry,
-            'lnk'=>$serverLnk,
-            'sfn'=>$serverSfn,
-            'ask'=>$serverAsk
-            )
-        )) {
-            throw new SqrlException('Request doesn\'t match expected request', SqrlException::SIGNED_URL_DOESNT_MATCH);
+            return $parsedResult;
         }
     }
-
-    /**
-     * Gets the type of request the user made
-     *
-     * The return value will be one of the predefined constants
-     *
-     * @return int
-     */
-    public function getRequestType()
-    {
-        return $this->requestType;
-    }
-
+    
     /**
      * Gets the text message to be returned to the SQRL client
      *
@@ -407,141 +234,88 @@ class SqrlRequestHandler implements SqrlRequestHandlerInterface
      */
     public function getResponseMessage()
     {
-        //handle initial request parsing errors
-        if (!empty($this->message)) {
-            return $this->message;
+        foreach ($this->actions as $action) {
+            if ($this->tif&self::COMMAND_FAILED) {
+                break;
+            }
+            $this->$action();
         }
-        try {
-            $this->verifyRequest();
-            $actions = explode('~', $this->cmd);
-            $acceptedActions = array('setKey','setLock','disable','enable','delete','create','login','logme','logoff');
-            $responseCode = self::IP_MATCH;//just set this for now, need to set up no enforce IP handling
-            if ($this->requestType === self::INITIAL_REQUEST) {
-                $continue=true;
+        return $this->formatResponse($this->tif);
+    }
+    
+    protected function query()
+    {
+        $identityStatus = $this->store->checkIdentityKey($this->authenticationKey);
+        if ($identityStatus === SqrlStoreInterface::IDENTITY_ACTIVE) {
+            $this->tif|= self::ID_MATCH;
+        } elseif (!empty($this->previousIdKey)) {
+            if ($this->store->checkIdentityKey($this->previousIdKey) === SqrlStoreInterface::IDENTITY_ACTIVE) {
+                $this->tif|= self::PREVIOUS_ID_MATCH;
+            }
+        } elseif ($identityStatus === SqrlStoreInterface::IDENTITY_UNKNOWN) {
+            if (!$this->config->getAnonAllowed()) {//notify the client that anonymous authentication is not allowed in this transaction
+                $this->tif|= self::FUNCTION_NOT_SUPPORTED|self::COMMAND_FAILED;
+            }
+        } elseif ($identityStatus === SqrlStoreInterface::IDENTITY_LOCKED) {
+            $this->tif|= self::ID_MATCH|self::SQRL_DISABLED;
+        }
+    }
+    
+    protected function ident()
+    {
+        $identityStatus = $this->store->checkIdentityKey($this->authenticationKey);
+        if ($identityStatus === SqrlStoreInterface::IDENTITY_ACTIVE) {
+            $this->store->logSessionIn($this->requestNut);
+            $this->tif|= self::ID_MATCH;
+        } elseif ($identityStatus === SqrlStoreInterface::IDENTITY_UNKNOWN) {
+            $this->identUnknownIdentity();
+        } elseif ($identityStatus === SqrlStoreInterface::IDENTITY_LOCKED) {
+            if (empty($this->clientSUK) || $this->clientVUK !== $this->store->getIdentityVUK($this->authenticationKey)) {
+                $this->tif|= (self::CLIENT_FAILURE|self::COMMAND_FAILED);
             } else {
-                $continue=false;
-            }
-            foreach ($actions as $act) {
-                if (!in_array($act, $acceptedActions)) {
-                    return $this->formatResponse(
-                        'Command not found', 
-                        self::COMMAND_FAILED|self::SQRL_SERVER_FAILURE|self::IP_MATCH,
-                        false
-                    );
-                }
-                $actionResponse = $this->$act($continue);
-                if ($actionResponse&self::COMMAND_FAILED) {
-                    return $this->formatResponse(
-                        $act.' command failed', 
-                        $actionResponse,
-                        false
-                    );
-                }
-                $responseCode |= $actionResponse;
-            }
-            if (!$continue) {
-                $this->store->validateNut($this->requestNut);
-            }
-            return $this->formatResponse('Commands successful',$responseCode,$continue);
-        } catch (SqrlException $ex) {
-            switch ($ex->getCode()) {
-                case SqrlException::ENFORCE_IP_FAIL:
-                    return $this->formatResponse(
-                        'IPs do not match', 
-                        self::COMMAND_FAILED|self::SQRL_SERVER_FAILURE
-                    );
-                case SqrlException::SIGNATURE_NOT_VALID:
-                    return $this->formatResponse(
-                        'Signature did not match', 
-                        self::COMMAND_FAILED|self::SQRL_SERVER_FAILURE|self::IP_MATCH,
-                        false
-                    );
-                default:
-                    throw $ex;
+                $this->store->unlockIdentityKey($this->authenticationKey);
+                $this->store->logSessionIn($this->requestNut);
+                $this->tif|= self::ID_MATCH;
             }
         }
     }
     
-    /**
-     * Performs the log in action
-     * 
-     * @return int
-     */
-    protected function login($continue)
+    private function identUnknownIdentity()
     {
-        $userKey = empty($this->oldKey)?$this->authenticateKey:$this->oldKey;
-        $response = 0;
-        if (!is_null($this->store)) {
-            //find the user's key to see if there already is a record
-            $userData = $this->store->retrieveAuthenticationRecord(base64_encode($userKey));
-            if (!empty($userData)) {
-                if ($userData['disabled']==1 && !$continue) {
-                    //if the user is trying to finish logging in with a disabled account, reject it
-                    return self::COMMAND_FAILED|self::SQRL_SERVER_FAILURE|self::IP_MATCH;
-                }
-                $response |= empty($this->oldKey)?self::ID_MATCH:self::PREVIOUS_ID_MATCH;
-                $response |= $userData['disabled']==0?self::SQRL_ENABLED:0;
-                $response |= $continue?0:self::USER_LOGGED_IN;
+        if (!empty($this->previousIdKey) &&
+                $this->store->checkIdentityKey($this->previousIdKey) === SqrlStoreInterface::IDENTITY_ACTIVE) {
+            if (empty($this->clientSUK) || $this->clientVUK !== $this->store->getIdentityVUK($this->previousIdKey)) {
+                $this->tif|= (self::CLIENT_FAILURE|self::COMMAND_FAILED);
             } else {
-                if ($this->config->getAnonAllowed()) {
-                    if ($continue) {
-                        $response = (self::SQRL_ENABLED|self::ACCOUNT_CREATION_ALLOWED);
-                    } else {
-                        $response = (self::SQRL_ENABLED|self::ID_MATCH|self::USER_LOGGED_IN);
-                    }
-                }
-                else{
-                    return self::COMMAND_FAILED|self::IP_MATCH;
-                }
+                $this->store->updateIdentityKey($this->previousIdKey,$this->authenticationKey);
+                $this->store->logSessionIn($this->requestNut);
+                $this->tif|= self::ID_MATCH|self::PREVIOUS_ID_MATCH;
             }
-        } else {
-            // TODO: How should this be handled modularly?
-            // Should we allow the calling code to set whether or not the key was matched
-            // or should we have a different set of commands to allow the calling
-            // code to interact with the commands more directly?
-        }
-        return $response;
-    }
-    
-    protected function create($continue)
-    {
-        if ($continue) {
             return;
         }
-        if (!$this->config->getAnonAllowed()) {
-            return self::COMMAND_FAILED;
+        if (!$this->config->getAnonAllowed()) {//notify the client that anonymous authentication is not allowed in this transaction
+            $this->tif|= (self::FUNCTION_NOT_SUPPORTED|self::COMMAND_FAILED);
+        } elseif (empty($this->clientSUK)) {
+            $this->tif|= (self::CLIENT_FAILURE|self::COMMAND_FAILED);
+        } else {
+            $this->store->createIdentity($this->authenticationKey,$this->clientSUK,$this->clientVUK);
+            $this->store->logSessionIn($this->requestNut);
+            $this->tif|= self::ID_MATCH;
         }
-        $this->store->storeAuthenticationKey(base64_encode($this->authenticateKey));
-        $this->store->storeIdentityLock(
-                base64_encode($this->authenticateKey), 
-                base64_encode($this->serverUnlockKey), 
-                base64_encode($this->verifyUnlockKey)
-                );
     }
     
-    protected function disable($continue)
+    protected function lock()
     {
-        $response = 0;
-        if (!is_null($this->store)) {
-            //find the user's key to see if there already is a record
-            $userData = $this->store->retrieveAuthenticationRecord(base64_encode($this->authenticateKey));
-            if (!empty($userData)) {
-                $response |= self::ID_MATCH;
-                if (!$continue) {
-                    $this->store->lockKey($this->authenticateKey);
-                }
-            } else {
-                return self::COMMAND_FAILED|self::IP_MATCH;
-            }
+        $identityStatus = $this->store->checkIdentityKey($this->authenticationKey);
+        if ($identityStatus !== SqrlStoreInterface::IDENTITY_UNKNOWN) {
+            $this->store->lockIdentityKey($this->authenticationKey);
+            $this->store->endSession($this->requestNut);
+            $this->tif|= (self::ID_MATCH|self::SQRL_DISABLED);
         } else {
-            // TODO: How should this be handled modularly?
-            // Should we allow the calling code to set whether or not the key was matched
-            // or should we have a different set of commands to allow the calling
-            // code to interact with the commands more directly?
+            $this->tif|= (self::COMMAND_FAILED|self::CLIENT_FAILURE);
         }
-        return $response;
     }
-
+    
     /**
      * Gets the numeric HTTP code to return to the SQRL client
      *
@@ -565,56 +339,29 @@ class SqrlRequestHandler implements SqrlRequestHandlerInterface
         echo $this->getResponseMessage();
     }
 
-    protected function verifyRequest()
-    {
-        $this->validator->validate();
-        if (!empty($this->oldKey)) {
-            $this->validator->validateSignature($this->oldKey, $this->oldKeySig);
-        }
-        if (!empty($this->unlockRequestKey)) {
-            $this->validator->validateSignature($this->unlockRequestKey, $this->unlockRequestSig);
-        }
-    }
-
     /**
      * Formats a response to send back to a client
      * 
-     * @param string $display A human readable message
      * @param int $code The TIF code to send back to the user
-     * @param boolean $continue Whether to send a new nut expecting a response back
      * 
      * @return string
      */
-    protected function formatResponse($display, $code,$continue=true)
+    protected function formatResponse($code)
     {
         $resp = 'ver='.implode(',',$this->config->getAcceptedVersions())."\r\n"
-            .'tif='.$code."\r\n"
-            .'sfn='.$this->config->getFriendlyName();
-        if ($continue) {//if the command failed, the user can't send a second response
-            $resp.="\r\nnut=".$this->getNonce($code,$this->authenticateKey);
-        }
-        if (!empty($this->lnk)) {
-            $resp.= "\r\nlnk=".$this->lnk;
-        }
-        if (!empty($this->qry)) {
-            $resp.= "\r\nqry=".$this->qry;
-        }
+                ."nut=".$this->sqrlGenerator->getNonce($code, $this->authenticationKey,$this->requestNut)."\r\n"
+                .'tif='.  strtoupper(dechex($code))."\r\n"
+                ."qry=".$this->sqrlGenerator->generateQry()."\r\n"
+                .'sfn='.$this->config->getFriendlyName();
         if (!empty($this->ask)) {
             $resp.= "\r\nask=".$this->ask;
         }
-        return $resp;
-    }
-    
-    protected function getNonce($action,$key)
-    {
-        if(!is_null($this->sqrlGenerator)) {
-            $newNonce =  $this->sqrlGenerator->getNonce($action, $key);
-            if (!empty($this->requestNut)) {
-                $this->store->associateNuts($this->requestNut,$newNonce);
-            }
-            return $newNonce;
+        if (($this->tif&self::SQRL_DISABLED && !in_array('lock', $this->actions))) {
+            $resp.= "\r\nsuk=".$this->base64UrlEncode($this->store->getIdentitySUK($this->authenticationKey));
+        } elseif ($this->tif&self::PREVIOUS_ID_MATCH && !in_array('ident', $this->actions)) {
+            $resp.= "\r\nsuk=".$this->base64UrlEncode($this->store->getIdentitySUK($this->previousIdKey));
         }
-        //todo allow direct nonce setting?
+        return $this->base64UrlEncode($resp);
     }
     
     /**

@@ -34,6 +34,9 @@ namespace Trianglman\Sqrl;
  */
 interface SqrlValidateInterface
 {
+    const VALID_NUT = 0;
+    const EXPIRED_NUT = 1;
+    const INVALID_NUT = 2;
     /**
      * Sets an object to be used to store and retrieve SQRL information
      *
@@ -42,6 +45,26 @@ interface SqrlValidateInterface
      * @return void
      */
     public function setStorage(SqrlStoreInterface $storage);
+    
+    /**
+     * Validates the returned server value
+     * 
+     * @param string $server The returned server value
+     * @param string $nut The nut from the request
+     * @param string $secure Whether the request was secure
+     * 
+     * @return boolean
+     */
+    public function validateServer($server,$nut,$secure);
+    
+    /**
+     * Validates a supplied nut
+     * 
+     * @param string $nut
+     * 
+     * @return int One of the nut class constants
+     */
+    public function validateNut($nut);
 
     /**
      * Sets the authenticating key
@@ -139,10 +162,21 @@ interface SqrlValidateInterface
     /**
      * Validates a secondary request signature (Unlock Request or New Key)
      *
-     * @param string $key Base 64 encoded key
-     * @param string $sig Base 64 encoded signature
+     * @param string $orig
+     * @param string $key 
+     * @param string $sig 
      *
      * @return boolean
      */
-    public function validateSignature($key, $sig);
+    public function validateSignature($orig,$key, $sig);
+    
+    /**
+     * Verifies the original nut's IP matches the current IP
+     * 
+     * @param string $nut
+     * @param string $ip
+     * 
+     * @return boolean
+     */
+    public function nutIPMatches($nut,$ip);
 }

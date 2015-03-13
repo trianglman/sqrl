@@ -68,7 +68,7 @@ interface SqrlGenerateInterface
      *
      * @return string The one time use number for the QR link
      */
-    public function getNonce($action = SqrlRequestHandlerInterface::INITIAL_REQUEST, $key = '');
+    public function getNonce($action = 0, $key = '');
 
     /**
      * Gets the validation URL including the nonce
@@ -92,5 +92,12 @@ interface SqrlGenerateInterface
      * 
      * @return void
      */
-    public function setNonce($nonce,$action = SqrlRequestHandlerInterface::INITIAL_REQUEST, $key = '');
+    public function setNonce($nonce,$action = 0, $key = '');
+    
+    /**
+     * Generates the qry parameter to send in server responses
+     * 
+     * @return string
+     */
+    public function generateQry();
 }

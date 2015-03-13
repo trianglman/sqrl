@@ -56,7 +56,7 @@ class SqrlGenerate implements SqrlGenerateInterface
         $this->store = $storage;
     }
     
-    public function setNonce($nonce,$action = SqrlRequestHandlerInterface::INITIAL_REQUEST, $key = '')
+    public function setNonce($nonce,$action = 0, $key = '')
     {
         $this->nonce = $nonce;
         if (!is_null($this->store)) {
@@ -64,7 +64,7 @@ class SqrlGenerate implements SqrlGenerateInterface
         }
     }
 
-    public function getNonce($action = SqrlRequestHandlerInterface::INITIAL_REQUEST, $key = '')
+    public function getNonce($action = 0, $key = '')
     {
         if (empty($this->nonce)) {
             $this->generateNonce($action, $key);
@@ -124,7 +124,7 @@ class SqrlGenerate implements SqrlGenerateInterface
      *
      * @return string
      */
-    protected function generateNonce($action = SqrlRequestHandlerInterface::INITIAL_REQUEST, $key = '')
+    protected function generateNonce($action = 0, $key = '')
     {
         $this->nonce = hash_hmac('sha256', uniqid('', true), $this->configuration->getNonceSalt());
         if (!is_null($this->store)) {
@@ -158,6 +158,22 @@ class SqrlGenerate implements SqrlGenerateInterface
         }
 
         return $url.$pathAppend.$this->getNonce();
+    }
+    
+    public function generateQry()
+    {
+        $url = ($this->configuration->getSecure() ? 's' : '').'qrl://'
+                .$this->configuration->getDomain()
+                .(strpos($this->configuration->getDomain(),'/') !== false ? '|' : '/')
+                .$this->configuration->getAuthenticationPath();
+        $currentPathParts = parse_url($url);
+        if (!empty($currentPathParts['query'])) {
+            $pathAppend = '&nut=';
+        } else {
+            $pathAppend = '?nut=';
+        }
+
+        return $this->configuration->getAuthenticationPath().$pathAppend.$this->getNonce();
     }
 
 }

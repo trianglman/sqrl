@@ -34,22 +34,6 @@ namespace Trianglman\Sqrl;
  */
 interface SqrlRequestHandlerInterface
 {
-    /**
-     * A basic SQRL authentication request, no special parameters
-     *
-     * @const
-     * @var int
-     */
-    const INITIAL_REQUEST = 1;
-
-    /**
-     * A second loop response from a user who's public key was not recognized
-     *
-     * @const
-     * @var int
-     */
-    const FOLLOW_UP_REQUEST = 2;
-
     //TIF Codes
     /**
      * 	When set, this bit indicates that the web server has 
@@ -85,50 +69,65 @@ interface SqrlRequestHandlerInterface
     const IP_MATCH = 0x04;
 
     /**
-     * When set, the account associated with the identified user is enabled for 
-     * SQRL-initiated login. This is the normal default case, so this bit will 
-     * be set unless a “disable” command (see below) has most recently been 
-     * received from the identified user.
+     * When set, the account associated with the identified user is disabled for 
+     * SQRL-initiated authentication without the additional Rescue Code-derived 
+     * unlock request signature (urs). If the 'query' command returns with this 
+     * tif bit set, and the SQRL client does not already have the Rescue Code in 
+     * RAM, it should inform its user that they will need to supply their 
+     * identity' Rescue Code in order to proceed with the authentication 
+     * operation.
      *
      * @const
      * @var int
      */
-    const SQRL_ENABLED = 0x08;
+    const SQRL_DISABLED = 0x08;
 
     /**
-     * When set, the account associated with the identified user has one or more 
-     * active logged in sessions. In the typical case, this bit would be cleared 
-     * in the first status-collection client query and set in the reply to a 
-     * subsequent successful query containing any of the login commands. If it 
-     * was set before the receipt of a successful logout command, it would then 
-     * be reset.
+     * This bit indicates that the client requested one or more standard SQRL 
+     * functions (through command verbs) that the server does not currently 
+     * support. The client will likely need to advise its user that whatever 
+     * they were trying to do is not possible at the target website. The SQRL 
+     * server will fail this query, thus also setting the “40h” Command Failed 
+     * bit.
      *
      * @const
      * @var int
      */
-    const USER_LOGGED_IN = 0x10;
+    const FUNCTION_NOT_SUPPORTED = 0x10;
 
     /**
-     * When set, the website is indicating that it supports SQRL-initiated, 
-     * anonymous account creation. If the SQRL client received a reply with this 
-     * bit set, and the user was not already known to the server, and the user 
-     * affirmatively indicated that they wished to create an account using their 
-     * SQRL credentials, the client could then issue a “create” command, 
-     * probably accompanied with one of the login commands, to create an account 
-     * and login the user.
+     * The server replies with this bit set to indicate that the client's 
+     * signature(s) are correct, but something about the client's query 
+     * prevented the command from completing. This is the server's way of 
+     * instructing the client to retry and reissue the immediately previous 
+     * command using the fresh ‘nut=’ crypto material and ‘qry=’ url the server 
+     * has also just returned in its reply. Although we don't want to overly 
+     * restrict the specification of this error, the trouble is almost certainly 
+     * static, expired, or previously used nut= or qry= data. Thus, reissuing 
+     * the previous command under the newly supplied server parameters would be 
+     * expected to succeed. The “0x40” “Command failed” bit (shown next) will 
+     * also be set since the client's command will not have been processed.
      *
      * @const
      * @var int
      */
-    const ACCOUNT_CREATION_ALLOWED = 0x20;
+    const TRANSIENT_ERROR = 0x20;
 
     /**
-     * When set, this bit indicates that the web server had an unspecified 
-     * problem fully processing the client's query. In any such case, no change 
+     * When set, this bit indicates that the web server had a problem 
+     * successfully processing the client's query. In any such case, no change 
      * will be made to the user's account status. All SQRL server-side actions 
      * are atomic. This means that either everything succeeds or nothing is 
      * changed. This is important since clients can request multiple updates and 
      * changes at once.
+     * 
+     * If this bit is set without the 80h bit set (see below) the trouble was 
+     * not with the client's provided data, protocol, etc. but with some other 
+     * aspect of completing the client's request. With the exception of the 
+     * following “Client failure” status bit, the SQRL semantics do not attempt 
+     * to enumerate every conceivable web server failure reason. The web server 
+     * is free to use the “ask” command without arguments to explain the problem 
+     * to the client's user.
      *
      * @const
      * @var int
@@ -136,41 +135,23 @@ interface SqrlRequestHandlerInterface
     const COMMAND_FAILED = 0x40;
 
     /**
-     * This bit only has meaning when the preceding “Command failed” bit is set. 
-     * When both bits are set, the web server in indicating that the reason for 
-     * the command failure indicated by that bit was some failure in the SQRL 
-     * protocol sent by the client and not a problem at its end with completing 
-     * the requested command(s). Since the SQRL client will have previously 
-     * obtained everything from the client which is necessary to formulate valid 
-     * and legal command queries, this bit should never be expected to be set. 
-     * So it would typically indicate a logical problem with either the web 
-     * server of the client, a transmission error, or the presence of third-party 
-     * tampering.
+     * This bit is set by the server when some aspect of the client's submitted 
+     * query ‑ other than expired but otherwise valid transaction state 
+     * information ‑ was incorrect and prevented the server from understanding 
+     * and/or completing the requested action. This could be the result of a 
+     * communications error, a mistake in the client's SQRL protocol, a 
+     * signature that doesn't verify, or required signatures for the requested
+     * actions which are not present. And more specifically, this is NOT an 
+     * error that the server knows would likely be fixed by having the client 
+     * silently reissue it previous command . . . although that might still be 
+     * the first recouse for the client. This is NOT an error Since any such 
+     * client failure will also result in a failure of the command, the 40h bit 
+     * will also be set.
      *
      * @const
      * @var int
      */
-    const SQRL_SERVER_FAILURE = 0x80;
-
-    /**
-     * This bit is set when a user nut has passed its expiration period.
-     * 
-     * From the NNTP group:
-     * 
-     * This is a useful error to return separately, since it represents 
-     * a very possible and very fixable soft error in the protocol.
-     * 
-     * If at any point in the client-to-server back and forth, the 
-     * "nonce" expires due to it being issued and not used within some 
-     * time horizon to be determined by the server's implementation, 
-     * this error (along with the more general "command failure" 0x80
-     * bit) will be set to indicate that refreshing the page, or 
-     * restarting a back-and-forth, will likely makes things okay.
-     *
-     * @const
-     * @var int
-     */
-    const SQRL_STALE_NONCE_FAILURE = 0x100;
+    const CLIENT_FAILURE = 0x80;
 
     /**
      * Initializes the Request Handler
@@ -203,15 +184,6 @@ interface SqrlRequestHandlerInterface
     public function parseRequest($get, $post, $server);
 
     /**
-     * Gets the type of request the user made
-     *
-     * The return value will be one of the predefined constants
-     *
-     * @return int
-     */
-    public function getRequestType();
-
-    /**
      * Gets the text message to be returned to the SQRL client
      *
      * @return string
@@ -221,8 +193,7 @@ interface SqrlRequestHandlerInterface
     /**
      * Gets the numeric HTTP code to return to the SQRL client
      *
-     * Currently the spec only uses the 200 code and any error message is in the
-     * test message response
+     * Currently the spec only uses the 200 code with the TIF containing a protocol status code
      *
      * @return int
      */

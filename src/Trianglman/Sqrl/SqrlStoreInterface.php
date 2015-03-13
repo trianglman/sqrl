@@ -32,50 +32,12 @@ use Trianglman\Sqrl\SqrlException;
  */
 interface SqrlStoreInterface
 {
-    /**
-     * The table ID column
-     */
-    const ID = 1;
-
-    /**
-     * The nonce table's created column
-     */
-    const CREATED = 2;
-
-    /**
-     * The nonce table's IP column
-     */
-    const IP = 4;
-
-    /**
-     * The nonce table's action column
-     */
-    const TYPE = 8;
-
-    /**
-     * The authentication key column in both the nonce table and the public key table
-     */
-    const KEY = 16;
-
-    /**
-     * Whether the authentication key has been disabled, in the public key table
-     */
-    CONST DISABLED = 128;
-
-    /**
-     * The server unlock key in the public key table
-     */
-    const SUK = 32;
-
-    /**
-     * The verify unlock key in the public key table
-     */
-    const VUK = 64;
     
-    /**
-     * Whether a nonce has been verified
-     */
-    const VERIFIED = 256;
+    const IDENTITY_ACTIVE = 1;
+    
+    const IDENTITY_UNKNOWN = 2;
+    
+    const IDENTITY_LOCKED = 3;
 
     /**
      * Directly set the database connection rather than letting SqrlStore create one
@@ -101,7 +63,7 @@ interface SqrlStoreInterface
      *
      * @throws SqrlException If there is a database issue
      */
-    public function storeNut($nut, $ip, $type = SqrlRequestHandlerInterface::INITIAL_REQUEST, $key = null);
+    public function storeNut($nut, $ip, $type = 0, $key = null);
 
     /**
      * Retrieves information about the supplied nut
@@ -150,6 +112,48 @@ interface SqrlStoreInterface
     public function storeIdentityLock($key, $suk, $vuk);
 
     /**
+     * Checks the status of an identity key
+     * 
+     * @param string $key
+     * 
+     * @return int One of the class key status constants
+     */
+    public function checkIdentityKey($key);
+    
+    /**
+     * Activates a session
+     * 
+     * @param string $requestNut The nut of the current request that is being logged in
+     * 
+     * @return void
+     */
+    public function logSessionIn($requestNut);
+    
+    /**
+     * Stores a new identity key along with the Identity Lock information
+     * 
+     * @param string $key
+     * @param string $suk
+     * @param string $vuk
+     * 
+     * @return void
+     */
+    public function createIdentity($key,$suk,$vuk);
+    
+    /**
+     * Flags a session as no longer valid.
+     * 
+     * This should either immediatly destroy the session, or mark the session
+     * in such a way that it will be destroyed the next time it is accessed.
+     * 
+     * @param string $requestNut The nut of the curret request related to the session
+     *      to be destroyed
+     * 
+     * @return void
+     */
+    public function endSession($requestNut);
+    
+    /**
      * Locks an authentication key against further use until a successful unlock
      *
      * @param string $key The authentication key to lock
@@ -158,22 +162,46 @@ interface SqrlStoreInterface
      *
      * @throws SqrlException If there is a database issue
      */
-    public function lockKey($key);
-
+    public function lockIdentityKey($key);
+    
     /**
-     * Updates a user's key information after an identity unlock action
+     * Unlocks an authentication key allowing future authentication
      *
-     * Any value set to null will not get replaced. If newKey is updated, any disable
-     * locks on the key will be reset
-     *
-     * @param string $oldKey The key getting new information
-     * @param string $newKey [Optional] The authentication key replacing the old key
-     * @param string $newSuk [Optional] The replacement server unlock key
-     * @param string $newVuk [Optional] The replacement verify unlock key
+     * @param string $key The authentication key to lock
      *
      * @return void
      *
      * @throws SqrlException If there is a database issue
      */
-    public function migrateKey($oldKey, $newKey = null, $newSuk = null, $newVuk = null);
+    public function unlockIdentityKey($key);
+    
+    /**
+     * Gets an identity's SUK value in order for the client to use the Identity Unlock protocol
+     * 
+     * @param string $key The identity key
+     * 
+     * @return string The SUK value
+     */
+    public function getIdentitySUK($key);
+    
+    /**
+     * Gets an identity's VUK value in order for the client to use the Identity Unlock protocol
+     * 
+     * @param string $key The identity key
+     * 
+     * @return string The VUK value
+     */
+    public function getIdentityVUK($key);
+    
+    /**
+     * Updates a user's key information after an identity update action
+     *
+     * @param string $oldKey The key getting new information
+     * @param string $newKey The authentication key replacing the old key
+     *
+     * @return void
+     *
+     * @throws SqrlException If there is a database issue
+     */
+    public function updateIdentityKey($oldKey, $newKey);
 }
