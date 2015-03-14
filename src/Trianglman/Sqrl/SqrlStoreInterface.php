@@ -40,15 +40,6 @@ interface SqrlStoreInterface
     const IDENTITY_LOCKED = 3;
 
     /**
-     * Directly set the database connection rather than letting SqrlStore create one
-     *
-     * @param \PDO $db The database connection
-     *
-     * @return void
-     */
-    public function setDatabaseConnection(\PDO $db);
-
-    /**
      * Stores a nonce and the related information
      *
      * @param string $nonce  The nonce to store
@@ -75,41 +66,6 @@ interface SqrlStoreInterface
      *      'nutIP'=> string the IP address that requested the nut
      */
     public function getNutDetails($nut);
-
-    /**
-     * Stores a user's authentication key
-     *
-     * @param string $key The authentication key to store
-     *
-     * @return int The authentication key's ID
-     *
-     * @throws SqrlException If there is a database issue
-     */
-    public function storeAuthenticationKey($key);
-
-    /**
-     * Returns information about a supplied authentication key
-     *
-     * @param string $key    The key to retrieve information on
-     * @param array  $values [Optional] an array of data columns to return
-     *                       Defaults to all if left null
-     *
-     * @return array
-     */
-    public function retrieveAuthenticationRecord($key, $values = null);
-
-    /**
-     * Attaches a server unlock key and verify unlock key to an authentication key
-     *
-     * @param string $key The authentication key to associate the data with
-     * @param string $suk The server unlock key to associate
-     * @param string $vuk the verify unlock key to associate
-     *
-     * @return void
-     *
-     * @throws SqrlException If there is a database issue
-     */
-    public function storeIdentityLock($key, $suk, $vuk);
 
     /**
      * Checks the status of an identity key
