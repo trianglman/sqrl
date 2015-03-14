@@ -39,48 +39,57 @@ class SqrlGenerate implements SqrlGenerateInterface
 
     protected $nonce = '';
 
-    protected $requestorIP = 0;
-    
     /**
      *
      * @var SqrlConfiguration
      */
     protected $configuration = null;
     
-    public function __construct(
-        SqrlConfiguration $config, 
-        SqrlStoreInterface $storage=null
-        )
+    public function __construct(SqrlConfiguration $config,  SqrlStoreInterface $storage)
     {
         $this->configuration = $config;
         $this->store = $storage;
     }
     
-    public function setNonce($nonce,$action = 0, $key = '')
-    {
-        $this->nonce = $nonce;
-        if (!is_null($this->store)) {
-            $this->store->storeNut($this->nonce, $this->requestorIP, $action, $key);
-        }
-    }
-
-    public function getNonce($action = 0, $key = '')
+    /**
+     * Returns the generated nonce
+     *
+     * @param int    $action [Optional] The type of action this nonce is being generated for
+     * @param string $key [Optional] The public key associated with the nonce
+     * @param string $previousNonce [Optional] The previous nonce in the transaction that should be associated to this nonce
+     *
+     * @return string The one time use string for the QR link
+     */
+    public function getNonce($action = 0, $key = '', $previousNonce='')
     {
         if (empty($this->nonce)) {
-            $this->generateNonce($action, $key);
+            if ($action === 0) {
+                $check = $this->store->getSessionNonce();
+                if (!empty($check)) {
+                    $this->nonce = $check;
+                    return $this->nonce;
+                }
+            }
+            $this->generateNonce($action, $key,$previousNonce);
         }
 
         return $this->nonce;
     }
 
-    public function getUrl()
+    public function generateQry()
     {
-        return $this->buildUrl();
+        $currentPathParts = parse_url($this->configuration->getAuthenticationPath());
+        $pathAppend = (empty($currentPathParts['query'])?'?':'&').'nut=';
+
+        return $this->configuration->getAuthenticationPath().$pathAppend.$this->getNonce();
     }
 
-    public function setStorage(SqrlStoreInterface $storage)
+    public function getUrl()
     {
-        $this->store = $storage;
+        return ($this->configuration->getSecure() ? 's' : '').'qrl://'
+                .$this->configuration->getDomain()
+                .(strpos($this->configuration->getDomain(),'/') !== false ? '|' : '/')
+                .$this->generateQry();
     }
 
     public function render($outputFile)
@@ -93,22 +102,6 @@ class SqrlGenerate implements SqrlGenerateInterface
     }
 
     /**
-     * Sets the IP of the user who requested the SQRL image
-     *
-     * @param string $ip
-     *
-     * @throws \InvalidArgumentException
-     * @return void
-     */
-    public function setRequestorIp($ip)
-    {
-        if (!filter_var($ip, FILTER_VALIDATE_IP, FILTER_FLAG_IPV4)) {
-            throw new \InvalidArgumentException('Not a valid IPv4');
-        }
-        $this->requestorIP = ip2long($ip);
-    }
-
-    /**
      * Generates a random, one time use key to be used in the sqrl validation
      *
      * The implementation of this may get more complicated depending on the
@@ -116,64 +109,17 @@ class SqrlGenerate implements SqrlGenerateInterface
      * make this library more (or less) secure should override this function
      * to strengthen (or weaken) the randomness of the generation.
      *
-     * @param int $action [Optional] The type of action this nonce is being generated for
-     *
-     * @see SqrlRequestHandler
-     *
+     * @param int    $action [Optional] The type of action this nonce is being generated for
      * @param string $key [Optional] The public key associated with the nonce
+     * @param string $previousNonce [Optional] The previous nonce in the transaction that should be associated to this nonce
      *
      * @return string
      */
-    protected function generateNonce($action = 0, $key = '')
+    protected function generateNonce($action = 0, $key = '', $previousNonce='')
     {
         $this->nonce = hash_hmac('sha256', uniqid('', true), $this->configuration->getNonceSalt());
-        if (!is_null($this->store)) {
-            $this->store->storeNut($this->nonce, $this->requestorIP, $action, $key);
-        }
-
+        $this->store->storeNonce($this->nonce, $action, $key,$previousNonce);
         return $this->nonce;
-    }
-
-    /**
-     * Generates the URL to display in the QR code
-     *
-     * Separated this out to break out the logic that determines how to append
-     * to the URL. This can be extended to add extra SQRL validation to add
-     * requests for user information if that is determined to be valid in the
-     * standard.
-     *
-     * @return string
-     */
-    protected function buildUrl()
-    {
-        $url = ($this->configuration->getSecure() ? 's' : '').'qrl://'
-                .$this->configuration->getDomain()
-                .(strpos($this->configuration->getDomain(),'/') !== false ? '|' : '/')
-                .$this->configuration->getAuthenticationPath();
-        $currentPathParts = parse_url($url);
-        if (!empty($currentPathParts['query'])) {
-            $pathAppend = '&nut=';
-        } else {
-            $pathAppend = '?nut=';
-        }
-
-        return $url.$pathAppend.$this->getNonce();
-    }
-    
-    public function generateQry()
-    {
-        $url = ($this->configuration->getSecure() ? 's' : '').'qrl://'
-                .$this->configuration->getDomain()
-                .(strpos($this->configuration->getDomain(),'/') !== false ? '|' : '/')
-                .$this->configuration->getAuthenticationPath();
-        $currentPathParts = parse_url($url);
-        if (!empty($currentPathParts['query'])) {
-            $pathAppend = '&nut=';
-        } else {
-            $pathAppend = '?nut=';
-        }
-
-        return $this->configuration->getAuthenticationPath().$pathAppend.$this->getNonce();
     }
 
 }

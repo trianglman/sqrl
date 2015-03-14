@@ -31,24 +31,6 @@ namespace Trianglman\Sqrl;
 interface SqrlGenerateInterface
 {
     /**
-     * Sets an object to be used to store and retrieve SQRL information
-     *
-     * @param SqrlStoreInterface $storage
-     *
-     * @return void
-     */
-    public function setStorage(SqrlStoreInterface $storage);
-
-    /**
-     * Sets the IP of the user who requested the SQRL image
-     *
-     * @param string $ip
-     *
-     * @return void
-     */
-    public function setRequestorIp($ip);
-
-    /**
      * Generates the QR code image
      *
      * @param string $outputFile
@@ -61,14 +43,12 @@ interface SqrlGenerateInterface
      * Returns the generated nonce
      *
      * @param int    $action [Optional] The type of action this nonce is being generated for
+     * @param string $key [Optional] The public key associated with the nonce
+     * @param string $previousNonce [Optional] The previous nonce in the transaction that should be associated to this nonce
      *
-     * @see SqrlRequestHandler
-     *
-     * @param string $key    [Optional] The public key associated with the nonce
-     *
-     * @return string The one time use number for the QR link
+     * @return string The one time use string for the QR link
      */
-    public function getNonce($action = 0, $key = '');
+    public function getNonce($action = 0, $key = '', $previousNonce='');
 
     /**
      * Gets the validation URL including the nonce
@@ -76,23 +56,6 @@ interface SqrlGenerateInterface
      * @return string
      */
     public function getUrl();
-    
-    /**
-     * Sets the nonce manually
-     * 
-     * This should only be used during testing or when generating an encrypted instead of random nonce
-     * 
-     * @param string $nonce  The pre-generated nonce
-     *
-     * @param int    $action [Optional] The type of action this nonce is being generated for
-     * 
-     * @see SqrlRequestHandler
-     *
-     * @param string $key    [Optional] The public key associated with the nonce
-     * 
-     * @return void
-     */
-    public function setNonce($nonce,$action = 0, $key = '');
     
     /**
      * Generates the qry parameter to send in server responses

@@ -37,83 +37,184 @@ class SqrlGenerateTest extends \PHPUnit_Framework_TestCase
     
     protected $config = null;
     
+    protected $storage = null;
+    
     public function setup()
     {
         $this->config = $this->getMock('\Trianglman\Sqrl\SqrlConfiguration');
         $this->config->expects($this->any())->method('getNonceSalt')
                 ->will($this->returnValue('randomsalt'));
+        $this->storage = $this->getMock('\Trianglman\Sqrl\SqrlStoreInterface');
     }
     
-    public function testGeneratesUniqueNonce()
-    {
-
-        $createdNonces = array();
-        $obj = new SqrlGenerate($this->config);
-        $createdNonces[] = $obj->getNonce();
-        for ($x = 0; $x < 10; $x++) {
-            $checkObj = new SqrlGenerate($this->config);
-            $checkNonce = $checkObj->getNonce();
-            $this->assertFalse(in_array($checkNonce, $createdNonces));
-            $createdNonces[] = $checkNonce;
-        }
-        $this->assertEquals($createdNonces[0], $obj->getNonce());
-    }
-
     /**
-     * @depends testGeneratesUniqueNonce
+     * Tests the getNonce() function when called with no arguments
+     * 
+     * This should check the storage for an existing nonce, find nothing, 
+     * generate a completely random nonce, and send it to the storage for stateful
+     * saving
      */
-    public function testGeneratesUrlNoQueryString()
+    public function testGeneratesStatefulNonceInitialRequest()
     {
-        $this->config->expects($this->any())->method('getSecure')
-                ->will($this->returnValue(true));
+        $this->storage->expects($this->once())
+                ->method('getSessionNonce')
+                ->will($this->returnValue(null));
+        $this->storage->expects($this->once())
+                ->method('storeNonce')
+                ->with($this->anything(),$this->equalTo(0),$this->equalTo(''),$this->equalTo(''))
+                ->will($this->returnCallback(function($nut,$tif,$key,$oldnut) {
+                    $this->assertRegExp('/[a-z0-9]{64}/',$nut,'Nut is not properly formatted');
+                }));
+        $obj = new SqrlGenerate($this->config,$this->storage);
+        $obj->getNonce();
+    }
+    
+    /**
+     * Tests the getNonce() function when called with no arguments where storage is
+     * semi-stateless
+     * 
+     * This should check the storage for an existing nonce, find nothing, and
+     * request a semi-stateless nut from storage
+     */
+    public function testGeneratesStatelessNonceInitialRequest()
+    {
+        $this->markTestIncomplete();
+        $storage = $this->getMock('\Trianglman\Sqrl\SqrlStoreStatelessAbstract');
+        $obj = new SqrlGenerate($this->config,$storage);
+        //expected should be set from what is set in the storage mock
+        $this->assertEquals('semi-stateless nut',$obj->getNonce());
+    }
+    
+    /**
+     * Tests the getNonce() function when called with no arguments where storage 
+     * already holds an active nonce
+     * 
+     * This should check the storage for an existing nonce and find it
+     */
+    public function testReloadsActiveNonce()
+    {
+        $this->storage->expects($this->once())
+                ->method('getSessionNonce')
+                ->will($this->returnValue('stored nut'));
+        $this->storage->expects($this->never())->method('storeNonce');
+        $obj = new SqrlGenerate($this->config,$this->storage);
+        $this->assertEquals('stored nut', $obj->getNonce());
+    }
+    
+    /**
+     * Tests the getNonce() function when called with previous nut state arguments
+     * 
+     * This should generate a completely random nonce and store it and the previous
+     * state information
+     * @depends testGeneratesStatefulNonceInitialRequest
+     */
+    public function testGeneratesStatefulNonceSecondLoop()
+    {
+        $this->storage->expects($this->never())
+                ->method('getSessionNonce')
+                ->will($this->returnValue(null));
+        $this->storage->expects($this->once())
+                ->method('storeNonce')
+                ->with($this->anything(),$this->equalTo(5),$this->equalTo('validkey'),$this->equalTo('previousNut'))
+                ->will($this->returnCallback(function($nut,$tif,$key,$oldnut) {
+                    $this->assertRegExp('/[a-z0-9]{64}/',$nut,'Nut is not properly formatted');
+                }));
+        $obj = new SqrlGenerate($this->config,$this->storage);
+        $obj->getNonce(5,'validkey','previousNut');
+    }
+    
+    /**
+     * Tests the getNonce() function when called with no arguments where storage is
+     * semi-stateless when called with previous nut state arguments
+     * 
+     * This should request a semi-stateless nut from storage including the previous
+     * state information
+     * 
+     * @depends testGeneratesStatelessNonceInitialRequest
+     */
+    public function testGeneratesStatelessNonceSecondLoop()
+    {
+        $this->markTestIncomplete();
+        $storage = $this->getMock('\Trianglman\Sqrl\SqrlStoreStatelessAbstract');
+        $obj = new SqrlGenerate($this->config,$storage);
+        //expected should be set from what is set in the storage mock
+        $this->assertEquals('semi-stateless nut',$obj->getNonce());
+    }
+    
+    /**
+     * @depends testReloadsActiveNonce
+     */
+    public function testGeneratesQryNoQueryString()
+    {
+        $this->storage->expects($this->once())
+                ->method('getSessionNonce')
+                ->will($this->returnValue('storednut'));
         $this->config->expects($this->any())->method('getDomain')
                 ->will($this->returnValue('example.com'));
         $this->config->expects($this->any())->method('getAuthenticationPath')
                 ->will($this->returnValue('sqrl'));
         
-        $obj = new SqrlGenerate($this->config);
-        $nonce = $obj->getNonce();
-        $this->assertEquals('sqrl://example.com/sqrl?nut='.$nonce, $obj->getUrl());
+        $obj = new SqrlGenerate($this->config,$this->storage);
+        $this->assertEquals('sqrl?nut=storednut', $obj->generateQry());
     }
-
+    
     /**
-     * @depends testGeneratesUniqueNonce
+     * @depends testReloadsActiveNonce
      */
-    public function testGeneratesUrlQueryString()
+    public function testGeneratesQryWithQueryString()
     {
-        $this->config->expects($this->any())->method('getSecure')
-                ->will($this->returnValue(false));
+        $this->storage->expects($this->once())
+                ->method('getSessionNonce')
+                ->will($this->returnValue('storednut'));
         $this->config->expects($this->any())->method('getDomain')
-                ->will($this->returnValue('example.com/unique'));
+                ->will($this->returnValue('example.com'));
         $this->config->expects($this->any())->method('getAuthenticationPath')
                 ->will($this->returnValue('sqrl?foo=bar'));
         
-        $obj = new SqrlGenerate($this->config);
-        $nonce = $obj->getNonce();
-        $this->assertEquals('qrl://example.com/unique|sqrl?foo=bar&nut='.$nonce, $obj->getUrl());
+        $obj = new SqrlGenerate($this->config,$this->storage);
+        $this->assertEquals('sqrl?foo=bar&nut=storednut', $obj->generateQry());
+    }
+    
+    /**
+     * @depends testGeneratesQryNoQueryString
+     */
+    public function testGeneratesUrl()
+    {
+        $this->storage->expects($this->once())
+                ->method('getSessionNonce')
+                ->will($this->returnValue('storednut'));
+        $this->config->expects($this->any())->method('getDomain')
+                ->will($this->returnValue('example.com'));
+        $this->config->expects($this->any())->method('getAuthenticationPath')
+                ->will($this->returnValue('sqrl'));
+        $this->config->expects($this->any())->method('getSecure')
+                ->will($this->returnValue(true));
+        
+        $obj = new SqrlGenerate($this->config,$this->storage);
+        $this->assertEquals('sqrl://example.com/sqrl?nut=storednut', $obj->getUrl());
     }
 
     /**
-     * @depends testGeneratesUrlNoQueryString
+     * @depends testGeneratesUrl
      */
     public function testRenders()
     {
+        $this->storage->expects($this->once())->method('getSessionNonce')
+                ->will($this->returnValue('storednut'));
+        $this->config->expects($this->any())->method('getDomain')
+                ->will($this->returnValue('example.com'));
+        $this->config->expects($this->any())->method('getAuthenticationPath')
+                ->will($this->returnValue('sqrl'));
         $this->config->expects($this->any())->method('getSecure')
                 ->will($this->returnValue(true));
-        $this->config->expects($this->any())->method('getDomain')
-                ->will($this->returnValue('domain.com'));
-        $this->config->expects($this->any())->method('getAuthenticationPath')
-                ->will($this->returnValue('login/sqrlauth.php'));
         $this->config->expects($this->any())->method('getQrHeight')
                 ->will($this->returnValue(30));
         $this->config->expects($this->any())->method('getQrPadding')
                 ->will($this->returnValue(1));
         
-        
-        $obj = new SQRLGenerate($this->config);
-        $nonce = $obj->getNonce();
+        $obj = new SQRLGenerate($this->config,$this->storage);
         $expected = new QrCode();
-        $expected->setText('sqrl://domain.com/login/sqrlauth.php?nut='.$nonce);
+        $expected->setText('sqrl://example.com/sqrl?nut=storednut');
         $expected->setSize(30);
         $expected->setPadding(1);
         $expected->render(dirname(__FILE__).'/expected.png');

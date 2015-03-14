@@ -51,19 +51,16 @@ interface SqrlStoreInterface
     /**
      * Stores a nonce and the related information
      *
-     * @param string $nut  The nonce to store
-     * @param int    $ip   The IP of the user the nonce is associated with
-     * @param int    $type [Optional] The action this nonce is associated with
-     *
-     * @see SqrlRequestHandlerInterface
-     *
-     * @param string $key  [Optional] The authentication key associated with the nonce action
+     * @param string $nonce  The nonce to store
+     * @param int $action The tif related to the nonce
+     * @param string $key [Optional] The identity key related to the nonce
+     * @param string $previousNonce [Optional] The previous nonce related to the nonce
      *
      * @return void
      *
      * @throws SqrlException If there is a database issue
      */
-    public function storeNut($nut, $ip, $type = 0, $key = null);
+    public function storeNonce($nonce, $action, $key='', $previousNonce='');
 
     /**
      * Retrieves information about the supplied nut
@@ -204,4 +201,11 @@ interface SqrlStoreInterface
      * @throws SqrlException If there is a database issue
      */
     public function updateIdentityKey($oldKey, $newKey);
+    
+    /**
+     * Gets the current active nonce for the user's session if there is any
+     * 
+     * @return string
+     */
+    public function getSessionNonce();
 }
