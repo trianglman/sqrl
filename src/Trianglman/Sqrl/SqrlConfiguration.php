@@ -86,48 +86,6 @@ class SqrlConfiguration
      */
     protected $anonAllowed = false;
     /**
-     * A \PDO recognized database dsn
-     * Required if SQRL will manage its database connection
-     * 
-     * @var string
-     */
-    protected $dsn = '';
-    /**
-     * The database user name
-     * Required if SQRL will manage its database connection and needs a user name
-     * 
-     * @var string
-     */
-    protected $username = '';
-    /**
-     * The database password
-     * Required if SQRL will manage its database connection and needs a password
-     * 
-     * @var string
-     */
-    protected $password = '';
-    /**
-     * The database table where nonces are stored
-     * Required if SQRL will manage reading and storing nonces
-     * 
-     * @var string
-     */
-    protected $nonceTable = '';
-    /**
-     * The database table where nonce relationships are stored
-     * Required if SQRL will manage reading and storing nonces
-     * 
-     * @var string
-     */
-    protected $nonceRelationshipTable = '';
-    /**
-     * The database table where SQRL public keys are stored
-     * Required if SQRL will manage reading and storing public keys
-     * 
-     * @var string
-     */
-    protected $pubKeyTable = '';
-    /**
      * Time in minutes that a nonce is considered valid
      * 
      * Default 5
@@ -196,12 +154,6 @@ class SqrlConfiguration
         $this->setAnonAllowed(
                 !empty($decoded->allow_anonymous_accounts) && (int)$decoded->allow_anonymous_accounts>0
                 );
-        $this->setDsn(!empty($decoded->dsn)?$decoded->dsn:'');
-        $this->setUsername(!empty($decoded->username)?$decoded->username:'');
-        $this->setPassword(!empty($decoded->password)?$decoded->password:'');
-        $this->setNonceTable(!empty($decoded->nonce_table)?$decoded->nonce_table:'');
-        $this->setNonceRelationshipTable(!empty($decoded->nonce_relationship_table)?$decoded->nonce_relationship_table:'');
-        $this->setPubKeyTable(!empty($decoded->pubkey_table)?$decoded->pubkey_table:'');
         if (!empty($decoded->nonce_max_age)) {
             $this->setNonceMaxAge($decoded->nonce_max_age);
         }
@@ -265,56 +217,6 @@ class SqrlConfiguration
      */
     public function getAnonAllowed() {
         return $this->anonAllowed;
-    }
-
-    /**
-     * Gets a \PDO recognized database dsn
-     * 
-     * @return string
-     */
-    public function getDsn() {
-        return $this->dsn;
-    }
-
-    /**
-     * Gets the database user name
-     * 
-     * @return string
-     */
-    public function getUsername() {
-        return $this->username;
-    }
-
-    /**
-     * Gets the database password
-     * 
-     * @return string
-     */
-    public function getPassword() {
-        return $this->password;
-    }
-
-    /**
-     * Gets the database table where nonces are stored
-     * 
-     * @return string
-     */
-    public function getNonceTable() {
-        return $this->nonceTable;
-    }
-    
-    public function getNonceRelationshipTable()
-    {
-        return $this->nonceRelationshipTable;
-    }
-
-    /**
-     * Gets the database table where SQRL public keys are stored
-     * 
-     * @return string
-     */
-    public function getPubKeyTable() {
-        return $this->pubKeyTable;
     }
 
     /**
@@ -424,79 +326,6 @@ class SqrlConfiguration
      */
     public function setAnonAllowed($anonAllowed) {
         $this->anonAllowed = (bool)$anonAllowed;
-        return $this;
-    }
-
-    /**
-     * Sets a \PDO recognized database dsn
-     * 
-     * @param string $dsn
-     * 
-     * @return SqrlConfiguration
-     */
-    public function setDsn($dsn) {
-        $this->dsn = $dsn;
-        return $this;
-    }
-
-    /**
-     * Sets the database user name
-     * 
-     * @param string $username
-     * 
-     * @return SqrlConfiguration
-     */
-    public function setUsername($username) {
-        $this->username = $username;
-        return $this;
-    }
-
-    /**
-     * Sets the database password
-     * 
-     * @param string $password
-     * 
-     * @return SqrlConfiguration
-     */
-    public function setPassword($password) {
-        $this->password = $password;
-        return $this;
-    }
-
-    /**
-     * Sets the database table where nonces are stored
-     * 
-     * @param string $nonceTable
-     * 
-     * @return SqrlConfiguration
-     */
-    public function setNonceTable($nonceTable) {
-        $this->nonceTable = $nonceTable;
-        return $this;
-    }
-    
-    /**
-     * Sets the database table where nonce relationships are stored
-     * 
-     * @param string $table
-     * 
-     * @return SqrlConfiguration
-     */
-    public function setNonceRelationshipTable($table)
-    {
-        $this->nonceRelationshipTable = $table;
-        return $this;
-    }
-
-    /**
-     * Sets the database table where SQRL public keys are stored
-     * 
-     * @param string $pubKeyTable
-     * 
-     * @return SqrlConfiguration
-     */
-    public function setPubKeyTable($pubKeyTable) {
-        $this->pubKeyTable = $pubKeyTable;
         return $this;
     }
 

@@ -63,14 +63,36 @@ class SqrlConfigurationTest extends \PHPUnit_Framework_TestCase
         $this->assertEquals('My Example Server',$obj->getFriendlyName());
         $this->assertTrue($obj->getSecure());
         $this->assertTrue($obj->getAnonAllowed());
-        $this->assertEquals('mysql:host=localhost;dbname=sqrl',$obj->getDsn());
-        $this->assertEquals('foo',$obj->getUsername());
-        $this->assertEquals('bar',$obj->getPassword());
-        $this->assertEquals('sqrl_nonce',$obj->getNonceTable());
-        $this->assertEquals('sqrl_pubkey',$obj->getPubKeyTable());
         $this->assertEquals(9,$obj->getNonceMaxAge());
         $this->assertEquals(250,$obj->getQrHeight());
         $this->assertEquals(5,$obj->getQrPadding());
         $this->assertEquals('gibberish data',$obj->getNonceSalt());
+    }
+    
+    /**
+     * @expectedException \InvalidArgumentException
+     * @expectedExceptionMessage Configuration data could not be parsed.
+     */
+    public function testExceptionOnFileNotExisting()
+    {
+        $obj = new SqrlConfiguration();
+        $obj->load(__DIR__.'/Resources/file_does_not_exist.json');
+    }
+    
+    /**
+     * @expectedException \InvalidArgumentException
+     * @expectedExceptionMessage Configuration data could not be parsed.
+     */
+    public function testExceptionOnInvalidJsonFormat()
+    {
+        $obj = new SqrlConfiguration();
+        $obj->load(__DIR__.'/Resources/bad.json');
+    }
+    
+    public function testSetAcceptedVersionsWithSingleValue()
+    {
+        $obj = new SqrlConfiguration();
+        $obj->setAcceptedVersions(1);
+        $this->assertEquals(array(1),$obj->getAcceptedVersions());
     }
 }
