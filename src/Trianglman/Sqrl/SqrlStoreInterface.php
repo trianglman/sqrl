@@ -66,12 +66,15 @@ interface SqrlStoreInterface
      * Retrieves information about the supplied nut
      *
      * @param string $nut    The nonce to retrieve information on
-     * @param array  $values [Optional] an array of data columns to return
-     *                       Defaults to all if left null
      *
-     * @return array
+     * @return array:
+     *      'tif'=> int The tif stored with the nut (0 for first request nuts)
+     *      'originalKey'=> string The key associated with the nut, if any
+     *      'originalNut'=> string The nut that came before this one in the transaction, if any
+     *      'createdDate'=> \DateTime The time the nut was created
+     *      'nutIP'=> string the IP address that requested the nut
      */
-    public function retrieveNutRecord($nut, $values = null);
+    public function getNutDetails($nut);
 
     /**
      * Stores a user's authentication key

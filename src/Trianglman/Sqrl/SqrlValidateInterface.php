@@ -38,15 +38,6 @@ interface SqrlValidateInterface
     const EXPIRED_NUT = 1;
     const INVALID_NUT = 2;
     /**
-     * Sets an object to be used to store and retrieve SQRL information
-     *
-     * @param SqrlStoreInterface $storage
-     *
-     * @return void
-     */
-    public function setStorage(SqrlStoreInterface $storage);
-    
-    /**
      * Validates the returned server value
      * 
      * @param string $server The returned server value
@@ -65,99 +56,6 @@ interface SqrlValidateInterface
      * @return int One of the nut class constants
      */
     public function validateNut($nut);
-
-    /**
-     * Sets the authenticating key
-     *
-     * @param string $key The base64 encoded key
-     *
-     * @return void
-     */
-    public function setAuthenticateKey($key);
-
-    /**
-     * Sets the signature of the authenticating key
-     *
-     * @param string $sig The base64 encoded signature
-     *
-     * @return void
-     */
-    public function setAuthenticateSignature($sig);
-
-    /**
-     * Sets the server data that was signed by the key(s)
-     *
-     * @param string $val
-     *
-     * @return void
-     */
-    public function setSignedServerVal($val);
-
-    /**
-     * Sets the clientval value that was signed by the key(s)
-     *
-     * @param string $val
-     *
-     * @return void
-     */
-    public function setSignedClientVal($val);
-
-    /**
-     * Sets the client's SQRL version
-     *
-     * @param int $version The client's version
-     *
-     * @return void
-     */
-    public function setClientVer($version);
-
-    /**
-     * Sets the nonce being validated
-     *
-     * @param string $nonce
-     *
-     * @return void
-     *
-     * @throws SqrlException If the nonce is not valid (either expired or not found in the database)
-     */
-    public function setNonce($nonce);
-
-    /**
-     * Verifies that the server data sent back by the requestor matches
-     * the data that was originally sent with the nonce
-     * 
-     * @param int $requestType The request type the nut is claimed to be sent for
-     * @param boolean $https Whether the request was secure
-     * @param string|array $serverData The server= information sent by the client
-     * 
-     * @return boolean
-     */
-    public function matchServerData($requestType,$https,$serverData);
-
-    /**
-     * Validates that the supplied signature matches the public key
-     *
-     * @return boolean
-     */
-    public function validate();
-
-    /**
-     * Sets whether to enforce the same IP check
-     *
-     * @param boolean $bool
-     *
-     * @return void
-     */
-    public function setEnforceIP($bool);
-
-    /**
-     * Sets the IP of the user who requested the SQRL image
-     *
-     * @param string $ip
-     *
-     * @return void
-     */
-    public function setRequestorIp($ip);
 
     /**
      * Validates a secondary request signature (Unlock Request or New Key)
