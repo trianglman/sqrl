@@ -138,6 +138,9 @@ abstract class SqrlStoreStatelessAbstract implements SqrlStoreInterface
         if (!in_array($nut,$currentNuts)) {
             return null;//this session never had this nut, somehow...
         }
+        if ($currentNuts[count($currentNuts)-1]!==$nut) {
+            return null;//someone is trying to resign an older nut
+        }
         
         return array(
             'tif'=> $tif,

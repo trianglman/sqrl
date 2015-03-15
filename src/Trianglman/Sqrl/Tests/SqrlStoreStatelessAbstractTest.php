@@ -179,6 +179,18 @@ class SqrlStoreStatelessAbstractTest extends \PHPUnit_Framework_TestCase
                 ->will($this->returnValue(array('sqrl_nuts'=>'someothernut')));
         $this->assertNull($this->testStub->getNutDetails($nut));
     }
+    
+    /**
+     * 
+     * @depends testGeneratesAndReadsNewNut
+     */
+    public function testRejectsNutNotNewestInSession($nut)
+    {
+        $this->testStub->expects($this->any())->method('getSessionInfo')
+                ->with($this->equalTo('currentSessionID of long length'))
+                ->will($this->returnValue(array('sqrl_nuts'=>$nut.';someothernut')));
+        $this->assertNull($this->testStub->getNutDetails($nut));
+    }
     /**
      * 
      * @depends testGeneratesAndReadsNewNut
