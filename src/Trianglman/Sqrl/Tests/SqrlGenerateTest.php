@@ -56,6 +56,9 @@ class SqrlGenerateTest extends \PHPUnit_Framework_TestCase
      */
     public function testGeneratesStatefulNonceInitialRequest()
     {
+        if (substring(PHP_VERSION,0,1)<5 || substring(PHP_VERSION,2,1)<4) {
+            $this->markTestSkipped('This test uses a PHP 5.4+ feature');
+        }
         $this->storage->expects($this->once())
                 ->method('getSessionNonce')
                 ->will($this->returnValue(null));
@@ -116,6 +119,9 @@ class SqrlGenerateTest extends \PHPUnit_Framework_TestCase
      */
     public function testGeneratesStatefulNonceSecondLoop()
     {
+        if (substring(PHP_VERSION,0,1)<5 || substring(PHP_VERSION,2,1)<4) {
+            $this->markTestSkipped('This test uses a PHP 5.4+ feature');
+        }
         $this->storage->expects($this->never())
                 ->method('getSessionNonce')
                 ->will($this->returnValue(null));
