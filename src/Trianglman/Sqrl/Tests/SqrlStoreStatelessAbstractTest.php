@@ -101,7 +101,7 @@ class SqrlStoreStatelessAbstractTest extends \PHPUnit_Framework_TestCase
      */
     public function testGeneratesAndReadsSecondLoopNut($nut)
     {
-        if (substring(PHP_VERSION,0,1)<5 || substring(PHP_VERSION,2,1)<4) {
+        if (substr(PHP_VERSION,0,1)<5 || substr(PHP_VERSION,2,1)<4) {
             $this->markTestSkipped('This test uses a PHP 5.4+ feature');
         }
         $sessionData = array('sqrl_nuts'=>$nut);
