@@ -28,7 +28,7 @@ namespace Trianglman\Sqrl\Tests;
 use Trianglman\Sqrl\SqrlConfiguration;
 
 /**
- * Description of SqrlConfigurationTest
+ * Tests for SqrlConfiguration
  *
  * @author johnj
  */

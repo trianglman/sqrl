@@ -78,10 +78,16 @@ class SqrlGenerateTest extends \PHPUnit_Framework_TestCase
      */
     public function testGeneratesStatelessNonceInitialRequest()
     {
-        $this->markTestIncomplete();
-        $storage = $this->getMock('\Trianglman\Sqrl\SqrlStoreStatelessAbstract');
+        $storage = $this->getMockBuilder('\Trianglman\Sqrl\SqrlStoreStatelessAbstract')
+                ->disableOriginalConstructor()
+                ->setMethods(array('generateNut'))
+                ->getMockForAbstractClass();
+        $storage->expects($this->once())->method('generateNut')
+                ->with($this->equalTo(0),$this->equalTo(''),$this->equalTo(''))
+                ->will($this->returnValue('semi-stateless nut'));
+        
         $obj = new SqrlGenerate($this->config,$storage);
-        //expected should be set from what is set in the storage mock
+        
         $this->assertEquals('semi-stateless nut',$obj->getNonce());
     }
     
@@ -134,11 +140,16 @@ class SqrlGenerateTest extends \PHPUnit_Framework_TestCase
      */
     public function testGeneratesStatelessNonceSecondLoop()
     {
-        $this->markTestIncomplete();
-        $storage = $this->getMock('\Trianglman\Sqrl\SqrlStoreStatelessAbstract');
+        $storage = $this->getMockBuilder('\Trianglman\Sqrl\SqrlStoreStatelessAbstract')
+                ->disableOriginalConstructor()
+                ->setMethods(array('generateNut'))
+                ->getMockForAbstractClass();
+        $storage->expects($this->once())->method('generateNut')
+                ->with($this->equalTo(5),$this->equalTo('validkey'),$this->equalTo('previousNut'))
+                ->will($this->returnValue('semi-stateless nut'));
+        
         $obj = new SqrlGenerate($this->config,$storage);
-        //expected should be set from what is set in the storage mock
-        $this->assertEquals('semi-stateless nut',$obj->getNonce());
+        $this->assertEquals('semi-stateless nut',$obj->getNonce(5,'validkey','previousNut'));
     }
     
     /**

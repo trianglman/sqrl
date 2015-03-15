@@ -23,8 +23,6 @@
  */
 namespace Trianglman\Sqrl;
 
-use Trianglman\Sqrl\SqrlException;
-
 /**
  * An object to handle storing and retrieving SQRL data
  *
@@ -48,8 +46,6 @@ interface SqrlStoreInterface
      * @param string $previousNonce [Optional] The previous nonce related to the nonce
      *
      * @return void
-     *
-     * @throws SqrlException If there is a database issue
      */
     public function storeNonce($nonce, $action, $key='', $previousNonce='');
 
@@ -64,6 +60,7 @@ interface SqrlStoreInterface
      *      'originalNut'=> string The nut that came before this one in the transaction, if any
      *      'createdDate'=> \DateTime The time the nut was created
      *      'nutIP'=> string the IP address that requested the nut
+     *      'sessionId'=> string the session ID for the nut [this is only required in stateless nuts]
      */
     public function getNutDetails($nut);
 
@@ -115,8 +112,6 @@ interface SqrlStoreInterface
      * @param string $key The authentication key to lock
      *
      * @return void
-     *
-     * @throws SqrlException If there is a database issue
      */
     public function lockIdentityKey($key);
     
@@ -126,8 +121,6 @@ interface SqrlStoreInterface
      * @param string $key The authentication key to lock
      *
      * @return void
-     *
-     * @throws SqrlException If there is a database issue
      */
     public function unlockIdentityKey($key);
     
@@ -156,8 +149,6 @@ interface SqrlStoreInterface
      * @param string $newKey The authentication key replacing the old key
      *
      * @return void
-     *
-     * @throws SqrlException If there is a database issue
      */
     public function updateIdentityKey($oldKey, $newKey);
     
