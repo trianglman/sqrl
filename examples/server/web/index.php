@@ -54,7 +54,7 @@
         </p>
         <p style="text-align: center;">
             <a href="<?php echo $sqrlUrl;?>">
-            <img src="sqrlImg.php?nonce=<?php echo $nonce;?>" title="Click or scan to log in" alt="SQRL QR Code" />
+            <img src="sqrlImg.php" title="Click or scan to log in" alt="SQRL QR Code" />
             </a><br />
             <a href="<?php echo $sqrlUrl;?>"><?php echo $sqrlUrl;?></a><br />
             <a href="/login/isNonceValidated.php">Verify Login</a><!-- This should also be automated with JavaScript for a smoother UX-->

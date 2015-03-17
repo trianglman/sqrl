@@ -26,12 +26,14 @@
  */
     namespace sqrlexample;
     require_once(__DIR__.'/../vendor/autoload.php');
-
+    require_once(__DIR__.'/../includes/ExampleStatefulStorage.php');
+    session_start();
+    
+    //configuration stuff
     $config = new \Trianglman\Sqrl\SqrlConfiguration();
     $config->load(__DIR__.'/../config/sqrlconfig.json');
-    $generator = new \Trianglman\Sqrl\SqrlGenerate($config);
+    $store = new ExampleStatefulStorage(new \PDO('mysql:host=localhost;dbname=sqrl', 'example', 'bar'),$_SERVER['REMOTE_ADDR'],$_SESSION);
+    $generator = new \Trianglman\Sqrl\SqrlGenerate($config,$store);
     
-    $generator->setNonce(filter_input(INPUT_GET, 'nonce', FILTER_SANITIZE_ENCODED));
-
     header('Content-Type: image/png');
     $generator->render(null);
