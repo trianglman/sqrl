@@ -25,27 +25,17 @@
  */
     namespace sqrlexample;
     require_once(__DIR__.'/../vendor/autoload.php');
+    require_once(__DIR__.'/../includes/ExampleStatefulStorage.php');
     session_start();
     
     //configuration stuff
     $config = new \Trianglman\Sqrl\SqrlConfiguration();
-    $config->load(__DIR__.'/../config/sqrlconfig.json');//you can also manually set config values
-    $generator = new \Trianglman\Sqrl\SqrlGenerate($config);
+    $config->load(__DIR__.'/../config/sqrlconfig.json');
+    $store = new ExampleStatefulStorage(new \PDO('mysql:host=localhost;dbname=sqrl', 'example', 'bar'),$_SERVER['REMOTE_ADDR'],$_SESSION);
+    $generator = new \Trianglman\Sqrl\SqrlGenerate($config,$store);
     
-    if(!isset($_SESSION['nonce']) || $_SESSION['generatedTime']<=time()-(60*$config->getNonceMaxAge())) {
-        //If the user doesn't have a valid nonce, create a new one and store it
-        $generator->setStorage(new \Trianglman\Sqrl\SqrlStore($config));
-        $generator->setRequestorIp($_SERVER['REMOTE_ADDR']);
-        $nonce = $generator->getNonce();
-        $sqrlUrl = $generator->getUrl();
-        $_SESSION['nonce'] = $nonce;//storing this in the session keeps attackers from tampering with it
-        $_SESSION['generatedTime'] = time();//this is just used to make it easy to check if the nonce needs to be refreshed
-    } else {
-        //the user already has a nonce, so just set up the generator with that nonce
-        $generator->setNonce($_SESSION['nonce']);
-        $nonce = $generator->getNonce();
-        $sqrlUrl = $generator->getUrl();
-    }
+    $nonce = $generator->getNonce();
+    $sqrlUrl = $generator->getUrl();
 ?>
 <!DOCTYPE html>
 <html>
