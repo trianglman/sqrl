@@ -53,11 +53,23 @@ class SqrlValidateTest extends \PHPUnit_Framework_TestCase
         $this->config->expects($this->any())->method('getDomain')
                 ->will($this->returnValue('example.com'));
         $this->config->expects($this->any())->method('getAuthenticationPath')
-                ->will($this->returnValue('sqrl'));
+                ->will($this->returnValue('/sqrl'));
         $this->config->expects($this->any())->method('getSecure')
                 ->will($this->returnValue(true));
         
         $this->assertTrue($this->obj->validateServer('sqrl://example.com/sqrl?nut=1234', '1234', '1'));
+    }
+    
+    public function testValidatesServerFromUrlWithExtendedDomain()
+    {
+        $this->config->expects($this->any())->method('getDomain')
+                ->will($this->returnValue('example.com/~user'));
+        $this->config->expects($this->any())->method('getAuthenticationPath')
+                ->will($this->returnValue('/~user/sqrl'));
+        $this->config->expects($this->any())->method('getSecure')
+                ->will($this->returnValue(true));
+        
+        $this->assertTrue($this->obj->validateServer('sqrl://example.com/~user/sqrl?nut=1234&d=6', '1234', '1'));
     }
     
     public function testValidatesServerFromUrlInvalidSecurity()
@@ -65,7 +77,7 @@ class SqrlValidateTest extends \PHPUnit_Framework_TestCase
         $this->config->expects($this->any())->method('getDomain')
                 ->will($this->returnValue('example.com'));
         $this->config->expects($this->any())->method('getAuthenticationPath')
-                ->will($this->returnValue('sqrl'));
+                ->will($this->returnValue('/sqrl'));
         $this->config->expects($this->any())->method('getSecure')
                 ->will($this->returnValue(true));
         
@@ -78,7 +90,7 @@ class SqrlValidateTest extends \PHPUnit_Framework_TestCase
         $this->config->expects($this->any())->method('getDomain')
                 ->will($this->returnValue('example.com'));
         $this->config->expects($this->any())->method('getAuthenticationPath')
-                ->will($this->returnValue('sqrl'));
+                ->will($this->returnValue('/sqrl'));
         $this->config->expects($this->any())->method('getSecure')
                 ->will($this->returnValue(true));
         
@@ -90,7 +102,7 @@ class SqrlValidateTest extends \PHPUnit_Framework_TestCase
         $this->config->expects($this->any())->method('getDomain')
                 ->will($this->returnValue('example.com'));
         $this->config->expects($this->any())->method('getAuthenticationPath')
-                ->will($this->returnValue('sqrl'));
+                ->will($this->returnValue('/sqrl'));
         $this->config->expects($this->any())->method('getSecure')
                 ->will($this->returnValue(true));
         
@@ -102,7 +114,7 @@ class SqrlValidateTest extends \PHPUnit_Framework_TestCase
         $this->config->expects($this->any())->method('getDomain')
                 ->will($this->returnValue('example.com'));
         $this->config->expects($this->any())->method('getAuthenticationPath')
-                ->will($this->returnValue('sqrl'));
+                ->will($this->returnValue('/sqrl'));
         $this->config->expects($this->any())->method('getSecure')
                 ->will($this->returnValue(true));
         
@@ -114,7 +126,7 @@ class SqrlValidateTest extends \PHPUnit_Framework_TestCase
         $this->config->expects($this->any())->method('getDomain')
                 ->will($this->returnValue('example.com'));
         $this->config->expects($this->any())->method('getAuthenticationPath')
-                ->will($this->returnValue('sqrl'));
+                ->will($this->returnValue('/sqrl'));
         $this->config->expects($this->any())->method('getSecure')
                 ->will($this->returnValue(true));
         
@@ -128,7 +140,7 @@ class SqrlValidateTest extends \PHPUnit_Framework_TestCase
         $this->config->expects($this->any())->method('getFriendlyName')
                 ->will($this->returnValue('Example Server'));
         $this->config->expects($this->any())->method('getAuthenticationPath')
-                ->will($this->returnValue('sqrl'));
+                ->will($this->returnValue('/sqrl'));
         $this->config->expects($this->any())->method('getSecure')
                 ->will($this->returnValue(true));
         $this->storage->expects($this->any())->method('getNutDetails')
@@ -141,13 +153,13 @@ class SqrlValidateTest extends \PHPUnit_Framework_TestCase
                     'nutIP'=>'192.168.0.105'
                     )));
         
-        $server = array('ver'=>'1','nut'=>'newNut','tif'=>'D','qry'=>'sqrl?nut=newNut','sfn'=>'Example Server','suk'=>$this->base64UrlEncode('validSUK'));
+        $server = array('ver'=>'1','nut'=>'newNut','tif'=>'D','qry'=>'/sqrl?nut=newNut','sfn'=>'Example Server','suk'=>$this->base64UrlEncode('validSUK'));
         $this->assertTrue($this->obj->validateServer($server, 'newNut', '1'));
     }
     
     public function testValidatesServerFromArrayMissingRequiredFields()
     {
-        $server = array('ver'=>'1','nut'=>'newNut','qry'=>'sqrl?nut=newNut','sfn'=>'Example Server','suk'=>$this->base64UrlEncode('validSUK'));
+        $server = array('ver'=>'1','nut'=>'newNut','qry'=>'/sqrl?nut=newNut','sfn'=>'Example Server','suk'=>$this->base64UrlEncode('validSUK'));
         $this->assertFalse($this->obj->validateServer($server, 'newNut', '1'));
     }
     
@@ -158,7 +170,7 @@ class SqrlValidateTest extends \PHPUnit_Framework_TestCase
         $this->config->expects($this->any())->method('getFriendlyName')
                 ->will($this->returnValue('Example Server'));
         $this->config->expects($this->any())->method('getAuthenticationPath')
-                ->will($this->returnValue('sqrl'));
+                ->will($this->returnValue('/sqrl'));
         $this->config->expects($this->any())->method('getSecure')
                 ->will($this->returnValue(true));
         $this->storage->expects($this->any())->method('getNutDetails')
@@ -171,7 +183,7 @@ class SqrlValidateTest extends \PHPUnit_Framework_TestCase
                     'nutIP'=>'192.168.0.105'
                     )));
         
-        $server = array('ver'=>'666','nut'=>'newNut','tif'=>'5','qry'=>'sqrl?nut=newNut','sfn'=>'Example Server','suk'=>$this->base64UrlEncode('validSUK'));
+        $server = array('ver'=>'666','nut'=>'newNut','tif'=>'5','qry'=>'/sqrl?nut=newNut','sfn'=>'Example Server','suk'=>$this->base64UrlEncode('validSUK'));
         $this->assertFalse($this->obj->validateServer($server, 'newNut', '1'));
     }
     
@@ -182,7 +194,7 @@ class SqrlValidateTest extends \PHPUnit_Framework_TestCase
         $this->config->expects($this->any())->method('getFriendlyName')
                 ->will($this->returnValue('Example Server'));
         $this->config->expects($this->any())->method('getAuthenticationPath')
-                ->will($this->returnValue('sqrl'));
+                ->will($this->returnValue('/sqrl'));
         $this->config->expects($this->any())->method('getSecure')
                 ->will($this->returnValue(true));
         $this->storage->expects($this->any())->method('getNutDetails')
@@ -195,7 +207,7 @@ class SqrlValidateTest extends \PHPUnit_Framework_TestCase
                     'nutIP'=>'192.168.0.105'
                     )));
         
-        $server = array('ver'=>'1','nut'=>'newNut','tif'=>'20','qry'=>'sqrl?nut=newNut','sfn'=>'Example Server','suk'=>$this->base64UrlEncode('validSUK'));
+        $server = array('ver'=>'1','nut'=>'newNut','tif'=>'20','qry'=>'/sqrl?nut=newNut','sfn'=>'Example Server','suk'=>$this->base64UrlEncode('validSUK'));
         $this->assertFalse($this->obj->validateServer($server, 'newNut', '1'));
     }
     
@@ -206,7 +218,7 @@ class SqrlValidateTest extends \PHPUnit_Framework_TestCase
         $this->config->expects($this->any())->method('getFriendlyName')
                 ->will($this->returnValue('Example Server'));
         $this->config->expects($this->any())->method('getAuthenticationPath')
-                ->will($this->returnValue('sqrl'));
+                ->will($this->returnValue('/sqrl'));
         $this->config->expects($this->any())->method('getSecure')
                 ->will($this->returnValue(true));
         $this->storage->expects($this->any())->method('getNutDetails')
@@ -219,7 +231,7 @@ class SqrlValidateTest extends \PHPUnit_Framework_TestCase
                     'nutIP'=>'192.168.0.105'
                     )));
         
-        $server = array('ver'=>'1','nut'=>'newNut','tif'=>'5','qry'=>'notsqrl?nut=newNut','sfn'=>'Example Server','suk'=>$this->base64UrlEncode('validSUK'));
+        $server = array('ver'=>'1','nut'=>'newNut','tif'=>'5','qry'=>'/notsqrl?nut=newNut','sfn'=>'Example Server','suk'=>$this->base64UrlEncode('validSUK'));
         $this->assertFalse($this->obj->validateServer($server, 'newNut', '1'));
     }
     
@@ -230,7 +242,7 @@ class SqrlValidateTest extends \PHPUnit_Framework_TestCase
         $this->config->expects($this->any())->method('getFriendlyName')
                 ->will($this->returnValue('Example Server'));
         $this->config->expects($this->any())->method('getAuthenticationPath')
-                ->will($this->returnValue('sqrl'));
+                ->will($this->returnValue('/sqrl'));
         $this->config->expects($this->any())->method('getSecure')
                 ->will($this->returnValue(true));
         $this->storage->expects($this->any())->method('getNutDetails')
@@ -243,7 +255,7 @@ class SqrlValidateTest extends \PHPUnit_Framework_TestCase
                     'nutIP'=>'192.168.0.105'
                     )));
         
-        $server = array('ver'=>'1','nut'=>'newNut','tif'=>'5','qry'=>'sqrl?nut=newNut','sfn'=>'Evil Server','suk'=>$this->base64UrlEncode('validSUK'));
+        $server = array('ver'=>'1','nut'=>'newNut','tif'=>'5','qry'=>'/sqrl?nut=newNut','sfn'=>'Evil Server','suk'=>$this->base64UrlEncode('validSUK'));
         $this->assertFalse($this->obj->validateServer($server, 'newNut', '1'));
     }
     
@@ -254,7 +266,7 @@ class SqrlValidateTest extends \PHPUnit_Framework_TestCase
         $this->config->expects($this->any())->method('getFriendlyName')
                 ->will($this->returnValue('Example Server'));
         $this->config->expects($this->any())->method('getAuthenticationPath')
-                ->will($this->returnValue('sqrl'));
+                ->will($this->returnValue('/sqrl'));
         $this->config->expects($this->any())->method('getSecure')
                 ->will($this->returnValue(true));
         $this->storage->expects($this->any())->method('getNutDetails')
@@ -267,7 +279,7 @@ class SqrlValidateTest extends \PHPUnit_Framework_TestCase
                     'nutIP'=>'192.168.0.105'
                     )));
         
-        $server = array('ver'=>'1','nut'=>'newNut','tif'=>'5','qry'=>'sqrl?nut=newNut','sfn'=>'Example Server','suk'=>$this->base64UrlEncode('validSUK'));
+        $server = array('ver'=>'1','nut'=>'newNut','tif'=>'5','qry'=>'/sqrl?nut=newNut','sfn'=>'Example Server','suk'=>$this->base64UrlEncode('validSUK'));
         $this->assertFalse($this->obj->validateServer($server, 'newNut', ''));
     }
     

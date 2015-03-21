@@ -166,9 +166,13 @@ class SqrlValidate implements SqrlValidateInterface
      */
     protected function getUrl($nut)
     {
-        return ($this->configuration->getSecure() ? 's' : '').'qrl://'
-                .$this->configuration->getDomain()
-                .(strpos($this->configuration->getDomain(),'/') !== false ? '|' : '/')
-                .$this->generateQry($nut);
+        $url = ($this->configuration->getSecure() ? 's' : '').'qrl://'.$this->configuration->getDomain();
+        if (strpos($this->configuration->getDomain(), '/') !== false) {
+            $extension = strlen($this->configuration->getDomain())-strpos($this->configuration->getDomain(), '/');
+            $url.= substr($this->generateQry($nut),$extension).'&d='.$extension;
+        } else {
+            $url.= $this->generateQry($nut);
+        }
+        return $url;
     }
 }

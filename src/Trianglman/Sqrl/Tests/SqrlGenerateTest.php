@@ -166,13 +166,11 @@ class SqrlGenerateTest extends \PHPUnit_Framework_TestCase
         $this->storage->expects($this->once())
                 ->method('getSessionNonce')
                 ->will($this->returnValue('storednut'));
-        $this->config->expects($this->any())->method('getDomain')
-                ->will($this->returnValue('example.com'));
         $this->config->expects($this->any())->method('getAuthenticationPath')
-                ->will($this->returnValue('sqrl'));
+                ->will($this->returnValue('/sqrl'));
         
         $obj = new SqrlGenerate($this->config,$this->storage);
-        $this->assertEquals('sqrl?nut=storednut', $obj->generateQry());
+        $this->assertEquals('/sqrl?nut=storednut', $obj->generateQry());
     }
     
     /**
@@ -183,13 +181,11 @@ class SqrlGenerateTest extends \PHPUnit_Framework_TestCase
         $this->storage->expects($this->once())
                 ->method('getSessionNonce')
                 ->will($this->returnValue('storednut'));
-        $this->config->expects($this->any())->method('getDomain')
-                ->will($this->returnValue('example.com'));
         $this->config->expects($this->any())->method('getAuthenticationPath')
-                ->will($this->returnValue('sqrl?foo=bar'));
+                ->will($this->returnValue('/sqrl?foo=bar'));
         
         $obj = new SqrlGenerate($this->config,$this->storage);
-        $this->assertEquals('sqrl?foo=bar&nut=storednut', $obj->generateQry());
+        $this->assertEquals('/sqrl?foo=bar&nut=storednut', $obj->generateQry());
     }
     
     /**
@@ -203,13 +199,33 @@ class SqrlGenerateTest extends \PHPUnit_Framework_TestCase
         $this->config->expects($this->any())->method('getDomain')
                 ->will($this->returnValue('example.com'));
         $this->config->expects($this->any())->method('getAuthenticationPath')
-                ->will($this->returnValue('sqrl'));
+                ->will($this->returnValue('/sqrl'));
         $this->config->expects($this->any())->method('getSecure')
                 ->will($this->returnValue(true));
         
         $obj = new SqrlGenerate($this->config,$this->storage);
         $this->assertEquals('sqrl://example.com/sqrl?nut=storednut', $obj->getUrl());
     }
+    
+    /**
+     * @depends testGeneratesQryNoQueryString
+     */
+    public function testGeneratesUrlIncludingExtendedDomain()
+    {
+        $this->storage->expects($this->once())
+                ->method('getSessionNonce')
+                ->will($this->returnValue('storednut'));
+        $this->config->expects($this->any())->method('getDomain')
+                ->will($this->returnValue('example.com/~user'));
+        $this->config->expects($this->any())->method('getAuthenticationPath')
+                ->will($this->returnValue('/~user/sqrl'));
+        $this->config->expects($this->any())->method('getSecure')
+                ->will($this->returnValue(true));
+        
+        $obj = new SqrlGenerate($this->config,$this->storage);
+        $this->assertEquals('sqrl://example.com/~user/sqrl?nut=storednut&d=6', $obj->getUrl());
+    }
+
 
     /**
      * @depends testGeneratesUrl
@@ -221,7 +237,7 @@ class SqrlGenerateTest extends \PHPUnit_Framework_TestCase
         $this->config->expects($this->any())->method('getDomain')
                 ->will($this->returnValue('example.com'));
         $this->config->expects($this->any())->method('getAuthenticationPath')
-                ->will($this->returnValue('sqrl'));
+                ->will($this->returnValue('/sqrl'));
         $this->config->expects($this->any())->method('getSecure')
                 ->will($this->returnValue(true));
         $this->config->expects($this->any())->method('getQrHeight')

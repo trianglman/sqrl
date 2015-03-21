@@ -90,10 +90,14 @@ class SqrlGenerate implements SqrlGenerateInterface
 
     public function getUrl()
     {
-        return ($this->configuration->getSecure() ? 's' : '').'qrl://'
-                .$this->configuration->getDomain()
-                .(strpos($this->configuration->getDomain(),'/') !== false ? '|' : '/')
-                .$this->generateQry();
+        $url = ($this->configuration->getSecure() ? 's' : '').'qrl://'.$this->configuration->getDomain();
+        if (strpos($this->configuration->getDomain(), '/') !== false) {
+            $extension = strlen($this->configuration->getDomain())-strpos($this->configuration->getDomain(), '/');
+            $url.= substr($this->generateQry(),$extension).'&d='.$extension;
+        } else {
+            $url.= $this->generateQry();
+        }
+        return $url;
     }
 
     public function render($outputFile)
