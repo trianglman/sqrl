@@ -105,7 +105,7 @@ class SqrlRequestHandler implements SqrlRequestHandlerInterface
                 $this->tif|= (self::COMMAND_FAILED|self::CLIENT_FAILURE);
                 return;
             }
-            if (!$this->validator->validateServer($serverInfo,$this->requestNut,$server['HTTPS'])) {
+            if (!$this->validator->validateServer($serverInfo,$this->requestNut,isset($server['HTTPS'])?$server['HTTPS']:false)) {
                 $this->tif|= (self::COMMAND_FAILED|self::CLIENT_FAILURE);
                 return;
             }
