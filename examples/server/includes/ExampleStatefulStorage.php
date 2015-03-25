@@ -152,11 +152,11 @@ class ExampleStatefulStorage implements SqrlStoreInterface
         $stmt->execute(array($key));
     }
 
-    public function updateIdentityKey($oldKey, $newKey) 
+    public function updateIdentityKey($oldKey, $newKey, $newSuk, $newVuk) 
     {
-        $sql = 'UPDATE sqrl_pubkey SET public_key = ? WHERE public_key = ?';
+        $sql = 'UPDATE sqrl_pubkey SET public_key = ?, vuk = ?, suk = ? WHERE public_key = ?';
         $stmt = $this->conn->prepare($sql);
-        $stmt->execute(array($newKey,$oldKey));
+        $stmt->execute(array($newKey, $newSuk, $newVuk, $oldKey));
     }
 }
 
