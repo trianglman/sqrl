@@ -125,7 +125,7 @@ class SqrlRequestHandler implements SqrlRequestHandlerInterface
             }
             $this->authenticationKey = $clientInfo['idk'];
             if (isset($clientInfo['vuk'])) {
-                $this->clientSUK = $clientInfo['suk'];
+                $this->clientSUK = isset($clientInfo['suk'])?$clientInfo['suk']:'';
                 $this->clientVUK = $clientInfo['vuk'];
             }
             if (isset($clientInfo['pidk'])) {
@@ -148,9 +148,16 @@ class SqrlRequestHandler implements SqrlRequestHandlerInterface
                 )) {
             return false;
         }
-        if (isset($post['urs']) && isset($clientInfo['vuk']) && !$this->validator->validateSignature(
+        if (isset($post['urs']) && isset($clientInfo['vuk']) && !isset($clientInfo['pidk']) && !$this->validator->validateSignature(
                 $post['client'].$post['server'],
                 $clientInfo['vuk'],
+                $this->base64URLDecode($post['urs'])
+                )) {
+            return false;
+        } 
+        if (isset($post['urs']) && isset($clientInfo['vuk']) && isset($clientInfo['pidk']) && !$this->validator->validateSignature(
+                $post['client'].$post['server'],
+                $this->store->getIdentityVUK($clientInfo['pidk']),
                 $this->base64URLDecode($post['urs'])
                 )) {
             return false;
@@ -283,11 +290,11 @@ class SqrlRequestHandler implements SqrlRequestHandlerInterface
     private function identUnknownIdentity()
     {
         if (!empty($this->previousIdKey) &&
-                $this->store->checkIdentityKey($this->previousIdKey) === SqrlStoreInterface::IDENTITY_ACTIVE) {
-            if (empty($this->clientSUK) || $this->clientVUK !== $this->store->getIdentityVUK($this->previousIdKey)) {
+                $this->store->checkIdentityKey($this->previousIdKey) !== SqrlStoreInterface::IDENTITY_UNKNOWN) {
+            if (empty($this->clientSUK) || empty($this->clientVUK)) {
                 $this->tif|= (self::CLIENT_FAILURE|self::COMMAND_FAILED);
             } else {
-                $this->store->updateIdentityKey($this->previousIdKey,$this->authenticationKey);
+                $this->store->updateIdentityKey($this->previousIdKey,$this->authenticationKey,$this->clientSUK,$this->clientVUK);
                 $this->store->logSessionIn($this->requestNut);
                 $this->tif|= self::ID_MATCH|self::PREVIOUS_ID_MATCH;
             }

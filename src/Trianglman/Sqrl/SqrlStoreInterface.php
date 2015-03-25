@@ -147,10 +147,12 @@ interface SqrlStoreInterface
      *
      * @param string $oldKey The key getting new information
      * @param string $newKey The authentication key replacing the old key
+     * @param string $newSuk The replacement SUK
+     * @param string $newVuk The replacement VUK
      *
      * @return void
      */
-    public function updateIdentityKey($oldKey, $newKey);
+    public function updateIdentityKey($oldKey, $newKey, $newSuk, $newVuk);
     
     /**
      * Gets the current active nonce for the user's session if there is any

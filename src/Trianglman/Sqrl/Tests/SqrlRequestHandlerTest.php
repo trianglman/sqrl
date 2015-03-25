@@ -864,7 +864,7 @@ class SqrlRequestHandlerTest extends \PHPUnit_Framework_TestCase
     public function testRespondsToIdentDuringIdentityUpdate()
     {
         $client = "ver=1\r\ncmd=ident\r\nidk=".$this->base64UrlEncode('validNewIdentityKey')."\r\npidk=".$this->base64UrlEncode('validIdentityKey')
-                ."\r\nsuk=".$this->base64UrlEncode('validSUK')."\r\nvuk=".$this->base64UrlEncode('validVUK');
+                ."\r\nsuk=".$this->base64UrlEncode('newSUK')."\r\nvuk=".$this->base64UrlEncode('newVUK');
         $this->validator->expects($this->once())
                 ->method('validateServer')
                 ->with(
@@ -896,7 +896,7 @@ class SqrlRequestHandlerTest extends \PHPUnit_Framework_TestCase
                         $self->assertEquals('valid new key signature',$sig);
                         unset($unusedKeys[0]);
                     } elseif ($key === 'validVUK') {
-                        $self->assertEquals('valid vuk signature',$sig);
+                        $self->assertEquals('valid old vuk signature',$sig);
                         unset($unusedKeys[2]);
                     }
                     return true;
@@ -927,7 +927,7 @@ class SqrlRequestHandlerTest extends \PHPUnit_Framework_TestCase
                 ->will($this->returnValue('validVUK'));
         $this->storage->expects($this->once())
                 ->method('updateIdentityKey')
-                ->with($this->equalTo('validIdentityKey'),$this->equalTo('validNewIdentityKey'));
+                ->with($this->equalTo('validIdentityKey'),$this->equalTo('validNewIdentityKey'),$this->equalTo('newSUK'),$this->equalTo('newVUK'));
         
         $this->generator->expects($this->once())
                 ->method('getNonce')
@@ -944,7 +944,7 @@ class SqrlRequestHandlerTest extends \PHPUnit_Framework_TestCase
                     'client' => $this->base64UrlEncode($client),
                     'ids' => $this->base64UrlEncode('valid new key signature'),
                     'pids' => $this->base64UrlEncode('valid old key signature'),
-                    'urs' => $this->base64UrlEncode('valid vuk signature')
+                    'urs' => $this->base64UrlEncode('valid old vuk signature')
                 ),
                 array('REMOTE_ADDR'=>'192.168.0.5','HTTPS'=>'1'));
         
@@ -1133,12 +1133,8 @@ class SqrlRequestHandlerTest extends \PHPUnit_Framework_TestCase
                 ->with($this->equalTo('newNut'),$this->equalTo('192.168.0.5'))
                 ->will($this->returnValue(true));
         
-        $this->storage->expects($this->never())
-                ->method('unlockIdentityKey')
-                ->with($this->equalTo('validIdentityKey'));
-        $this->storage->expects($this->never())
-                ->method('logSessionIn')
-                ->with($this->equalTo('newNut'));
+        $this->storage->expects($this->never())->method('unlockIdentityKey');
+        $this->storage->expects($this->never())->method('logSessionIn');
 
         $this->generator->expects($this->once())
                 ->method('getNonce')
@@ -1155,6 +1151,165 @@ class SqrlRequestHandlerTest extends \PHPUnit_Framework_TestCase
                     'client' => $this->base64UrlEncode($client),
                     'ids' => $this->base64UrlEncode('valid signature'),
                     'urs' => $this->base64UrlEncode('invalid urs')
+                ),
+                array('REMOTE_ADDR'=>'192.168.0.5','HTTPS'=>'1'));
+        
+        $this->assertEquals(
+                $this->base64UrlEncode("ver=1\r\nnut=newerNut\r\ntif=C4\r\nqry=sqrl?nut=newerNut\r\nsfn=Example Server"),
+                $this->handler->getResponseMessage()
+                );
+    }
+    
+    /**
+     * Tests that the server responds with a client failure flag if the client 
+     * sends an invalid URS signature
+     */
+    public function testHandlesRequestWithInvalidURSDuringIDUpdate()
+    {
+        $client = "ver=1\r\ncmd=ident\r\nidk=".$this->base64UrlEncode('newIdentityKey')."\r\npidk=".$this->base64UrlEncode('validIdentityKey')."\r\nsuk="
+                .$this->base64UrlEncode('newSUK')."\r\nvuk=".$this->base64UrlEncode('newVUK');
+        $this->validator->expects($this->once())
+                ->method('validateServer')
+                ->with(
+                        $this->equalTo(array('ver'=>'1','nut'=>'newNut','tif'=>'D','qry'=>'sqrl?nut=newNut','sfn'=>'Example Server','suk'=>$this->base64UrlEncode('validSUK'))),
+                        $this->equalTo('newNut'),
+                        $this->equalTo("1")
+                        )
+                ->will($this->returnValue(true));
+        $this->validator->expects($this->once())
+                ->method('validateNut')
+                ->with($this->equalTo('newNut'))
+                ->will($this->returnValue(\Trianglman\Sqrl\SqrlValidateInterface::VALID_NUT));
+        $unusedKeys = array('validIdentityKey','validVUK','newIdentityKey');
+        $self = $this;
+        $this->validator->expects($this->exactly(2))
+                ->method('validateSignature')
+                ->with(
+                        $this->equalTo($this->base64UrlEncode($client)
+                                .$this->base64UrlEncode("ver=1\r\nnut=newNut\r\ntif=D\r\nqry=sqrl?nut=newNut\r\nsfn=Example Server\r\nsuk=".$this->base64UrlEncode('validSUK'))),
+                        $this->anything(),
+                        $this->anything()
+                        )
+                ->will($this->returnCallback(function($msg,$key,$sig) use ($unusedKeys,$self) {
+                    $self->assertTrue(in_array($key, $unusedKeys),$key.' not a valid key');
+                    if ($key === 'newIdentityKey') {
+                        $self->assertEquals('valid signature',$sig);
+                        unset($unusedKeys[0]);
+                    } elseif ($key === 'validVUK') {
+                        $self->assertEquals('new vuk urs',$sig);
+                        unset($unusedKeys[1]);
+                        return false;
+                    } elseif ($key === 'validIdentityKey') {
+                        $self->assertEquals('valid pids',$sig);
+                        unset($unusedKeys[1]);
+                        return false;
+                    }
+                    return true;
+                }));
+        $this->validator->expects($this->once())
+                ->method('nutIPMatches')
+                ->with($this->equalTo('newNut'),$this->equalTo('192.168.0.5'))
+                ->will($this->returnValue(true));
+        
+        $this->storage->expects($this->once())
+                ->method('getIdentityVUK')
+                ->with($this->equalTo('validIdentityKey'))
+                ->will($this->returnValue('validVUK'));
+        $this->storage->expects($this->never())->method('updateIdentityKey');
+        $this->storage->expects($this->never())->method('logSessionIn');
+
+        $this->generator->expects($this->once())
+                ->method('getNonce')
+                ->with($this->equalTo(0xC4),$this->equalTo(''),$this->equalTo('newNut'))
+                ->will($this->returnValue('newerNut'));
+        $this->generator->expects($this->once())
+                ->method('generateQry')
+                ->will($this->returnValue('sqrl?nut=newerNut'));
+        
+        $this->handler->parseRequest(
+                array('nut' => 'newNut'), 
+                array(
+                    'server' => $this->base64UrlEncode("ver=1\r\nnut=newNut\r\ntif=D\r\nqry=sqrl?nut=newNut\r\nsfn=Example Server\r\nsuk=".$this->base64UrlEncode('validSUK')),
+                    'client' => $this->base64UrlEncode($client),
+                    'ids' => $this->base64UrlEncode('valid signature'),
+                    'urs' => $this->base64UrlEncode('new vuk urs'),
+                    'pids' => $this->base64UrlEncode('valid pids')
+                ),
+                array('REMOTE_ADDR'=>'192.168.0.5','HTTPS'=>'1'));
+        
+        $this->assertEquals(
+                $this->base64UrlEncode("ver=1\r\nnut=newerNut\r\ntif=C4\r\nqry=sqrl?nut=newerNut\r\nsfn=Example Server"),
+                $this->handler->getResponseMessage()
+                );
+    }
+    
+    public function testRespondsToUnlockRequestMismathedVUK()
+    {
+        $client = "ver=1\r\ncmd=ident\r\nidk=".$this->base64UrlEncode('validIdentityKey')."\r\nsuk=".$this->base64UrlEncode('validSUK')."\r\nvuk=".$this->base64UrlEncode('otherVUK');
+        $this->validator->expects($this->once())
+                ->method('validateServer')
+                ->with(
+                        $this->equalTo(array('ver'=>'1','nut'=>'newNut','tif'=>'D','qry'=>'sqrl?nut=newNut','sfn'=>'Example Server','suk'=>$this->base64UrlEncode('validSUK'))),
+                        $this->equalTo('newNut'),
+                        $this->equalTo("1")
+                        )
+                ->will($this->returnValue(true));
+        $this->validator->expects($this->once())
+                ->method('validateNut')
+                ->with($this->equalTo('newNut'))
+                ->will($this->returnValue(\Trianglman\Sqrl\SqrlValidateInterface::VALID_NUT));
+        $unusedKeys = array('validIdentityKey','otherVUK');
+        $self = $this;
+        $this->validator->expects($this->exactly(2))
+                ->method('validateSignature')
+                ->with(
+                        $this->equalTo($this->base64UrlEncode($client)
+                                .$this->base64UrlEncode("ver=1\r\nnut=newNut\r\ntif=D\r\nqry=sqrl?nut=newNut\r\nsfn=Example Server\r\nsuk=".$this->base64UrlEncode('validSUK'))),
+                        $this->anything(),
+                        $this->anything()
+                        )
+                ->will($this->returnCallback(function($msg,$key,$sig) use ($unusedKeys,$self) {
+                    $self->assertTrue(in_array($key, $unusedKeys),$key.' not a valid key');
+                    if ($key === 'validIdentityKey') {
+                        $self->assertEquals('valid signature',$sig);
+                        unset($unusedKeys[0]);
+                    } elseif ($key === 'otherVUK') {
+                        $self->assertEquals('valid urs',$sig);
+                        unset($unusedKeys[1]);
+                    }
+                    return true;
+                }));
+        $this->validator->expects($this->once())
+                ->method('nutIPMatches')
+                ->with($this->equalTo('newNut'),$this->equalTo('192.168.0.5'))
+                ->will($this->returnValue(true));
+        
+        $this->storage->expects($this->once())
+                ->method('checkIdentityKey')
+                ->with($this->equalTo('validIdentityKey'))
+                ->will($this->returnValue(\Trianglman\Sqrl\SqrlStoreInterface::IDENTITY_LOCKED));
+        $this->storage->expects($this->never())->method('unlockIdentityKey');
+        $this->storage->expects($this->once())
+                ->method('getIdentityVUK')
+                ->with($this->equalTo('validIdentityKey'))
+                ->will($this->returnValue('validVUK'));
+        $this->storage->expects($this->never())->method('logSessionIn');
+
+        $this->generator->expects($this->once())
+                ->method('getNonce')
+                ->with($this->equalTo(0xC4),$this->equalTo('validIdentityKey'),$this->equalTo('newNut'))
+                ->will($this->returnValue('newerNut'));
+        $this->generator->expects($this->once())
+                ->method('generateQry')
+                ->will($this->returnValue('sqrl?nut=newerNut'));
+        
+        $this->handler->parseRequest(
+                array('nut' => 'newNut'), 
+                array(
+                    'server' => $this->base64UrlEncode("ver=1\r\nnut=newNut\r\ntif=D\r\nqry=sqrl?nut=newNut\r\nsfn=Example Server\r\nsuk=".$this->base64UrlEncode('validSUK')),
+                    'client' => $this->base64UrlEncode($client),
+                    'ids' => $this->base64UrlEncode('valid signature'),
+                    'urs' => $this->base64UrlEncode('valid urs')
                 ),
                 array('REMOTE_ADDR'=>'192.168.0.5','HTTPS'=>'1'));
         
@@ -1229,100 +1384,10 @@ class SqrlRequestHandlerTest extends \PHPUnit_Framework_TestCase
                 );
     }
     
-    /**
-     * Tests that the server responds with a client failure flag if the client 
-     * sends a VUK that doesn't match the account
-     */
-    public function testRespondsToUnlockRequestInvalidVUK()
-    {
-        $client = "ver=1\r\ncmd=ident\r\nidk=".$this->base64UrlEncode('validIdentityKey')."\r\nsuk=".$this->base64UrlEncode('validSUK')."\r\nvuk=".$this->base64UrlEncode('invalidVUK');
-        $this->validator->expects($this->once())
-                ->method('validateServer')
-                ->with(
-                        $this->equalTo(array('ver'=>'1','nut'=>'newNut','tif'=>'D','qry'=>'sqrl?nut=newNut','sfn'=>'Example Server','suk'=>$this->base64UrlEncode('validSUK'))),
-                        $this->equalTo('newNut'),
-                        $this->equalTo("1")
-                        )
-                ->will($this->returnValue(true));
-        $this->validator->expects($this->once())
-                ->method('validateNut')
-                ->with($this->equalTo('newNut'))
-                ->will($this->returnValue(\Trianglman\Sqrl\SqrlValidateInterface::VALID_NUT));
-        $unusedKeys = array('validIdentityKey','invalidVUK');
-        $self = $this;
-        $this->validator->expects($this->exactly(2))
-                ->method('validateSignature')
-                ->with(
-                        $this->equalTo($this->base64UrlEncode($client)
-                                .$this->base64UrlEncode("ver=1\r\nnut=newNut\r\ntif=D\r\nqry=sqrl?nut=newNut\r\nsfn=Example Server\r\nsuk=".$this->base64UrlEncode('validSUK'))),
-                        $this->anything(),
-                        $this->anything()
-                        )
-                ->will($this->returnCallback(function($msg,$key,$sig) use ($unusedKeys,$self) {
-                    $self->assertTrue(in_array($key, $unusedKeys),$key.' not a valid key');
-                    if ($key === 'validIdentityKey') {
-                        $self->assertEquals('valid signature',$sig);
-                        unset($unusedKeys[0]);
-                    } elseif ($key === 'invalidVUK') {
-                        $self->assertEquals('valid urs',$sig);
-                        unset($unusedKeys[1]);
-                    }
-                    return true;
-                }));
-        $this->validator->expects($this->once())
-                ->method('nutIPMatches')
-                ->with($this->equalTo('newNut'),$this->equalTo('192.168.0.5'))
-                ->will($this->returnValue(true));
-        
-        $this->storage->expects($this->once())
-                ->method('checkIdentityKey')
-                ->with($this->equalTo('validIdentityKey'))
-                ->will($this->returnValue(\Trianglman\Sqrl\SqrlStoreInterface::IDENTITY_LOCKED));
-        $this->storage->expects($this->never())
-                ->method('unlockIdentityKey')
-                ->with($this->equalTo('validIdentityKey'));
-        $this->storage->expects($this->once())
-                ->method('getIdentityVUK')
-                ->with($this->equalTo('validIdentityKey'))
-                ->will($this->returnValue('validVUK'));
-        $this->storage->expects($this->never())
-                ->method('logSessionIn')
-                ->with($this->equalTo('newNut'));
-
-        $this->generator->expects($this->once())
-                ->method('getNonce')
-                ->with($this->equalTo(0xC4),$this->equalTo('validIdentityKey'),$this->equalTo('newNut'))
-                ->will($this->returnValue('newerNut'));
-        $this->generator->expects($this->once())
-                ->method('generateQry')
-                ->will($this->returnValue('sqrl?nut=newerNut'));
-        
-        $this->handler->parseRequest(
-                array('nut' => 'newNut'), 
-                array(
-                    'server' => $this->base64UrlEncode("ver=1\r\nnut=newNut\r\ntif=D\r\nqry=sqrl?nut=newNut\r\nsfn=Example Server\r\nsuk=".$this->base64UrlEncode('validSUK')),
-                    'client' => $this->base64UrlEncode($client),
-                    'ids' => $this->base64UrlEncode('valid signature'),
-                    'urs' => $this->base64UrlEncode('valid urs')
-                ),
-                array('REMOTE_ADDR'=>'192.168.0.5','HTTPS'=>'1'));
-        
-        $this->assertEquals(
-                $this->base64UrlEncode("ver=1\r\nnut=newerNut\r\ntif=C4\r\nqry=sqrl?nut=newerNut\r\nsfn=Example Server"),
-                $this->handler->getResponseMessage()
-                );
-    }
-    
-    /**
-     * tests the server responding to a cmd=setkey when the user is supplying a pidk
-     * in order to update their account.
-     * 
-     * This should cause the server to replace the previous idk with the newly supplied idk
-     */
-    public function testRespondsToIdentDuringIdentityUpdateWhenVUKDoesntMatchAccount()
+    public function testRespondsToIdentDuringIdentityUpdateMissingNewSUK()
     {
         $client = "ver=1\r\ncmd=ident\r\nidk=".$this->base64UrlEncode('validNewIdentityKey')."\r\npidk=".$this->base64UrlEncode('validIdentityKey')
-                ."\r\nsuk=".$this->base64UrlEncode('validSUK')."\r\nvuk=".$this->base64UrlEncode('invalidVUK');
+                ."\r\nvuk=".$this->base64UrlEncode('newVUK');
         $this->validator->expects($this->once())
                 ->method('validateServer')
                 ->with(
@@ -1335,7 +1400,7 @@ class SqrlRequestHandlerTest extends \PHPUnit_Framework_TestCase
                 ->method('validateNut')
                 ->with($this->equalTo('newNut'))
                 ->will($this->returnValue(\Trianglman\Sqrl\SqrlValidateInterface::VALID_NUT));
-        $unusedKeys = array('validNewIdentityKey','validIdentityKey','invalidVUK');
+        $unusedKeys = array('validNewIdentityKey','validIdentityKey','validVUK');
         $self = $this;
         $this->validator->expects($this->exactly(3))
                 ->method('validateSignature')
@@ -1353,8 +1418,8 @@ class SqrlRequestHandlerTest extends \PHPUnit_Framework_TestCase
                     } elseif ($key === 'validNewIdentityKey') {
                         $self->assertEquals('valid new key signature',$sig);
                         unset($unusedKeys[0]);
-                    } elseif ($key === 'invalidVUK') {
-                        $self->assertEquals('valid vuk signature',$sig);
+                    } elseif ($key === 'validVUK') {
+                        $self->assertEquals('valid old vuk signature',$sig);
                         unset($unusedKeys[2]);
                     }
                     return true;
@@ -1376,14 +1441,12 @@ class SqrlRequestHandlerTest extends \PHPUnit_Framework_TestCase
                         $self->assertTrue(false,$key.' not a valid key');
                     }
                 }));
-        $this->storage->expects($this->never())
-                ->method('logSessionIn');
+        $this->storage->expects($this->never())->method('logSessionIn');
         $this->storage->expects($this->once())
                 ->method('getIdentityVUK')
                 ->with($this->equalTo('validIdentityKey'))
                 ->will($this->returnValue('validVUK'));
-        $this->storage->expects($this->never())
-                ->method('updateIdentityKey');
+        $this->storage->expects($this->never())->method('updateIdentityKey');
         
         $this->generator->expects($this->once())
                 ->method('getNonce')
@@ -1400,7 +1463,7 @@ class SqrlRequestHandlerTest extends \PHPUnit_Framework_TestCase
                     'client' => $this->base64UrlEncode($client),
                     'ids' => $this->base64UrlEncode('valid new key signature'),
                     'pids' => $this->base64UrlEncode('valid old key signature'),
-                    'urs' => $this->base64UrlEncode('valid vuk signature')
+                    'urs' => $this->base64UrlEncode('valid old vuk signature')
                 ),
                 array('REMOTE_ADDR'=>'192.168.0.5','HTTPS'=>'1'));
         
