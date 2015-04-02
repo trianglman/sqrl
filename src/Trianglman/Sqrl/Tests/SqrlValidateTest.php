@@ -146,7 +146,7 @@ class SqrlValidateTest extends \PHPUnit_Framework_TestCase
         $this->storage->expects($this->any())->method('getNutDetails')
                 ->with($this->equalTo('newNut'))
                 ->will($this->returnValue(array(
-                    'tif'=>0xD,
+                    'tif'=>(string)0xD,
                     'originalKey'=>'some key',
                     'originalNut'=>'someNut',
                     'createdDate'=>new \DateTime(),
@@ -176,7 +176,7 @@ class SqrlValidateTest extends \PHPUnit_Framework_TestCase
         $this->storage->expects($this->any())->method('getNutDetails')
                 ->with($this->equalTo('newNut'))
                 ->will($this->returnValue(array(
-                    'tif'=>0x5,
+                    'tif'=>(string)0x5,
                     'originalKey'=>'some key',
                     'originalNut'=>'someNut',
                     'createdDate'=>new \DateTime(),
@@ -200,7 +200,7 @@ class SqrlValidateTest extends \PHPUnit_Framework_TestCase
         $this->storage->expects($this->any())->method('getNutDetails')
                 ->with($this->equalTo('newNut'))
                 ->will($this->returnValue(array(
-                    'tif'=>0x5,
+                    'tif'=>(string)0x5,
                     'originalKey'=>'some key',
                     'originalNut'=>'someNut',
                     'createdDate'=>new \DateTime(),
@@ -224,7 +224,7 @@ class SqrlValidateTest extends \PHPUnit_Framework_TestCase
         $this->storage->expects($this->any())->method('getNutDetails')
                 ->with($this->equalTo('newNut'))
                 ->will($this->returnValue(array(
-                    'tif'=>0x5,
+                    'tif'=>(string)0x5,
                     'originalKey'=>'some key',
                     'originalNut'=>'someNut',
                     'createdDate'=>new \DateTime(),
@@ -248,7 +248,7 @@ class SqrlValidateTest extends \PHPUnit_Framework_TestCase
         $this->storage->expects($this->any())->method('getNutDetails')
                 ->with($this->equalTo('newNut'))
                 ->will($this->returnValue(array(
-                    'tif'=>0x5,
+                    'tif'=>(string)0x5,
                     'originalKey'=>'some key',
                     'originalNut'=>'someNut',
                     'createdDate'=>new \DateTime(),
@@ -272,7 +272,7 @@ class SqrlValidateTest extends \PHPUnit_Framework_TestCase
         $this->storage->expects($this->any())->method('getNutDetails')
                 ->with($this->equalTo('newNut'))
                 ->will($this->returnValue(array(
-                    'tif'=>0x5,
+                    'tif'=>(string)0x5,
                     'originalKey'=>'some key',
                     'originalNut'=>'someNut',
                     'createdDate'=>new \DateTime(),
@@ -290,7 +290,7 @@ class SqrlValidateTest extends \PHPUnit_Framework_TestCase
         $this->storage->expects($this->any())->method('getNutDetails')
                 ->with($this->equalTo('1234'))
                 ->will($this->returnValue(array(
-                    'tif'=>0x5,
+                    'tif'=>(string)0x5,
                     'originalKey'=>'some key',
                     'originalNut'=>'someNut',
                     'createdDate'=>new \DateTime(),
@@ -306,7 +306,7 @@ class SqrlValidateTest extends \PHPUnit_Framework_TestCase
         $this->storage->expects($this->any())->method('getNutDetails')
                 ->with($this->equalTo('old1234'))
                 ->will($this->returnValue(array(
-                    'tif'=>0x5,
+                    'tif'=>(string)0x5,
                     'originalKey'=>'some key',
                     'originalNut'=>'someNut',
                     'createdDate'=>new \DateTime('-6 minutes'),

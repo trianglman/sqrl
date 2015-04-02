@@ -90,7 +90,7 @@ class SqrlValidate implements SqrlValidateInterface
             $nutInfo = $this->store->getNutDetails($nut);
             return $server['ver']===implode(',',$this->configuration->getAcceptedVersions()) &&
                     $server['nut']===$nut &&
-                    (!is_array($nutInfo) || hexdec($server['tif'])===$nutInfo['tif']) &&
+                    (!is_array($nutInfo) || hexdec($server['tif'])==$nutInfo['tif']) &&
                     $server['qry'] === $this->generateQry($nut) &&
                     $server['sfn'] === $this->configuration->getFriendlyName() &&
                     !!$secure===$this->configuration->getSecure();

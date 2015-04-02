@@ -404,25 +404,15 @@ class SqrlRequestHandlerTest extends \PHPUnit_Framework_TestCase
                 ->will($this->returnValue(\Trianglman\Sqrl\SqrlValidateInterface::VALID_NUT));
         $unusedKeys = array('validNewIdentityKey','validVUK');
         $self = $this;
-        $this->validator->expects($this->exactly(2))
+        $this->validator->expects($this->once())
                 ->method('validateSignature')
                 ->with(
                         $this->equalTo($this->base64UrlEncode($clientVal)
                                 .$this->base64UrlEncode("ver=1\r\nnut=newNut\r\ntif=5\r\nqry=sqrl?nut=newNut\r\nsfn=Example Server")),
-                        $this->anything(),
-                        $this->anything()
+                        'validNewIdentityKey',
+                        'valid signature'
                         )
-                ->will($this->returnCallback(function($msg,$key,$sig) use ($unusedKeys,$self) {
-                    $self->assertTrue(in_array($key, $unusedKeys),$key.' not a valid key');
-                    if ($key === 'validNewIdentityKey') {
-                        $self->assertEquals('valid signature',$sig);
-                        unset($unusedKeys[0]);
-                    } elseif ($key === 'validVUK') {
-                        $self->assertEquals('valid urs',$sig);
-                        unset($unusedKeys[1]);
-                    }
-                    return true;
-                }));
+                ->will($this->returnValue(true));
         $this->validator->expects($this->once())
                 ->method('nutIPMatches')
                 ->with($this->equalTo('newNut'),$this->equalTo('192.168.0.5'))
@@ -456,8 +446,7 @@ class SqrlRequestHandlerTest extends \PHPUnit_Framework_TestCase
                 array(
                     'server' => $this->base64UrlEncode("ver=1\r\nnut=newNut\r\ntif=5\r\nqry=sqrl?nut=newNut\r\nsfn=Example Server"),
                     'client' => $this->base64UrlEncode($clientVal),
-                    'ids' => $this->base64UrlEncode('valid signature'),
-                    'urs' => $this->base64UrlEncode('valid urs')
+                    'ids' => $this->base64UrlEncode('valid signature')
                 ),
                 array('REMOTE_ADDR'=>'192.168.0.5','HTTPS'=>'1'));
         
