@@ -37,6 +37,7 @@ interface SqrlValidateInterface
     const VALID_NUT = 0;
     const EXPIRED_NUT = 1;
     const INVALID_NUT = 2;
+    const KEY_MISMATCH = 3;
     /**
      * Validates the returned server value
      * 
@@ -52,10 +53,11 @@ interface SqrlValidateInterface
      * Validates a supplied nut
      * 
      * @param string $nut
+     * @param string $signingKey The key used to sign the current request
      * 
      * @return int One of the nut class constants
      */
-    public function validateNut($nut);
+    public function validateNut($nut,$signingKey=null);
 
     /**
      * Validates a secondary request signature (Unlock Request or New Key)

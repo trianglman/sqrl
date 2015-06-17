@@ -152,6 +152,22 @@ interface SqrlRequestHandlerInterface
      * @var int
      */
     const CLIENT_FAILURE = 0x80;
+    
+    /**
+     * This bit is set by the server when a SQRL identity which may be associated 
+     * with the query nut does not match the SQRL ID used to submit the query. 
+     * If the server is maintaining session state, such as a logged on session, 
+     * it may generate SQRL query nuts associated with that logged-on session's 
+     * SQRL identity. If it then receives a SQRL query using that nut, but issued 
+     * with a different SQRL identity, it should fail the command (with the 0x40 
+     * bit) and also return this 0x100 error bit so that the client may inform 
+     * its user that the wrong SQRL identity was used with a nut that was 
+     * already associated with a different identity.
+     * 
+     * @const
+     * @var int
+     */
+    const BAD_ID_ASSOCIATION = 0x100;
 
     /**
      * Initializes the Request Handler

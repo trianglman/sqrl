@@ -110,10 +110,12 @@ class SqrlRequestHandler implements SqrlRequestHandlerInterface
                 return;
             }
             $this->tif|= $this->validator->nutIPMatches($get['nut'],$server['REMOTE_ADDR'])?self::IP_MATCH:0;
-            $nutStatus = $this->validator->validateNut($this->requestNut);
+            $nutStatus = $this->validator->validateNut($this->requestNut,isset($clientInfo['idk'])?$clientInfo['idk']:null);
             if ($nutStatus !== \Trianglman\Sqrl\SqrlValidateInterface::VALID_NUT) {
                 if ($nutStatus === \Trianglman\Sqrl\SqrlValidateInterface::EXPIRED_NUT) {
                     $this->tif|= (self::COMMAND_FAILED|self::TRANSIENT_ERROR);
+                } elseif ($nutStatus === SqrlValidateInterface::KEY_MISMATCH) {
+                    $this->tif|= (self::COMMAND_FAILED|self::CLIENT_FAILURE|self::BAD_ID_ASSOCIATION);
                 } else {
                     $this->tif|= (self::COMMAND_FAILED|self::CLIENT_FAILURE);
                 }

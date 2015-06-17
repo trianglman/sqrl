@@ -89,7 +89,7 @@ class SqrlRequestHandlerTest extends \PHPUnit_Framework_TestCase
                 ->will($this->returnValue(true));
         $this->validator->expects($this->once())
                 ->method('validateNut')
-                ->with($this->equalTo('randomnut'))
+                ->with($this->equalTo('randomnut'),$this->equalTo('validIdentityKey'))
                 ->will($this->returnValue(\Trianglman\Sqrl\SqrlValidateInterface::VALID_NUT));
         $this->validator->expects($this->once())
                 ->method('validateSignature')
@@ -147,7 +147,7 @@ class SqrlRequestHandlerTest extends \PHPUnit_Framework_TestCase
                 ->will($this->returnValue(true));
         $this->validator->expects($this->once())
                 ->method('validateNut')
-                ->with($this->equalTo('randomnut'))
+                ->with($this->equalTo('randomnut'),$this->equalTo('validIdentityKey'))
                 ->will($this->returnValue(\Trianglman\Sqrl\SqrlValidateInterface::VALID_NUT));
         $this->validator->expects($this->once())
                 ->method('validateSignature')
@@ -205,7 +205,7 @@ class SqrlRequestHandlerTest extends \PHPUnit_Framework_TestCase
                 ->will($this->returnValue(true));
         $this->validator->expects($this->once())
                 ->method('validateNut')
-                ->with($this->equalTo('randomnut'))
+                ->with($this->equalTo('randomnut'),$this->equalTo('validNewIdentityKey'))
                 ->will($this->returnValue(\Trianglman\Sqrl\SqrlValidateInterface::VALID_NUT));
         $this->validator->expects($this->once())
                 ->method('validateSignature')
@@ -267,7 +267,7 @@ class SqrlRequestHandlerTest extends \PHPUnit_Framework_TestCase
                 ->will($this->returnValue(true));
         $this->validator->expects($this->once())
                 ->method('validateNut')
-                ->with($this->equalTo('randomnut'))
+                ->with($this->equalTo('randomnut'),$this->equalTo('validNewIdentityKey'))
                 ->will($this->returnValue(\Trianglman\Sqrl\SqrlValidateInterface::VALID_NUT));
         $this->validator->expects($this->once())
                 ->method('validateSignature')
@@ -333,7 +333,7 @@ class SqrlRequestHandlerTest extends \PHPUnit_Framework_TestCase
                 ->will($this->returnValue(true));
         $this->validator->expects($this->once())
                 ->method('validateNut')
-                ->with($this->equalTo('newNut'))
+                ->with($this->equalTo('newNut'),$this->equalTo('validIdentityKey'))
                 ->will($this->returnValue(\Trianglman\Sqrl\SqrlValidateInterface::VALID_NUT));
         $this->validator->expects($this->once())
                 ->method('validateSignature')
@@ -400,7 +400,7 @@ class SqrlRequestHandlerTest extends \PHPUnit_Framework_TestCase
                 ->will($this->returnValue(true));
         $this->validator->expects($this->once())
                 ->method('validateNut')
-                ->with($this->equalTo('newNut'))
+                ->with($this->equalTo('newNut'),$this->equalTo('validNewIdentityKey'))
                 ->will($this->returnValue(\Trianglman\Sqrl\SqrlValidateInterface::VALID_NUT));
         $unusedKeys = array('validNewIdentityKey','validVUK');
         $self = $this;
@@ -470,7 +470,7 @@ class SqrlRequestHandlerTest extends \PHPUnit_Framework_TestCase
                 ->will($this->returnValue(true));
         $this->validator->expects($this->once())
                 ->method('validateNut')
-                ->with($this->equalTo('randomnut'))
+                ->with($this->equalTo('randomnut'),$this->equalTo('validIdentityKey'))
                 ->will($this->returnValue(\Trianglman\Sqrl\SqrlValidateInterface::EXPIRED_NUT));
         $this->validator->expects($this->once())
                 ->method('nutIPMatches')
@@ -514,7 +514,7 @@ class SqrlRequestHandlerTest extends \PHPUnit_Framework_TestCase
                 ->will($this->returnValue(true));
         $this->validator->expects($this->once())
                 ->method('validateNut')
-                ->with($this->equalTo('randomnut'))
+                ->with($this->equalTo('randomnut'),$this->equalTo('validIdentityKey'))
                 ->will($this->returnValue(\Trianglman\Sqrl\SqrlValidateInterface::INVALID_NUT));
         $this->validator->expects($this->once())
                 ->method('nutIPMatches')
@@ -545,6 +545,50 @@ class SqrlRequestHandlerTest extends \PHPUnit_Framework_TestCase
     }
     
     /**
+     * tests the server responding to a cmd=query when the nut has expired, is unknown,
+     * or in some other way is invalid, causing a hard failure
+     * 
+     * this will end the authentication transaction
+     */
+    public function testRespondsToQueryNutKeyMismatch()
+    {
+        $this->validator->expects($this->once())
+                ->method('validateServer')
+                ->with($this->equalTo('sqrl://example.com/sqrl?nut=randomnut'),$this->equalTo('randomnut'),$this->equalTo("1"))
+                ->will($this->returnValue(true));
+        $this->validator->expects($this->once())
+                ->method('validateNut')
+                ->with($this->equalTo('randomnut'),$this->equalTo('mismatchIdentityKey'))
+                ->will($this->returnValue(\Trianglman\Sqrl\SqrlValidateInterface::KEY_MISMATCH));
+        $this->validator->expects($this->once())
+                ->method('nutIPMatches')
+                ->with($this->equalTo('randomnut'),$this->equalTo('192.168.0.5'))
+                ->will($this->returnValue(true));
+        
+        $this->generator->expects($this->once())
+                ->method('getNonce')
+                ->with($this->equalTo(0x1C4),$this->equalTo(''),$this->equalTo('randomnut'))
+                ->will($this->returnValue('newNut'));
+        $this->generator->expects($this->once())
+                ->method('generateQry')
+                ->will($this->returnValue('sqrl?nut=newNut'));
+        
+        $this->handler->parseRequest(
+                array('nut' => 'randomnut'), 
+                array(
+                    'server' => $this->base64UrlEncode('sqrl://example.com/sqrl?nut=randomnut'),
+                    'client' => $this->base64UrlEncode("ver=1\r\ncmd=query\r\nidk=".$this->base64UrlEncode('mismatchIdentityKey')),
+                    'ids' => $this->base64UrlEncode('valid signature')
+                ),
+                array('REMOTE_ADDR'=>'192.168.0.5','HTTPS'=>'1'));
+        
+        $this->assertEquals(
+                $this->base64UrlEncode("ver=1\r\nnut=newNut\r\ntif=1C4\r\nqry=sqrl?nut=newNut\r\nsfn=Example Server"),
+                $this->handler->getResponseMessage()
+                );
+    }
+    
+    /**
      * tests the server responding to a cmd=lock 
      * 
      * this will lock the user's identity key against further authentication
@@ -561,7 +605,7 @@ class SqrlRequestHandlerTest extends \PHPUnit_Framework_TestCase
                 ->will($this->returnValue(true));
         $this->validator->expects($this->once())
                 ->method('validateNut')
-                ->with($this->equalTo('newNut'))
+                ->with($this->equalTo('newNut'),$this->equalTo('validIdentityKey'))
                 ->will($this->returnValue(\Trianglman\Sqrl\SqrlValidateInterface::VALID_NUT));
         $this->validator->expects($this->once())
                 ->method('validateSignature')
@@ -625,7 +669,7 @@ class SqrlRequestHandlerTest extends \PHPUnit_Framework_TestCase
                 ->will($this->returnValue(true));
         $this->validator->expects($this->once())
                 ->method('validateNut')
-                ->with($this->equalTo('randomnut'))
+                ->with($this->equalTo('randomnut'),$this->equalTo('validIdentityKey'))
                 ->will($this->returnValue(\Trianglman\Sqrl\SqrlValidateInterface::VALID_NUT));
         $this->validator->expects($this->once())
                 ->method('validateSignature')
@@ -693,7 +737,7 @@ class SqrlRequestHandlerTest extends \PHPUnit_Framework_TestCase
                 ->will($this->returnValue(true));
         $this->validator->expects($this->once())
                 ->method('validateNut')
-                ->with($this->equalTo('newNut'))
+                ->with($this->equalTo('newNut'),$this->equalTo('validIdentityKey'))
                 ->will($this->returnValue(\Trianglman\Sqrl\SqrlValidateInterface::VALID_NUT));
         $unusedKeys = array('validIdentityKey','validVUK');
         $self = $this;
@@ -776,7 +820,7 @@ class SqrlRequestHandlerTest extends \PHPUnit_Framework_TestCase
                 ->will($this->returnValue(true));
         $this->validator->expects($this->once())
                 ->method('validateNut')
-                ->with($this->equalTo('randomnut'))
+                ->with($this->equalTo('randomnut'),$this->equalTo('validNewIdentityKey'))
                 ->will($this->returnValue(\Trianglman\Sqrl\SqrlValidateInterface::VALID_NUT));
         $unusedKeys = array('validNewIdentityKey','validIdentityKey');
         $self = $this;
@@ -864,7 +908,7 @@ class SqrlRequestHandlerTest extends \PHPUnit_Framework_TestCase
                 ->will($this->returnValue(true));
         $this->validator->expects($this->once())
                 ->method('validateNut')
-                ->with($this->equalTo('newNut'))
+                ->with($this->equalTo('newNut'),$this->equalTo('validNewIdentityKey'))
                 ->will($this->returnValue(\Trianglman\Sqrl\SqrlValidateInterface::VALID_NUT));
         $unusedKeys = array('validNewIdentityKey','validIdentityKey','validVUK');
         $self = $this;
@@ -1042,7 +1086,7 @@ class SqrlRequestHandlerTest extends \PHPUnit_Framework_TestCase
                 ->will($this->returnValue(true));
         $this->validator->expects($this->once())
                 ->method('validateNut')
-                ->with($this->equalTo('randomnut'))
+                ->with($this->equalTo('randomnut'),$this->equalTo('validIdentityKey'))
                 ->will($this->returnValue(\Trianglman\Sqrl\SqrlValidateInterface::VALID_NUT));
         $this->validator->expects($this->once())
                 ->method('validateSignature')
@@ -1093,7 +1137,7 @@ class SqrlRequestHandlerTest extends \PHPUnit_Framework_TestCase
                 ->will($this->returnValue(true));
         $this->validator->expects($this->once())
                 ->method('validateNut')
-                ->with($this->equalTo('newNut'))
+                ->with($this->equalTo('newNut'),$this->equalTo('validIdentityKey'))
                 ->will($this->returnValue(\Trianglman\Sqrl\SqrlValidateInterface::VALID_NUT));
         $unusedKeys = array('validIdentityKey','validVUK');
         $self = $this;
@@ -1167,7 +1211,7 @@ class SqrlRequestHandlerTest extends \PHPUnit_Framework_TestCase
                 ->will($this->returnValue(true));
         $this->validator->expects($this->once())
                 ->method('validateNut')
-                ->with($this->equalTo('newNut'))
+                ->with($this->equalTo('newNut'),$this->equalTo('newIdentityKey'))
                 ->will($this->returnValue(\Trianglman\Sqrl\SqrlValidateInterface::VALID_NUT));
         $unusedKeys = array('validIdentityKey','validVUK','newIdentityKey');
         $self = $this;
@@ -1245,7 +1289,7 @@ class SqrlRequestHandlerTest extends \PHPUnit_Framework_TestCase
                 ->will($this->returnValue(true));
         $this->validator->expects($this->once())
                 ->method('validateNut')
-                ->with($this->equalTo('newNut'))
+                ->with($this->equalTo('newNut'),$this->equalTo('validIdentityKey'))
                 ->will($this->returnValue(\Trianglman\Sqrl\SqrlValidateInterface::VALID_NUT));
         $unusedKeys = array('validIdentityKey','otherVUK');
         $self = $this;
@@ -1321,7 +1365,7 @@ class SqrlRequestHandlerTest extends \PHPUnit_Framework_TestCase
                 ->will($this->returnValue(true));
         $this->validator->expects($this->once())
                 ->method('validateNut')
-                ->with($this->equalTo('randomnut'))
+                ->with($this->equalTo('randomnut'),$this->equalTo('validNewIdentityKey'))
                 ->will($this->returnValue(\Trianglman\Sqrl\SqrlValidateInterface::VALID_NUT));
         $unusedKeys = array('validNewIdentityKey','validIdentityKey');
         $self = $this;
@@ -1387,7 +1431,7 @@ class SqrlRequestHandlerTest extends \PHPUnit_Framework_TestCase
                 ->will($this->returnValue(true));
         $this->validator->expects($this->once())
                 ->method('validateNut')
-                ->with($this->equalTo('newNut'))
+                ->with($this->equalTo('newNut'),$this->equalTo('validNewIdentityKey'))
                 ->will($this->returnValue(\Trianglman\Sqrl\SqrlValidateInterface::VALID_NUT));
         $unusedKeys = array('validNewIdentityKey','validIdentityKey','validVUK');
         $self = $this;
@@ -1479,7 +1523,7 @@ class SqrlRequestHandlerTest extends \PHPUnit_Framework_TestCase
                 ->will($this->returnValue(true));
         $this->validator->expects($this->once())
                 ->method('validateNut')
-                ->with($this->equalTo('newNut'))
+                ->with($this->equalTo('newNut'),$this->equalTo('validNewIdentityKey'))
                 ->will($this->returnValue(\Trianglman\Sqrl\SqrlValidateInterface::VALID_NUT));
         $unusedKeys = array('validNewIdentityKey','validVUK');
         $self = $this;
@@ -1563,7 +1607,7 @@ class SqrlRequestHandlerTest extends \PHPUnit_Framework_TestCase
                 ->will($this->returnValue(true));
         $this->validator->expects($this->once())
                 ->method('validateNut')
-                ->with($this->equalTo('newNut'))
+                ->with($this->equalTo('newNut'),$this->equalTo('validNewIdentityKey'))
                 ->will($this->returnValue(\Trianglman\Sqrl\SqrlValidateInterface::VALID_NUT));
         $this->validator->expects($this->once())
                 ->method('validateSignature')
@@ -1633,7 +1677,7 @@ class SqrlRequestHandlerTest extends \PHPUnit_Framework_TestCase
                 ->will($this->returnValue(true));
         $this->validator->expects($this->once())
                 ->method('validateNut')
-                ->with($this->equalTo('newNut'))
+                ->with($this->equalTo('newNut'),$this->equalTo('validIdentityKey'))
                 ->will($this->returnValue(\Trianglman\Sqrl\SqrlValidateInterface::VALID_NUT));
         $this->validator->expects($this->once())
                 ->method('validateSignature')

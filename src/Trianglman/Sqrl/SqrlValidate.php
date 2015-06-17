@@ -101,18 +101,21 @@ class SqrlValidate implements SqrlValidateInterface
      * Validates a supplied nut
      * 
      * @param string $nut
+     * @param string $signingKey The key used to sign the current request
      * 
      * @return int One of the nut class constants
      */
-    public function validateNut($nut)
+    public function validateNut($nut,$signingKey=null)
     {
         $nutInfo = $this->store->getNutDetails($nut);
         if (!is_array($nutInfo)) {
             return self::INVALID_NUT;
-        } elseif ($nutInfo['createdDate']->format('U') > strtotime('-'.$this->configuration->getNonceMaxAge().' minutes')) {
-            return self::VALID_NUT;
-        } else {
+        } elseif ($nutInfo['createdDate']->format('U') < strtotime('-'.$this->configuration->getNonceMaxAge().' minutes')) {
             return self::EXPIRED_NUT;
+        } elseif (!is_null($signingKey) && !empty($nutInfo['originalKey']) && $nutInfo['originalKey']!==$signingKey) {
+            return self::KEY_MISMATCH;
+        } else {
+            return self::VALID_NUT;
         }
     }
 

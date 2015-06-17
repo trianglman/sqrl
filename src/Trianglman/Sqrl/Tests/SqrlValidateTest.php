@@ -325,6 +325,38 @@ class SqrlValidateTest extends \PHPUnit_Framework_TestCase
         $this->assertEquals(\Trianglman\Sqrl\SqrlValidateInterface::INVALID_NUT, $this->obj->validateNut('you know nothing'));
     }
     
+    public function testValidatesGoodNutMatchingKey()
+    {
+        $this->config->expects($this->any())->method('getNonceMaxAge')
+                ->will($this->returnValue(5));
+        $this->storage->expects($this->any())->method('getNutDetails')
+                ->with($this->equalTo('1234'))
+                ->will($this->returnValue(array(
+                    'tif'=>(string)0x5,
+                    'originalKey'=>'some key',
+                    'originalNut'=>'someNut',
+                    'createdDate'=>new \DateTime(),
+                    'nutIP'=>'192.168.0.105'
+                    )));
+        $this->assertEquals(\Trianglman\Sqrl\SqrlValidateInterface::VALID_NUT, $this->obj->validateNut('1234','some key'));
+    }
+    
+    public function testValidatesGoodNutMismatchKey()
+    {
+        $this->config->expects($this->any())->method('getNonceMaxAge')
+                ->will($this->returnValue(5));
+        $this->storage->expects($this->any())->method('getNutDetails')
+                ->with($this->equalTo('1234'))
+                ->will($this->returnValue(array(
+                    'tif'=>(string)0x5,
+                    'originalKey'=>'some key',
+                    'originalNut'=>'someNut',
+                    'createdDate'=>new \DateTime(),
+                    'nutIP'=>'192.168.0.105'
+                    )));
+        $this->assertEquals(\Trianglman\Sqrl\SqrlValidateInterface::KEY_MISMATCH, $this->obj->validateNut('1234','different key'));
+    }
+    
     public function testValidatesSignature()
     {
         $this->val->expects($this->any())->method('validateSignature')
