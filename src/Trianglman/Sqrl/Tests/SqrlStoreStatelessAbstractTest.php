@@ -25,13 +25,20 @@
 
 namespace Trianglman\Sqrl\Tests;
 
+use PHPUnit\Framework\MockObject\MockObject;
+use PHPUnit\Framework\TestCase;
+use Trianglman\Sqrl\SqrlStoreStatelessAbstract;
+
 /**
  * Tests for  SqrlStoreStatelessAbstract
  *
  * @author johnj
  */
-class SqrlStoreStatelessAbstractTest extends \PHPUnit_Framework_TestCase
+class SqrlStoreStatelessAbstractTest extends TestCase
 {
+    /**
+     * @var SqrlStoreStatelessAbstract|MockObject
+     */
     protected $testStub = null;
     
     public function setup()
@@ -52,7 +59,7 @@ class SqrlStoreStatelessAbstractTest extends \PHPUnit_Framework_TestCase
         $sessionData = array();
         $this->testStub->expects($this->exactly(3))->method('getSessionInfo')
                 ->with($this->equalTo('currentSessionID of long length'))
-                ->will($this->returnCallback(function($sessId) use (&$sessionData) {
+                ->will($this->returnCallback(function() use (&$sessionData) {
                     return $sessionData;
                 }));
         $this->testStub->expects($this->once())->method('setSessionValue')
@@ -101,13 +108,10 @@ class SqrlStoreStatelessAbstractTest extends \PHPUnit_Framework_TestCase
      */
     public function testGeneratesAndReadsSecondLoopNut($nut)
     {
-        if (substr(PHP_VERSION,0,1)<5 || substr(PHP_VERSION,2,1)<4) {
-            $this->markTestSkipped('This test uses a PHP 5.4+ feature');
-        }
         $sessionData = array('sqrl_nuts'=>$nut);
         $this->testStub->expects($this->any())->method('getSessionInfo')
                 ->with($this->equalTo('currentSessionID of long length'))
-                ->will($this->returnCallback(function($sessId) use (&$sessionData) {
+                ->will($this->returnCallback(function() use (&$sessionData) {
                     return $sessionData;
                 }));
         $this->testStub->expects($this->exactly(2))->method('setSessionValue')
@@ -116,7 +120,7 @@ class SqrlStoreStatelessAbstractTest extends \PHPUnit_Framework_TestCase
                         $this->anything(),
                         $this->anything()
                         )
-                ->will($this->returnCallback(function($sesId,$sessKey,$value) use ($nut) {
+                ->will($this->returnCallback(function($sesId, $sessKey, $value) use ($nut) {
                     if ($sessKey === 'sqrl_nuts') {
                         $this->assertTrue(strpos($value, $nut.';')===0);
                     } elseif ($sessKey === 'sqrl_key') {
@@ -205,7 +209,7 @@ class SqrlStoreStatelessAbstractTest extends \PHPUnit_Framework_TestCase
         $sessionData = array('sqrl_nuts'=>'someothernut');
         $this->testStub->expects($this->any())->method('getSessionInfo')
                 ->with($this->equalTo('currentSessionID of long length'))
-                ->will($this->returnCallback(function($sessId) use (&$sessionData) {
+                ->will($this->returnCallback(function() use (&$sessionData) {
                     return $sessionData;
                 }));
         $this->testStub->expects($this->never())->method('setSessionValue');

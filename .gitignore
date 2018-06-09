@@ -1,4 +1,6 @@
 /netbeans/
 /vendor/
+/vagrant/
+/.idea/
 composer.lock
 composer.phar

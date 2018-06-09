@@ -67,7 +67,7 @@ class SqrlValidate implements SqrlValidateInterface
     /**
      * Validates the returned server value
      * 
-     * @param string $server The returned server value
+     * @param string|array $server The returned server value
      * @param string $nut The nut from the request
      * @param string $secure Whether the request was secure
      * 

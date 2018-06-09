@@ -35,7 +35,7 @@ class SodiumNonceValidator implements NonceValidatorInterface
     public function validateSignature($orig, $sig, $pk)
     {
         // Bob verifies and removes the signature
-        $msg_orig = \Sodium::crypto_sign_open($sig.$orig, $pk);
+        $msg_orig = sodium_crypto_sign_open($sig.$orig, $pk);
         $check = $msg_orig !== false;
         if(!$check){
             var_dump($orig);

@@ -24,26 +24,42 @@
  */
 namespace Trianglman\Sqrl\Tests;
 
+use PHPUnit\Framework\MockObject\MockObject;
+use Trianglman\Sqrl\NonceValidatorInterface;
+use Trianglman\Sqrl\SqrlConfiguration;
+use Trianglman\Sqrl\SqrlStoreInterface;
 use Trianglman\Sqrl\SqrlValidate;
-use Trianglman\Sqrl\SqrlRequestHandler;
+use PHPUnit\Framework\TestCase;
 
 /**
  * Unit tests for the SqrlValidate class
  *
  * @author johnj
  */
-class SqrlValidateTest extends \PHPUnit_Framework_TestCase
+class SqrlValidateTest extends TestCase
 {
+    /**
+     * @var MockObject|SqrlConfiguration
+     */
     protected $config = null;
+    /**
+     * @var MockObject|NonceValidatorInterface
+     */
     protected $val = null;
+    /**
+     * @var MockObject|SqrlStoreInterface
+     */
     protected $storage = null;
+    /**
+     * @var SqrlValidate
+     */
     protected $obj = null;
     
     public function setup()
     {
-        $this->config = $this->getMock('\Trianglman\Sqrl\SqrlConfiguration');
-        $this->val = $this->getMock('\Trianglman\Sqrl\NonceValidatorInterface');
-        $this->storage = $this->getMock('\Trianglman\Sqrl\SqrlStoreInterface');
+        $this->config = $this->getMockBuilder(SqrlConfiguration::class)->getMock();
+        $this->val = $this->getMockBuilder(NonceValidatorInterface::class)->getMock();
+        $this->storage = $this->getMockBuilder(SqrlStoreInterface::class)->getMock();
         
         $this->obj = new SqrlValidate($this->config,$this->val,$this->storage);
     }

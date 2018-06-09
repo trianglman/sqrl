@@ -25,6 +25,7 @@
 
 namespace Trianglman\Sqrl\Tests;
 
+use PHPUnit\Framework\TestCase;
 use Trianglman\Sqrl\SqrlConfiguration;
 
 /**
@@ -32,7 +33,7 @@ use Trianglman\Sqrl\SqrlConfiguration;
  *
  * @author johnj
  */
-class SqrlConfigurationTest extends \PHPUnit_Framework_TestCase
+class SqrlConfigurationTest extends TestCase
 {
     public function testLoadsMinimalJsonConfig()
     {

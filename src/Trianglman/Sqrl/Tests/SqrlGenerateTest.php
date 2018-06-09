@@ -24,27 +24,36 @@
  */
 namespace Trianglman\Sqrl\Tests;
 
+use PHPUnit\Framework\MockObject\MockObject;
+use PHPUnit\Framework\TestCase;
 use Endroid\QrCode\QrCode;
+use Trianglman\Sqrl\SqrlConfiguration;
 use Trianglman\Sqrl\SqrlGenerate;
+use Trianglman\Sqrl\SqrlStoreInterface;
+use Trianglman\Sqrl\SqrlStoreStatelessAbstract;
 
 /**
  * Unit tests for the SqrlGenerate class
  *
  * @author johnj
  */
-class SqrlGenerateTest extends \PHPUnit_Framework_TestCase
+class SqrlGenerateTest extends TestCase
 {
-    
+    /**
+     * @var MockObject|SqrlConfiguration
+     */
     protected $config = null;
-    
+    /**
+     * @var MockObject|SqrlStoreInterface
+     */
     protected $storage = null;
     
     public function setup()
     {
-        $this->config = $this->getMock('\Trianglman\Sqrl\SqrlConfiguration');
+        $this->config = $this->getMockBuilder(SqrlConfiguration::class)->getMock();
         $this->config->expects($this->any())->method('getNonceSalt')
                 ->will($this->returnValue('randomsalt'));
-        $this->storage = $this->getMock('\Trianglman\Sqrl\SqrlStoreInterface');
+        $this->storage = $this->getMockBuilder(SqrlStoreInterface::class)->getMock();
     }
     
     /**
@@ -56,16 +65,13 @@ class SqrlGenerateTest extends \PHPUnit_Framework_TestCase
      */
     public function testGeneratesStatefulNonceInitialRequest()
     {
-        if (substr(PHP_VERSION,0,1)<5 || substr(PHP_VERSION,2,1)<4) {
-            $this->markTestSkipped('This test uses a PHP 5.4+ feature');
-        }
         $this->storage->expects($this->once())
                 ->method('getSessionNonce')
                 ->will($this->returnValue(null));
         $this->storage->expects($this->once())
                 ->method('storeNonce')
                 ->with($this->anything(),$this->equalTo(0),$this->equalTo(''),$this->equalTo(''))
-                ->will($this->returnCallback(function($nut,$tif,$key,$oldnut) {
+                ->will($this->returnCallback(function($nut) {
                     $this->assertRegExp('/[a-z0-9]{64}/',$nut,'Nut is not properly formatted');
                 }));
         $obj = new SqrlGenerate($this->config,$this->storage);
@@ -81,7 +87,8 @@ class SqrlGenerateTest extends \PHPUnit_Framework_TestCase
      */
     public function testGeneratesStatelessNonceInitialRequest()
     {
-        $storage = $this->getMockBuilder('\Trianglman\Sqrl\SqrlStoreStatelessAbstract')
+        /** @var MockObject|SqrlStoreStatelessAbstract $storage */
+        $storage = $this->getMockBuilder(SqrlStoreStatelessAbstract::class)
                 ->disableOriginalConstructor()
                 ->setMethods(array('generateNut'))
                 ->getMockForAbstractClass();
@@ -119,16 +126,13 @@ class SqrlGenerateTest extends \PHPUnit_Framework_TestCase
      */
     public function testGeneratesStatefulNonceSecondLoop()
     {
-        if (substr(PHP_VERSION,0,1)<5 || substr(PHP_VERSION,2,1)<4) {
-            $this->markTestSkipped('This test uses a PHP 5.4+ feature');
-        }
         $this->storage->expects($this->never())
                 ->method('getSessionNonce')
                 ->will($this->returnValue(null));
         $this->storage->expects($this->once())
                 ->method('storeNonce')
                 ->with($this->anything(),$this->equalTo(5),$this->equalTo('validkey'),$this->equalTo('previousNut'))
-                ->will($this->returnCallback(function($nut,$tif,$key,$oldnut) {
+                ->will($this->returnCallback(function($nut) {
                     $this->assertRegExp('/[a-z0-9]{64}/',$nut,'Nut is not properly formatted');
                 }));
         $obj = new SqrlGenerate($this->config,$this->storage);
@@ -146,7 +150,8 @@ class SqrlGenerateTest extends \PHPUnit_Framework_TestCase
      */
     public function testGeneratesStatelessNonceSecondLoop()
     {
-        $storage = $this->getMockBuilder('\Trianglman\Sqrl\SqrlStoreStatelessAbstract')
+        /** @var MockObject|SqrlStoreStatelessAbstract $storage */
+        $storage = $this->getMockBuilder(SqrlStoreStatelessAbstract::class)
                 ->disableOriginalConstructor()
                 ->setMethods(array('generateNut'))
                 ->getMockForAbstractClass();
@@ -229,6 +234,7 @@ class SqrlGenerateTest extends \PHPUnit_Framework_TestCase
 
     /**
      * @depends testGeneratesUrl
+     * @throws \Endroid\QrCode\Exceptions\ImageFunctionUnknownException
      */
     public function testRenders()
     {

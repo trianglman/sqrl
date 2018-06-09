@@ -23,6 +23,7 @@
  */
 namespace Trianglman\Sqrl\Test\Ed25519;
 
+use PHPUnit\Framework\TestCase;
 use Trianglman\Sqrl\Ed25519\Crypto;
 
 /**
@@ -30,16 +31,13 @@ use Trianglman\Sqrl\Ed25519\Crypto;
  *
  * @author johnj
  */
-class CryptoTest extends \PHPUnit_Framework_TestCase
+class CryptoTest extends TestCase
 {
     /**
      * @dataProvider publicKeyProvider
      */
     public function testGeneratesPublicKey($skConcat, $pktest, $binM, $sigConcat, $sk)
     {
-        if (version_compare(phpversion(), '5.4.0', '<')) {
-            $this->markTestSkipped('Test only works in PHP >=5.4.0');
-        }
 
         $obj = new Crypto();
         $pk = $obj->publickey($sk);
@@ -52,10 +50,6 @@ class CryptoTest extends \PHPUnit_Framework_TestCase
      */
     public function testSigns($skConcat, $pktest, $binM, $sigConcat, $sk)
     {
-        if (version_compare(phpversion(), '5.4.0', '<')) {
-            $this->markTestSkipped('Test only works in PHP >=5.4.0');
-        }
-
         $obj = new Crypto();
         $sig = $obj->signature($binM, $sk, hex2bin($pktest));
         $this->assertEquals(hex2bin(substr($sigConcat, 0, 128)), $sig);
@@ -63,13 +57,10 @@ class CryptoTest extends \PHPUnit_Framework_TestCase
 
     /**
      * @dataProvider publicKeyProvider
+     * @throws \Exception
      */
     public function testVerify($skConcat, $pktest, $binM, $sigConcat, $sk)
     {
-        if (version_compare(phpversion(), '5.4.0', '<')) {
-            $this->markTestSkipped('Test only works in PHP >=5.4.0');
-        }
-
         $sig = hex2bin(substr($sigConcat, 0, 128));
         $obj = new Crypto();
         $this->assertTrue($obj->checkvalid($sig, $binM, hex2bin($pktest)));
@@ -77,6 +68,7 @@ class CryptoTest extends \PHPUnit_Framework_TestCase
 
     public function publicKeyProvider()
     {
+        $this->markTestSkipped('This is not going to be used in PHP 7.2; Sodium is in core.');
         if (version_compare(phpversion(), '5.4.0', '<')) {
             return array(array(0,0,0,0,0));
         }

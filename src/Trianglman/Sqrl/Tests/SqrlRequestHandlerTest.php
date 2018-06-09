@@ -24,31 +24,34 @@
  */
 namespace Trianglman\Sqrl\Tests;
 
+use PHPUnit\Framework\MockObject\MockObject;
+use PHPUnit\Framework\TestCase;
+use Trianglman\Sqrl\SqrlConfiguration;
+use Trianglman\Sqrl\SqrlGenerateInterface;
+use Trianglman\Sqrl\SqrlStoreInterface;
+use Trianglman\Sqrl\SqrlValidateInterface;
+
 /**
  * Unit tests for the SqrlRequestHandler class
  *
  * @author johnj
  */
-class SqrlRequestHandlerTest extends \PHPUnit_Framework_TestCase
+class SqrlRequestHandlerTest extends TestCase
 {
     /**
-     * Mocked version of \Trianglman\Sqrl\SqrlGenerate
-     * @var mock 
+     * @var MockObject|SqrlGenerateInterface
      */
     protected $generator = null;
     /**
-     * Mocked version of \Trianglman\Sqrl\SqrlValidate
-     * @var mock 
+     * @var MockObject|SqrlValidateInterface
      */
     protected $validator = null;
     /**
-     * Mocked version of \Trianglman\Sqrl\SqrlStoreInterface
-     * @var mock 
+     * @var MockObject|SqrlStoreInterface
      */
     protected $storage = null;
     /**
-     * Mocked version of \Trianglman\Sqrl\SqrlConfiguration
-     * @var mock 
+     * @var MockObject|SqrlConfiguration
      */
     protected $config = null;
     /**
@@ -60,11 +63,11 @@ class SqrlRequestHandlerTest extends \PHPUnit_Framework_TestCase
     
     public function setup()
     {
-        $this->generator = $this->getMock('\Trianglman\Sqrl\SqrlGenerateInterface');
-        $this->validator = $this->getMock('\Trianglman\Sqrl\SqrlValidateInterface');
-        $this->storage = $this->getMock('\Trianglman\Sqrl\SqrlStoreInterface');
+        $this->generator = $this->getMockBuilder(SqrlGenerateInterface::class)->getMock();
+        $this->validator = $this->getMockBuilder(SqrlValidateInterface::class)->getMock();
+        $this->storage = $this->getMockBuilder(SqrlStoreInterface::class)->getMock();
         
-        $this->config = $this->getMock('\Trianglman\Sqrl\SqrlConfiguration');
+        $this->config = $this->getMockBuilder(SqrlConfiguration::class)->getMock();
         $this->config->expects($this->any())
                 ->method('getFriendlyName')
                 ->will($this->returnValue('Example Server'));
@@ -74,12 +77,13 @@ class SqrlRequestHandlerTest extends \PHPUnit_Framework_TestCase
 
         $this->handler = new \Trianglman\Sqrl\SqrlRequestHandler($this->config,$this->validator,$this->storage,$this->generator);
     }
-    
+
     /**
      * tests the server responding to a cmd=query when the idk is known
-     * 
+     *
      * this will generally be the first step of most authentication, so the server value
      * will be the (s)qrl:// URL
+     * @throws \Trianglman\Sqrl\SqrlException
      */
     public function testRespondsToQueryKnownIdentityKey()
     {
@@ -90,7 +94,7 @@ class SqrlRequestHandlerTest extends \PHPUnit_Framework_TestCase
         $this->validator->expects($this->once())
                 ->method('validateNut')
                 ->with($this->equalTo('randomnut'),$this->equalTo('validIdentityKey'))
-                ->will($this->returnValue(\Trianglman\Sqrl\SqrlValidateInterface::VALID_NUT));
+                ->will($this->returnValue(SqrlValidateInterface::VALID_NUT));
         $this->validator->expects($this->once())
                 ->method('validateSignature')
                 ->with(
@@ -108,7 +112,7 @@ class SqrlRequestHandlerTest extends \PHPUnit_Framework_TestCase
         $this->storage->expects($this->once())
                 ->method('checkIdentityKey')
                 ->with($this->equalTo('validIdentityKey'))
-                ->will($this->returnValue(\Trianglman\Sqrl\SqrlStoreInterface::IDENTITY_ACTIVE));
+                ->will($this->returnValue(SqrlStoreInterface::IDENTITY_ACTIVE));
 
         $this->generator->expects($this->once())
                 ->method('getNonce')
@@ -132,12 +136,13 @@ class SqrlRequestHandlerTest extends \PHPUnit_Framework_TestCase
                 $this->handler->getResponseMessage()
                 );
     }
-    
+
     /**
      * tests the server responding to a cmd=query when the idk is known and the IPs do not match
-     * 
-     * this will be both a MITM check and a common case when using a separate device 
+     *
+     * this will be both a MITM check and a common case when using a separate device
      * to authenticate so no temporary or permantent failure should be returned
+     * @throws \Trianglman\Sqrl\SqrlException
      */
     public function testRespondsToQueryKnownIdentityKeyIPMismatch()
     {
@@ -148,7 +153,7 @@ class SqrlRequestHandlerTest extends \PHPUnit_Framework_TestCase
         $this->validator->expects($this->once())
                 ->method('validateNut')
                 ->with($this->equalTo('randomnut'),$this->equalTo('validIdentityKey'))
-                ->will($this->returnValue(\Trianglman\Sqrl\SqrlValidateInterface::VALID_NUT));
+                ->will($this->returnValue(SqrlValidateInterface::VALID_NUT));
         $this->validator->expects($this->once())
                 ->method('validateSignature')
                 ->with(
@@ -166,7 +171,7 @@ class SqrlRequestHandlerTest extends \PHPUnit_Framework_TestCase
         $this->storage->expects($this->once())
                 ->method('checkIdentityKey')
                 ->with($this->equalTo('validIdentityKey'))
-                ->will($this->returnValue(\Trianglman\Sqrl\SqrlStoreInterface::IDENTITY_ACTIVE));
+                ->will($this->returnValue(SqrlStoreInterface::IDENTITY_ACTIVE));
 
         $this->generator->expects($this->once())
                 ->method('getNonce')
@@ -190,12 +195,13 @@ class SqrlRequestHandlerTest extends \PHPUnit_Framework_TestCase
                 $this->handler->getResponseMessage()
                 );
     }
-    
+
     /**
      * tests the server responding to a cmd=query with the idk is not known
-     * 
-     * this is in the instance where the server does not allow previously unknown 
+     *
+     * this is in the instance where the server does not allow previously unknown
      * identities to authenticate to the server
+     * @throws \Trianglman\Sqrl\SqrlException
      */
     public function testRespondsToQueryUnknownIdentityKeyHardFailure()
     {
@@ -206,7 +212,7 @@ class SqrlRequestHandlerTest extends \PHPUnit_Framework_TestCase
         $this->validator->expects($this->once())
                 ->method('validateNut')
                 ->with($this->equalTo('randomnut'),$this->equalTo('validNewIdentityKey'))
-                ->will($this->returnValue(\Trianglman\Sqrl\SqrlValidateInterface::VALID_NUT));
+                ->will($this->returnValue(SqrlValidateInterface::VALID_NUT));
         $this->validator->expects($this->once())
                 ->method('validateSignature')
                 ->with(
@@ -224,7 +230,7 @@ class SqrlRequestHandlerTest extends \PHPUnit_Framework_TestCase
         $this->storage->expects($this->once())
                 ->method('checkIdentityKey')
                 ->with($this->equalTo('validNewIdentityKey'))
-                ->will($this->returnValue(\Trianglman\Sqrl\SqrlStoreInterface::IDENTITY_UNKNOWN));
+                ->will($this->returnValue(SqrlStoreInterface::IDENTITY_UNKNOWN));
 
         $this->generator->expects($this->once())
                 ->method('getNonce')
@@ -252,12 +258,13 @@ class SqrlRequestHandlerTest extends \PHPUnit_Framework_TestCase
                 $this->handler->getResponseMessage()
                 );
     }
-    
+
     /**
      * tests the server responding to a cmd=query with the idk is not known
-     * 
+     *
      * this is in the instance where the server will allow the authentication to proceed
      * generally this will be on a create account or associate account with SQRL page
+     * @throws \Trianglman\Sqrl\SqrlException
      */
     public function testRespondsToQueryUnknownIdentityKeyAuthenticationProceeds()
     {
@@ -268,7 +275,7 @@ class SqrlRequestHandlerTest extends \PHPUnit_Framework_TestCase
         $this->validator->expects($this->once())
                 ->method('validateNut')
                 ->with($this->equalTo('randomnut'),$this->equalTo('validNewIdentityKey'))
-                ->will($this->returnValue(\Trianglman\Sqrl\SqrlValidateInterface::VALID_NUT));
+                ->will($this->returnValue(SqrlValidateInterface::VALID_NUT));
         $this->validator->expects($this->once())
                 ->method('validateSignature')
                 ->with(
@@ -286,7 +293,7 @@ class SqrlRequestHandlerTest extends \PHPUnit_Framework_TestCase
         $this->storage->expects($this->once())
                 ->method('checkIdentityKey')
                 ->with($this->equalTo('validNewIdentityKey'))
-                ->will($this->returnValue(\Trianglman\Sqrl\SqrlStoreInterface::IDENTITY_UNKNOWN));
+                ->will($this->returnValue(SqrlStoreInterface::IDENTITY_UNKNOWN));
 
         $this->generator->expects($this->once())
                 ->method('getNonce')
@@ -314,12 +321,13 @@ class SqrlRequestHandlerTest extends \PHPUnit_Framework_TestCase
                 $this->handler->getResponseMessage()
                 );
     }
-    
+
     /**
      * tests the server responding to a cmd=ident with a known idk
-     * 
-     * this should connect the session with the identity key, authorizing the 
+     *
+     * this should connect the session with the identity key, authorizing the
      * transaction (log-in, purchase authentication, etc.)
+     * @throws \Trianglman\Sqrl\SqrlException
      */
     public function testRespondsToIdent()
     {
@@ -334,7 +342,7 @@ class SqrlRequestHandlerTest extends \PHPUnit_Framework_TestCase
         $this->validator->expects($this->once())
                 ->method('validateNut')
                 ->with($this->equalTo('newNut'),$this->equalTo('validIdentityKey'))
-                ->will($this->returnValue(\Trianglman\Sqrl\SqrlValidateInterface::VALID_NUT));
+                ->will($this->returnValue(SqrlValidateInterface::VALID_NUT));
         $this->validator->expects($this->once())
                 ->method('validateSignature')
                 ->with(
@@ -352,7 +360,7 @@ class SqrlRequestHandlerTest extends \PHPUnit_Framework_TestCase
         $this->storage->expects($this->once())
                 ->method('checkIdentityKey')
                 ->with($this->equalTo('validIdentityKey'))
-                ->will($this->returnValue(\Trianglman\Sqrl\SqrlStoreInterface::IDENTITY_ACTIVE));
+                ->will($this->returnValue(SqrlStoreInterface::IDENTITY_ACTIVE));
         $this->storage->expects($this->once())
                 ->method('logSessionIn')
                 ->with($this->equalTo('newNut'));
@@ -379,21 +387,29 @@ class SqrlRequestHandlerTest extends \PHPUnit_Framework_TestCase
                 $this->handler->getResponseMessage()
                 );
     }
-    
+
     /**
      * tests the server responding to a cmd=ident with an unknown idk
-     * 
-     * this should connect the session with the identity key, authorizing the 
+     *
+     * this should connect the session with the identity key, authorizing the
      * transaction (generally a log in or account creation/association) and that
      * the suk and vuk have been stored
+     * @throws \Trianglman\Sqrl\SqrlException
      */
     public function testRespondsToIdentWhenCreatingAccount()
     {
-        $clientVal = "ver=1\r\ncmd=ident\r\nidk=".$this->base64UrlEncode('validNewIdentityKey')."\r\nsuk=".$this->base64UrlEncode('validSUK')."\r\nvuk=".$this->base64UrlEncode('validVUK');
+        $clientVal = "ver=1\r\ncmd=ident\r\nidk=".$this->base64UrlEncode('validNewIdentityKey')
+            ."\r\nsuk=".$this->base64UrlEncode('validSUK')."\r\nvuk=".$this->base64UrlEncode('validVUK');
         $this->validator->expects($this->once())
                 ->method('validateServer')
                 ->with(
-                        $this->equalTo(array('ver'=>'1','nut'=>'newNut','tif'=>'5','qry'=>'sqrl?nut=newNut','sfn'=>'Example Server')),
+                        $this->equalTo(array(
+                            'ver'=>'1',
+                            'nut'=>'newNut',
+                            'tif'=>'5',
+                            'qry'=>'sqrl?nut=newNut',
+                            'sfn'=>'Example Server'
+                        )),
                         $this->equalTo('newNut'),
                         $this->equalTo("1")
                         )
@@ -402,13 +418,14 @@ class SqrlRequestHandlerTest extends \PHPUnit_Framework_TestCase
                 ->method('validateNut')
                 ->with($this->equalTo('newNut'),$this->equalTo('validNewIdentityKey'))
                 ->will($this->returnValue(\Trianglman\Sqrl\SqrlValidateInterface::VALID_NUT));
-        $unusedKeys = array('validNewIdentityKey','validVUK');
-        $self = $this;
+        //$unusedKeys = array('validNewIdentityKey','validVUK');
         $this->validator->expects($this->once())
                 ->method('validateSignature')
                 ->with(
                         $this->equalTo($this->base64UrlEncode($clientVal)
-                                .$this->base64UrlEncode("ver=1\r\nnut=newNut\r\ntif=5\r\nqry=sqrl?nut=newNut\r\nsfn=Example Server")),
+                                .$this->base64UrlEncode(
+                                    "ver=1\r\nnut=newNut\r\ntif=5\r\nqry=sqrl?nut=newNut\r\nsfn=Example Server"
+                            )),
                         'validNewIdentityKey',
                         'valid signature'
                         )
@@ -421,7 +438,7 @@ class SqrlRequestHandlerTest extends \PHPUnit_Framework_TestCase
         $this->storage->expects($this->once())
                 ->method('checkIdentityKey')
                 ->with($this->equalTo('validNewIdentityKey'))
-                ->will($this->returnValue(\Trianglman\Sqrl\SqrlStoreInterface::IDENTITY_UNKNOWN));
+                ->will($this->returnValue(SqrlStoreInterface::IDENTITY_UNKNOWN));
         $this->storage->expects($this->once())
                 ->method('createIdentity')
                 ->with($this->equalTo('validNewIdentityKey'),$this->equalTo('validSUK'),$this->equalTo('validVUK'));
@@ -455,12 +472,13 @@ class SqrlRequestHandlerTest extends \PHPUnit_Framework_TestCase
                 $this->handler->getResponseMessage()
                 );
     }
-    
+
     /**
      * tests the server responding to a cmd=query when the nut has expired
-     * 
+     *
      * this should cause the client to sign the response with a new query in order
      * to continue authentication
+     * @throws \Trianglman\Sqrl\SqrlException
      */
     public function testRespondsToQueryExpiredNutSoftFailure()
     {
@@ -471,7 +489,7 @@ class SqrlRequestHandlerTest extends \PHPUnit_Framework_TestCase
         $this->validator->expects($this->once())
                 ->method('validateNut')
                 ->with($this->equalTo('randomnut'),$this->equalTo('validIdentityKey'))
-                ->will($this->returnValue(\Trianglman\Sqrl\SqrlValidateInterface::EXPIRED_NUT));
+                ->will($this->returnValue(SqrlValidateInterface::EXPIRED_NUT));
         $this->validator->expects($this->once())
                 ->method('nutIPMatches')
                 ->with($this->equalTo('randomnut'),$this->equalTo('192.168.0.5'))
@@ -499,12 +517,13 @@ class SqrlRequestHandlerTest extends \PHPUnit_Framework_TestCase
                 $this->handler->getResponseMessage()
                 );
     }
-    
+
     /**
      * tests the server responding to a cmd=query when the nut has expired, is unknown,
      * or in some other way is invalid, causing a hard failure
-     * 
+     *
      * this will end the authentication transaction
+     * @throws \Trianglman\Sqrl\SqrlException
      */
     public function testRespondsToQueryBadNutHardFailure()
     {
@@ -515,7 +534,7 @@ class SqrlRequestHandlerTest extends \PHPUnit_Framework_TestCase
         $this->validator->expects($this->once())
                 ->method('validateNut')
                 ->with($this->equalTo('randomnut'),$this->equalTo('validIdentityKey'))
-                ->will($this->returnValue(\Trianglman\Sqrl\SqrlValidateInterface::INVALID_NUT));
+                ->will($this->returnValue(SqrlValidateInterface::INVALID_NUT));
         $this->validator->expects($this->once())
                 ->method('nutIPMatches')
                 ->with($this->equalTo('randomnut'),$this->equalTo('192.168.0.5'))
@@ -543,12 +562,13 @@ class SqrlRequestHandlerTest extends \PHPUnit_Framework_TestCase
                 $this->handler->getResponseMessage()
                 );
     }
-    
+
     /**
      * tests the server responding to a cmd=query when the nut has expired, is unknown,
      * or in some other way is invalid, causing a hard failure
-     * 
+     *
      * this will end the authentication transaction
+     * @throws \Trianglman\Sqrl\SqrlException
      */
     public function testRespondsToQueryNutKeyMismatch()
     {
@@ -559,7 +579,7 @@ class SqrlRequestHandlerTest extends \PHPUnit_Framework_TestCase
         $this->validator->expects($this->once())
                 ->method('validateNut')
                 ->with($this->equalTo('randomnut'),$this->equalTo('mismatchIdentityKey'))
-                ->will($this->returnValue(\Trianglman\Sqrl\SqrlValidateInterface::KEY_MISMATCH));
+                ->will($this->returnValue(SqrlValidateInterface::KEY_MISMATCH));
         $this->validator->expects($this->once())
                 ->method('nutIPMatches')
                 ->with($this->equalTo('randomnut'),$this->equalTo('192.168.0.5'))
@@ -587,11 +607,12 @@ class SqrlRequestHandlerTest extends \PHPUnit_Framework_TestCase
                 $this->handler->getResponseMessage()
                 );
     }
-    
+
     /**
-     * tests the server responding to a cmd=lock 
-     * 
+     * tests the server responding to a cmd=lock
+     *
      * this will lock the user's identity key against further authentication
+     * @throws \Trianglman\Sqrl\SqrlException
      */
     public function testRespondsToLock()
     {
@@ -606,7 +627,7 @@ class SqrlRequestHandlerTest extends \PHPUnit_Framework_TestCase
         $this->validator->expects($this->once())
                 ->method('validateNut')
                 ->with($this->equalTo('newNut'),$this->equalTo('validIdentityKey'))
-                ->will($this->returnValue(\Trianglman\Sqrl\SqrlValidateInterface::VALID_NUT));
+                ->will($this->returnValue(SqrlValidateInterface::VALID_NUT));
         $this->validator->expects($this->once())
                 ->method('validateSignature')
                 ->with(
@@ -624,7 +645,7 @@ class SqrlRequestHandlerTest extends \PHPUnit_Framework_TestCase
         $this->storage->expects($this->once())
                 ->method('checkIdentityKey')
                 ->with($this->equalTo('validIdentityKey'))
-                ->will($this->returnValue(\Trianglman\Sqrl\SqrlStoreInterface::IDENTITY_ACTIVE));
+                ->will($this->returnValue(SqrlStoreInterface::IDENTITY_ACTIVE));
         $this->storage->expects($this->once())
                 ->method('lockIdentityKey')
                 ->with($this->equalTo('validIdentityKey'));
@@ -654,12 +675,13 @@ class SqrlRequestHandlerTest extends \PHPUnit_Framework_TestCase
                 $this->handler->getResponseMessage()
                 );
     }
-    
+
     /**
-     * tests the server responding to a cmd=query when the account has previously been locked 
-     * 
+     * tests the server responding to a cmd=query when the account has previously been locked
+     *
      * this should return the suk value previously supplied by the user in order
      * for the client to complete the identity unlock process
+     * @throws \Trianglman\Sqrl\SqrlException
      */
     public function testRespondsToQueryWhenAccountLocked()
     {
@@ -670,7 +692,7 @@ class SqrlRequestHandlerTest extends \PHPUnit_Framework_TestCase
         $this->validator->expects($this->once())
                 ->method('validateNut')
                 ->with($this->equalTo('randomnut'),$this->equalTo('validIdentityKey'))
-                ->will($this->returnValue(\Trianglman\Sqrl\SqrlValidateInterface::VALID_NUT));
+                ->will($this->returnValue(SqrlValidateInterface::VALID_NUT));
         $this->validator->expects($this->once())
                 ->method('validateSignature')
                 ->with(
@@ -688,7 +710,7 @@ class SqrlRequestHandlerTest extends \PHPUnit_Framework_TestCase
         $this->storage->expects($this->once())
                 ->method('checkIdentityKey')
                 ->with($this->equalTo('validIdentityKey'))
-                ->will($this->returnValue(\Trianglman\Sqrl\SqrlStoreInterface::IDENTITY_LOCKED));
+                ->will($this->returnValue(SqrlStoreInterface::IDENTITY_LOCKED));
         $this->storage->expects($this->once())
                 ->method('getIdentitySUK')
                 ->with($this->equalTo('validIdentityKey'))
@@ -716,13 +738,14 @@ class SqrlRequestHandlerTest extends \PHPUnit_Framework_TestCase
                 $this->handler->getResponseMessage()
                 );
     }
-    
+
     /**
      * tests the server responding to a cmd=ident when the account has previously been locked
      * when the user is supplying the Identity Lock credentials
-     * 
+     *
      * this will validate both the identity and the vuk/urs process was completed then
      * unlock the idk for future authentication
+     * @throws \Trianglman\Sqrl\SqrlException
      */
     public function testRespondsToUnlockRequest()
     {
@@ -768,7 +791,7 @@ class SqrlRequestHandlerTest extends \PHPUnit_Framework_TestCase
         $this->storage->expects($this->once())
                 ->method('checkIdentityKey')
                 ->with($this->equalTo('validIdentityKey'))
-                ->will($this->returnValue(\Trianglman\Sqrl\SqrlStoreInterface::IDENTITY_LOCKED));
+                ->will($this->returnValue(SqrlStoreInterface::IDENTITY_LOCKED));
         $this->storage->expects($this->once())
                 ->method('unlockIdentityKey')
                 ->with($this->equalTo('validIdentityKey'));
@@ -803,13 +826,14 @@ class SqrlRequestHandlerTest extends \PHPUnit_Framework_TestCase
                 $this->handler->getResponseMessage()
                 );
     }
-    
+
     /**
      * tests the server responding to a cmd=query when the user is supplying a pidk
      * in order to update their account.
-     * 
+     *
      * This should return the user's suk value in order to do the full identity unlock
      * process and update the records
+     * @throws \Trianglman\Sqrl\SqrlException
      */
     public function testRespondsToQueryDuringIdentityUpdate()
     {
@@ -821,7 +845,7 @@ class SqrlRequestHandlerTest extends \PHPUnit_Framework_TestCase
         $this->validator->expects($this->once())
                 ->method('validateNut')
                 ->with($this->equalTo('randomnut'),$this->equalTo('validNewIdentityKey'))
-                ->will($this->returnValue(\Trianglman\Sqrl\SqrlValidateInterface::VALID_NUT));
+                ->will($this->returnValue(SqrlValidateInterface::VALID_NUT));
         $unusedKeys = array('validNewIdentityKey','validIdentityKey');
         $self = $this;
         $this->validator->expects($this->exactly(2))
@@ -852,12 +876,13 @@ class SqrlRequestHandlerTest extends \PHPUnit_Framework_TestCase
                 ->with($this->anything())
                 ->will($this->returnCallback(function($key) use ($self) {
                     if ($key === 'validIdentityKey') {
-                        return \Trianglman\Sqrl\SqrlStoreInterface::IDENTITY_ACTIVE;
+                        return SqrlStoreInterface::IDENTITY_ACTIVE;
                     } elseif ($key === 'validNewIdentityKey') {
-                        return \Trianglman\Sqrl\SqrlStoreInterface::IDENTITY_UNKNOWN;
+                        return SqrlStoreInterface::IDENTITY_UNKNOWN;
                     } else {
                         $self->assertTrue(false,$key.' not a valid key');
                     }
+                    return null;
                 }));
         $this->storage->expects($this->once())
                 ->method('getIdentitySUK')
@@ -887,12 +912,13 @@ class SqrlRequestHandlerTest extends \PHPUnit_Framework_TestCase
                 $this->handler->getResponseMessage()
                 );
     }
-    
+
     /**
      * tests the server responding to a cmd=setkey when the user is supplying a pidk
      * in order to update their account.
-     * 
+     *
      * This should cause the server to replace the previous idk with the newly supplied idk
+     * @throws \Trianglman\Sqrl\SqrlException
      */
     public function testRespondsToIdentDuringIdentityUpdate()
     {
@@ -909,7 +935,7 @@ class SqrlRequestHandlerTest extends \PHPUnit_Framework_TestCase
         $this->validator->expects($this->once())
                 ->method('validateNut')
                 ->with($this->equalTo('newNut'),$this->equalTo('validNewIdentityKey'))
-                ->will($this->returnValue(\Trianglman\Sqrl\SqrlValidateInterface::VALID_NUT));
+                ->will($this->returnValue(SqrlValidateInterface::VALID_NUT));
         $unusedKeys = array('validNewIdentityKey','validIdentityKey','validVUK');
         $self = $this;
         $this->validator->expects($this->exactly(3))
@@ -944,12 +970,13 @@ class SqrlRequestHandlerTest extends \PHPUnit_Framework_TestCase
                 ->with($this->anything())
                 ->will($this->returnCallback(function($key) use ($self) {
                     if ($key === 'validIdentityKey') {
-                        return \Trianglman\Sqrl\SqrlStoreInterface::IDENTITY_ACTIVE;
+                        return SqrlStoreInterface::IDENTITY_ACTIVE;
                     } elseif ($key === 'validNewIdentityKey') {
-                        return \Trianglman\Sqrl\SqrlStoreInterface::IDENTITY_UNKNOWN;
+                        return SqrlStoreInterface::IDENTITY_UNKNOWN;
                     } else {
                         $self->assertTrue(false,$key.' not a valid key');
                     }
+                    return null;
                 }));
         $this->storage->expects($this->once())
                 ->method('logSessionIn')
@@ -986,10 +1013,11 @@ class SqrlRequestHandlerTest extends \PHPUnit_Framework_TestCase
                 $this->handler->getResponseMessage()
                 );
     }
-    
+
     /**
-     * Tests that the server responds with a client failure flag if the client fails 
+     * Tests that the server responds with a client failure flag if the client fails
      * to send all the information needed to make a basic request.
+     * @throws \Trianglman\Sqrl\SqrlException
      */
     public function testHandlesIncompleteRequest()
     {
@@ -1011,10 +1039,11 @@ class SqrlRequestHandlerTest extends \PHPUnit_Framework_TestCase
                 $this->handler->getResponseMessage()
                 );
     }
-    
+
     /**
-     * Tests that the server responds with a client failure flag if the client fails 
+     * Tests that the server responds with a client failure flag if the client fails
      * to send all the information needed to make a basic request.
+     * @throws \Trianglman\Sqrl\SqrlException
      */
     public function testHandlesRequestWithInvalidClient()
     {
@@ -1040,10 +1069,11 @@ class SqrlRequestHandlerTest extends \PHPUnit_Framework_TestCase
                 $this->handler->getResponseMessage()
                 );
     }
-    
+
     /**
-     * Tests that the server responds with a client failure flag if the client 
+     * Tests that the server responds with a client failure flag if the client
      * sends a server value that doesn't match what the server sent
+     * @throws \Trianglman\Sqrl\SqrlException
      */
     public function testHandlesRequestWhereServerValueDoesntValidate()
     {
@@ -1073,10 +1103,11 @@ class SqrlRequestHandlerTest extends \PHPUnit_Framework_TestCase
                 $this->handler->getResponseMessage()
                 );
     }
-    
+
     /**
-     * Tests that the server responds with a client failure flag if the client 
+     * Tests that the server responds with a client failure flag if the client
      * sends an invalid IDS signature
+     * @throws \Trianglman\Sqrl\SqrlException
      */
     public function testHandlesRequestWithInvalidIDS()
     {
@@ -1119,10 +1150,11 @@ class SqrlRequestHandlerTest extends \PHPUnit_Framework_TestCase
                 $this->handler->getResponseMessage()
                 );
     }
-    
+
     /**
-     * Tests that the server responds with a client failure flag if the client 
+     * Tests that the server responds with a client failure flag if the client
      * sends an invalid URS signature
+     * @throws \Trianglman\Sqrl\SqrlException
      */
     public function testHandlesRequestWithInvalidURS()
     {
@@ -1192,10 +1224,11 @@ class SqrlRequestHandlerTest extends \PHPUnit_Framework_TestCase
                 $this->handler->getResponseMessage()
                 );
     }
-    
+
     /**
-     * Tests that the server responds with a client failure flag if the client 
+     * Tests that the server responds with a client failure flag if the client
      * sends an invalid URS signature
+     * @throws \Trianglman\Sqrl\SqrlException
      */
     public function testHandlesRequestWithInvalidURSDuringIDUpdate()
     {
@@ -1275,7 +1308,10 @@ class SqrlRequestHandlerTest extends \PHPUnit_Framework_TestCase
                 $this->handler->getResponseMessage()
                 );
     }
-    
+
+    /**
+     * @throws \Trianglman\Sqrl\SqrlException
+     */
     public function testRespondsToUnlockRequestMismathedVUK()
     {
         $client = "ver=1\r\ncmd=ident\r\nidk=".$this->base64UrlEncode('validIdentityKey')."\r\nsuk=".$this->base64UrlEncode('validSUK')."\r\nvuk=".$this->base64UrlEncode('otherVUK');
@@ -1320,7 +1356,7 @@ class SqrlRequestHandlerTest extends \PHPUnit_Framework_TestCase
         $this->storage->expects($this->once())
                 ->method('checkIdentityKey')
                 ->with($this->equalTo('validIdentityKey'))
-                ->will($this->returnValue(\Trianglman\Sqrl\SqrlStoreInterface::IDENTITY_LOCKED));
+                ->will($this->returnValue(SqrlStoreInterface::IDENTITY_LOCKED));
         $this->storage->expects($this->never())->method('unlockIdentityKey');
         $this->storage->expects($this->once())
                 ->method('getIdentityVUK')
@@ -1335,9 +1371,9 @@ class SqrlRequestHandlerTest extends \PHPUnit_Framework_TestCase
         $this->generator->expects($this->once())
                 ->method('generateQry')
                 ->will($this->returnValue('sqrl?nut=newerNut'));
-        
+
         $this->handler->parseRequest(
-                array('nut' => 'newNut'), 
+                array('nut' => 'newNut'),
                 array(
                     'server' => $this->base64UrlEncode("ver=1\r\nnut=newNut\r\ntif=D\r\nqry=sqrl?nut=newNut\r\nsfn=Example Server\r\nsuk=".$this->base64UrlEncode('validSUK')),
                     'client' => $this->base64UrlEncode($client),
@@ -1345,16 +1381,17 @@ class SqrlRequestHandlerTest extends \PHPUnit_Framework_TestCase
                     'urs' => $this->base64UrlEncode('valid urs')
                 ),
                 array('REMOTE_ADDR'=>'192.168.0.5','HTTPS'=>'1'));
-        
+
         $this->assertEquals(
                 $this->base64UrlEncode("ver=1\r\nnut=newerNut\r\ntif=C4\r\nqry=sqrl?nut=newerNut\r\nsfn=Example Server"),
                 $this->handler->getResponseMessage()
                 );
     }
-    
+
     /**
-     * Tests that the server responds with a client failure flag if the client 
+     * Tests that the server responds with a client failure flag if the client
      * sends an invalid pIDS signature
+     * @throws \Trianglman\Sqrl\SqrlException
      */
     public function testHandlesRequestWithInvalidPIDS()
     {
@@ -1366,7 +1403,7 @@ class SqrlRequestHandlerTest extends \PHPUnit_Framework_TestCase
         $this->validator->expects($this->once())
                 ->method('validateNut')
                 ->with($this->equalTo('randomnut'),$this->equalTo('validNewIdentityKey'))
-                ->will($this->returnValue(\Trianglman\Sqrl\SqrlValidateInterface::VALID_NUT));
+                ->will($this->returnValue(SqrlValidateInterface::VALID_NUT));
         $unusedKeys = array('validNewIdentityKey','validIdentityKey');
         $self = $this;
         $this->validator->expects($this->exactly(2))
@@ -1416,7 +1453,10 @@ class SqrlRequestHandlerTest extends \PHPUnit_Framework_TestCase
                 $this->handler->getResponseMessage()
                 );
     }
-    
+
+    /**
+     * @throws \Trianglman\Sqrl\SqrlException
+     */
     public function testRespondsToIdentDuringIdentityUpdateMissingNewSUK()
     {
         $client = "ver=1\r\ncmd=ident\r\nidk=".$this->base64UrlEncode('validNewIdentityKey')."\r\npidk=".$this->base64UrlEncode('validIdentityKey')
@@ -1432,7 +1472,7 @@ class SqrlRequestHandlerTest extends \PHPUnit_Framework_TestCase
         $this->validator->expects($this->once())
                 ->method('validateNut')
                 ->with($this->equalTo('newNut'),$this->equalTo('validNewIdentityKey'))
-                ->will($this->returnValue(\Trianglman\Sqrl\SqrlValidateInterface::VALID_NUT));
+                ->will($this->returnValue(SqrlValidateInterface::VALID_NUT));
         $unusedKeys = array('validNewIdentityKey','validIdentityKey','validVUK');
         $self = $this;
         $this->validator->expects($this->exactly(3))
@@ -1467,11 +1507,12 @@ class SqrlRequestHandlerTest extends \PHPUnit_Framework_TestCase
                 ->with($this->anything())
                 ->will($this->returnCallback(function($key) use ($self) {
                     if ($key === 'validIdentityKey') {
-                        return \Trianglman\Sqrl\SqrlStoreInterface::IDENTITY_ACTIVE;
+                        return SqrlStoreInterface::IDENTITY_ACTIVE;
                     } elseif ($key === 'validNewIdentityKey') {
-                        return \Trianglman\Sqrl\SqrlStoreInterface::IDENTITY_UNKNOWN;
+                        return SqrlStoreInterface::IDENTITY_UNKNOWN;
                     } else {
                         $self->assertTrue(false,$key.' not a valid key');
+                        return null;
                     }
                 }));
         $this->storage->expects($this->never())->method('logSessionIn');
@@ -1505,10 +1546,11 @@ class SqrlRequestHandlerTest extends \PHPUnit_Framework_TestCase
                 $this->handler->getResponseMessage()
                 );
     }
-    
+
     /**
-     * Test the server will respond with a function not supported error if the 
+     * Test the server will respond with a function not supported error if the
      * user attempts to create an account when it is not allowed.
+     * @throws \Trianglman\Sqrl\SqrlException
      */
     public function testRespondsToIdentNoUnknownAccountAllowed()
     {
@@ -1524,7 +1566,7 @@ class SqrlRequestHandlerTest extends \PHPUnit_Framework_TestCase
         $this->validator->expects($this->once())
                 ->method('validateNut')
                 ->with($this->equalTo('newNut'),$this->equalTo('validNewIdentityKey'))
-                ->will($this->returnValue(\Trianglman\Sqrl\SqrlValidateInterface::VALID_NUT));
+                ->will($this->returnValue(SqrlValidateInterface::VALID_NUT));
         $unusedKeys = array('validNewIdentityKey','validVUK');
         $self = $this;
         $this->validator->expects($this->exactly(2))
@@ -1554,7 +1596,7 @@ class SqrlRequestHandlerTest extends \PHPUnit_Framework_TestCase
         $this->storage->expects($this->once())
                 ->method('checkIdentityKey')
                 ->with($this->equalTo('validNewIdentityKey'))
-                ->will($this->returnValue(\Trianglman\Sqrl\SqrlStoreInterface::IDENTITY_UNKNOWN));
+                ->will($this->returnValue(SqrlStoreInterface::IDENTITY_UNKNOWN));
         $this->storage->expects($this->never())
                 ->method('createIdentity')
                 ->with($this->equalTo('validNewIdentityKey'),$this->equalTo('validSUK'),$this->equalTo('validVUK'));
@@ -1589,10 +1631,11 @@ class SqrlRequestHandlerTest extends \PHPUnit_Framework_TestCase
                 $this->handler->getResponseMessage()
                 );
     }
-    
+
     /**
      * Test that the server returns a failure when the user attempts to create an account
      * without all required information (suk and vuk)
+     * @throws \Trianglman\Sqrl\SqrlException
      */
     public function testRespondsToIdentIncompleteAccountInformation()
     {
@@ -1608,7 +1651,7 @@ class SqrlRequestHandlerTest extends \PHPUnit_Framework_TestCase
         $this->validator->expects($this->once())
                 ->method('validateNut')
                 ->with($this->equalTo('newNut'),$this->equalTo('validNewIdentityKey'))
-                ->will($this->returnValue(\Trianglman\Sqrl\SqrlValidateInterface::VALID_NUT));
+                ->will($this->returnValue(SqrlValidateInterface::VALID_NUT));
         $this->validator->expects($this->once())
                 ->method('validateSignature')
                 ->with(
@@ -1626,7 +1669,7 @@ class SqrlRequestHandlerTest extends \PHPUnit_Framework_TestCase
         $this->storage->expects($this->once())
                 ->method('checkIdentityKey')
                 ->with($this->equalTo('validNewIdentityKey'))
-                ->will($this->returnValue(\Trianglman\Sqrl\SqrlStoreInterface::IDENTITY_UNKNOWN));
+                ->will($this->returnValue(SqrlStoreInterface::IDENTITY_UNKNOWN));
         $this->storage->expects($this->never())
                 ->method('createIdentity')
                 ->with($this->equalTo('validNewIdentityKey'),$this->equalTo('validSUK'),$this->equalTo('validVUK'));
@@ -1661,9 +1704,10 @@ class SqrlRequestHandlerTest extends \PHPUnit_Framework_TestCase
                 $this->handler->getResponseMessage()
                 );
     }
-    
+
     /**
      * tests the server responding to a cmd=lock when the account doesn't exist
+     * @throws \Trianglman\Sqrl\SqrlException
      */
     public function testRespondsToLockUnknownAccount()
     {
@@ -1696,7 +1740,7 @@ class SqrlRequestHandlerTest extends \PHPUnit_Framework_TestCase
         $this->storage->expects($this->once())
                 ->method('checkIdentityKey')
                 ->with($this->equalTo('validIdentityKey'))
-                ->will($this->returnValue(\Trianglman\Sqrl\SqrlStoreInterface::IDENTITY_UNKNOWN));
+                ->will($this->returnValue(SqrlStoreInterface::IDENTITY_UNKNOWN));
         $this->storage->expects($this->never())->method('lockIdentityKey');
         $this->storage->expects($this->never())->method('endSession');
 
