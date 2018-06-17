@@ -1,5 +1,4 @@
 <?php
-
 /*
  * The MIT License (MIT)
  * 
@@ -22,26 +21,16 @@
  * IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN
  * CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
  */
-
 namespace Trianglman\Sqrl;
 
 /**
- * Nonce validator class that uses the Pecl Libsodium elliptic curve validation code
- *
- * @author johnj
+ * Nonce validator class that uses the core (as of PHP 7.2) Libsodium library
  */
 class SodiumNonceValidator implements NonceValidatorInterface
 {
-    public function validateSignature($orig, $sig, $pk)
+    public function validateSignature(string $orig, string $sig, string $pk): bool
     {
-        // Bob verifies and removes the signature
         $msg_orig = sodium_crypto_sign_open($sig.$orig, $pk);
-        $check = $msg_orig !== false;
-        if(!$check){
-            var_dump($orig);
-            var_dump(base64_encode($sig));
-            var_dump(base64_encode($pk));
-        }
-        return $check;
+        return $msg_orig !== false;
     }
 }

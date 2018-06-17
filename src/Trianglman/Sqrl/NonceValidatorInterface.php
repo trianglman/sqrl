@@ -23,10 +23,6 @@
  */
 namespace Trianglman\Sqrl;
 
-/**
- *
- * @author johnj
- */
 interface NonceValidatorInterface
 {
     /**
@@ -38,5 +34,5 @@ interface NonceValidatorInterface
      *
      * @return boolean
      */
-    public function validateSignature($orig, $sig, $pk);
+    public function validateSignature(string $orig, string $sig, string $pk): bool;
 }
