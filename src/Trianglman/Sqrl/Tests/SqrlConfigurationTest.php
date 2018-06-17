@@ -1,5 +1,5 @@
 <?php
-
+declare(strict_types=1);
 /*
  * The MIT License (MIT)
  * 
@@ -30,8 +30,6 @@ use Trianglman\Sqrl\SqrlConfiguration;
 
 /**
  * Tests for SqrlConfiguration
- *
- * @author johnj
  */
 class SqrlConfigurationTest extends TestCase
 {
@@ -40,17 +38,16 @@ class SqrlConfigurationTest extends TestCase
         $obj = new SqrlConfiguration();
         $obj->load(__DIR__.'/Resources/onlyReq.json');
         
-        $this->assertEquals(array(1),$obj->getAcceptedVersions());
-        $this->assertEquals('domain.com',$obj->getDomain());
-        $this->assertEquals('login/sqrlauth.php',$obj->getAuthenticationPath());
-        $this->assertEquals('Example Server',$obj->getFriendlyName());
-        
+        $this->assertEquals([1], $obj->getAcceptedVersions());
+        $this->assertEquals('domain.com', $obj->getDomain());
+        $this->assertEquals('login/sqrlauth.php', $obj->getAuthenticationPath());
+
         //check defaults are unchanged
         $this->assertFalse($obj->getSecure());
         $this->assertFalse($obj->getAnonAllowed());
-        $this->assertEquals(5,$obj->getNonceMaxAge());
-        $this->assertEquals(300,$obj->getQrHeight());
-        $this->assertEquals(10,$obj->getQrPadding());
+        $this->assertEquals(5, $obj->getNonceMaxAge());
+        $this->assertEquals(300, $obj->getQrHeight());
+        $this->assertEquals(10, $obj->getQrPadding());
     }
     
     public function testLoadsFullJsonConfig()
@@ -58,16 +55,15 @@ class SqrlConfigurationTest extends TestCase
         $obj = new SqrlConfiguration();
         $obj->load(__DIR__.'/Resources/allOptional.json');
         
-        $this->assertEquals(array(1),$obj->getAcceptedVersions());
-        $this->assertEquals('otherdomain.com',$obj->getDomain());
-        $this->assertEquals('sqrl.php',$obj->getAuthenticationPath());
-        $this->assertEquals('My Example Server',$obj->getFriendlyName());
+        $this->assertEquals([1], $obj->getAcceptedVersions());
+        $this->assertEquals('otherdomain.com', $obj->getDomain());
+        $this->assertEquals('sqrl.php', $obj->getAuthenticationPath());
         $this->assertTrue($obj->getSecure());
         $this->assertTrue($obj->getAnonAllowed());
-        $this->assertEquals(9,$obj->getNonceMaxAge());
-        $this->assertEquals(250,$obj->getQrHeight());
-        $this->assertEquals(5,$obj->getQrPadding());
-        $this->assertEquals('gibberish data',$obj->getNonceSalt());
+        $this->assertEquals(9, $obj->getNonceMaxAge());
+        $this->assertEquals(250, $obj->getQrHeight());
+        $this->assertEquals(5, $obj->getQrPadding());
+        $this->assertEquals('gibberish data', $obj->getNonceSalt());
     }
     
     /**

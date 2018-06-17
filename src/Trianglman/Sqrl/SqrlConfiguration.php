@@ -1,4 +1,5 @@
 <?php
+declare(strict_types=1);
 /*
  * The MIT License (MIT)
  * 
@@ -25,12 +26,9 @@ namespace Trianglman\Sqrl;
 
 /**
  * Class to hold configurable data for all other SQRL classes
- *
- * @author luisc
  */
 class SqrlConfiguration
 {
-
     /**
      * The versions this SQRL server supports
      * 
@@ -38,7 +36,7 @@ class SqrlConfiguration
      * 
      * @var array[]mixed
      */
-    protected $acceptedVersions = array(1);
+    protected $acceptedVersions = [];
     /**
      * Whether responses to the server should be secure
      * 
@@ -66,14 +64,6 @@ class SqrlConfiguration
      * @var string
      */
     protected $authenticationPath = '';
-    /**
-     * The friendly name displayed to SQRL clients during authentication
-     * 
-     * Required
-     * 
-     * @var string
-     */
-    protected $friendlyName = '';
     /**
      * Whether users are allowed to generate anonymous accounts
      * 
@@ -123,16 +113,16 @@ class SqrlConfiguration
      * 
      * @throws \InvalidArgumentException If the file can not be parsed
      */
-    public function load($filePath)
+    public function load(string $filePath): void
     {
         try {
             $this->loadConfigFromJSON($filePath);
         } catch (\Exception $ex) {
-            throw new \InvalidArgumentException('Configuration data could not be parsed.',1,$ex);
+            throw new \InvalidArgumentException('Configuration data could not be parsed.', 1, $ex);
         }
     }
 
-    protected function loadConfigFromJSON($filePath)
+    protected function loadConfigFromJSON(string $filePath): void
     {
         if (!file_exists($filePath)) {
             throw new \InvalidArgumentException('Configuration file not found');
@@ -145,14 +135,11 @@ class SqrlConfiguration
         if (is_array($decoded->accepted_versions)) {
             $this->setAcceptedVersions($decoded->accepted_versions);
         }
-        $this->setSecure(!empty($decoded->secure) && (int)$decoded->secure>0);
-        $this->setDomain(!empty($decoded->key_domain)?$decoded->key_domain:'');
-        $this->setAuthenticationPath(
-                !empty($decoded->authentication_path)?$decoded->authentication_path:''
-                );
-        $this->setFriendlyName(!empty($decoded->friendly_name)?$decoded->friendly_name:'');
+        $this->setSecure(!empty($decoded->secure) && (int)$decoded->secure > 0);
+        $this->setDomain($decoded->key_domain ?? '');
+        $this->setAuthenticationPath($decoded->authentication_path ?? '');
         $this->setAnonAllowed(
-                !empty($decoded->allow_anonymous_accounts) && (int)$decoded->allow_anonymous_accounts>0
+                !empty($decoded->allow_anonymous_accounts) && (int)$decoded->allow_anonymous_accounts > 0
                 );
         if (!empty($decoded->nonce_max_age)) {
             $this->setNonceMaxAge($decoded->nonce_max_age);
@@ -171,7 +158,8 @@ class SqrlConfiguration
      * 
      * @return array
      */
-    public function getAcceptedVersions() {
+    public function getAcceptedVersions(): array
+    {
         return $this->acceptedVersions;
     }
 
@@ -180,7 +168,8 @@ class SqrlConfiguration
      * 
      * @return boolean
      */
-    public function getSecure() {
+    public function getSecure(): bool
+    {
         return $this->secure;
     }
 
@@ -189,7 +178,8 @@ class SqrlConfiguration
      * 
      * @return string
      */
-    public function getDomain() {
+    public function getDomain(): string
+    {
         return $this->domain;
     }
 
@@ -198,16 +188,9 @@ class SqrlConfiguration
      * 
      * @return string
      */
-    public function getAuthenticationPath() {
+    public function getAuthenticationPath(): string
+    {
         return $this->authenticationPath;
-    }
-
-    /**
-     * Gets the friendly name displayed to SQRL clients during authentication
-     * @return string
-     */
-    public function getFriendlyName() {
-        return $this->friendlyName;
     }
 
     /**
@@ -215,15 +198,18 @@ class SqrlConfiguration
      * 
      * @return boolean
      */
-    public function getAnonAllowed() {
+    public function getAnonAllowed(): bool
+    {
         return $this->anonAllowed;
     }
 
     /**
      * Gets the time in minutes that a nonce is considered valid
+     *
      * @return int
      */
-    public function getNonceMaxAge() {
+    public function getNonceMaxAge(): int
+    {
         return $this->nonceMaxAge;
     }
 
@@ -232,7 +218,8 @@ class SqrlConfiguration
      * 
      * @return int
      */
-    public function getQrHeight() {
+    public function getQrHeight(): int
+    {
         return $this->qrHeight;
     }
 
@@ -241,15 +228,18 @@ class SqrlConfiguration
      * 
      * @return int
      */
-    public function getQrPadding() {
+    public function getQrPadding(): int
+    {
         return $this->qrPadding;
     }
 
     /**
      * Gets the random string used to salt generated nonces
+     *
      * @return string
      */
-    public function getNonceSalt() {
+    public function getNonceSalt(): string
+    {
         return $this->nonceSalt;
     }
 
@@ -260,11 +250,12 @@ class SqrlConfiguration
      * 
      * @return SqrlConfiguration
      */
-    public function setAcceptedVersions($acceptedVersions) {
+    public function setAcceptedVersions($acceptedVersions): SqrlConfiguration
+    {
         if (is_array($acceptedVersions)) {
             $this->acceptedVersions = $acceptedVersions;
         } else {
-            $this->acceptedVersions = array($acceptedVersions);
+            $this->acceptedVersions = [$acceptedVersions];
         }
         return $this;
     }
@@ -276,8 +267,9 @@ class SqrlConfiguration
      * 
      * @return SqrlConfiguration
      */
-    public function setSecure($secure) {
-        $this->secure = (bool)$secure;
+    public function setSecure(bool $secure): SqrlConfiguration
+    {
+        $this->secure = $secure;
         return $this;
     }
 
@@ -288,7 +280,8 @@ class SqrlConfiguration
      * 
      * @return SqrlConfiguration
      */
-    public function setDomain($domain) {
+    public function setDomain(string $domain): SqrlConfiguration
+    {
         $this->domain = $domain;
         return $this;
     }
@@ -300,20 +293,9 @@ class SqrlConfiguration
      * 
      * @return SqrlConfiguration
      */
-    public function setAuthenticationPath($authenticationPath) {
+    public function setAuthenticationPath(string $authenticationPath): SqrlConfiguration
+    {
         $this->authenticationPath = $authenticationPath;
-        return $this;
-    }
-
-    /**
-     * Sets the friendly name displayed to SQRL clients during authentication
-     * 
-     * @param string $friendlyName
-     * 
-     * @return SqrlConfiguration
-     */
-    public function setFriendlyName($friendlyName) {
-        $this->friendlyName = $friendlyName;
         return $this;
     }
 
@@ -324,7 +306,8 @@ class SqrlConfiguration
      * 
      * @return SqrlConfiguration
      */
-    public function setAnonAllowed($anonAllowed) {
+    public function setAnonAllowed(bool $anonAllowed): SqrlConfiguration
+    {
         $this->anonAllowed = (bool)$anonAllowed;
         return $this;
     }
@@ -336,8 +319,9 @@ class SqrlConfiguration
      * 
      * @return SqrlConfiguration
      */
-    public function setNonceMaxAge($nonceMaxAge) {
-        $this->nonceMaxAge = (int)$nonceMaxAge;
+    public function setNonceMaxAge(int $nonceMaxAge): SqrlConfiguration
+    {
+        $this->nonceMaxAge = $nonceMaxAge;
         return $this;
     }
 
@@ -348,8 +332,9 @@ class SqrlConfiguration
      * 
      * @return SqrlConfiguration
      */
-    public function setQrHeight($qrHeight) {
-        $this->qrHeight = (int)$qrHeight;
+    public function setQrHeight(int $qrHeight): SqrlConfiguration
+    {
+        $this->qrHeight = $qrHeight;
         return $this;
     }
 
@@ -360,7 +345,8 @@ class SqrlConfiguration
      * 
      * @return SqrlConfiguration
      */
-    public function setQrPadding($qrPadding) {
+    public function setQrPadding(int $qrPadding): SqrlConfiguration
+    {
         $this->qrPadding = $qrPadding;
         return $this;
     }
@@ -372,7 +358,8 @@ class SqrlConfiguration
      * 
      * @return SqrlConfiguration
      */
-    public function setNonceSalt($nonceSalt) {
+    public function setNonceSalt(string $nonceSalt): SqrlConfiguration
+    {
         $this->nonceSalt = $nonceSalt;
         return $this;
     }
