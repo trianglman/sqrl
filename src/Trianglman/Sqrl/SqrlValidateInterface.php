@@ -29,8 +29,6 @@ namespace Trianglman\Sqrl;
  * If a database is configured, this will also check to see if the public key
  * matches a previously encountered key. If it does it will load an identifier.
  * If there is no match, it will store the public key and generate an identifier.
- *
- * @author johnj
  */
 interface SqrlValidateInterface
 {
@@ -43,11 +41,11 @@ interface SqrlValidateInterface
      * 
      * @param string $server The returned server value
      * @param string $nut The nut from the request
-     * @param string $secure Whether the request was secure
+     * @param bool $secure Whether the request was secure
      * 
      * @return boolean
      */
-    public function validateServer($server,$nut,$secure);
+    public function validateServer($server, string $nut, bool $secure): bool;
     
     /**
      * Validates a supplied nut
@@ -57,7 +55,7 @@ interface SqrlValidateInterface
      * 
      * @return int One of the nut class constants
      */
-    public function validateNut($nut,$signingKey=null);
+    public function validateNut(string $nut, string $signingKey = null): int;
 
     /**
      * Validates a secondary request signature (Unlock Request or New Key)
@@ -68,7 +66,7 @@ interface SqrlValidateInterface
      *
      * @return boolean
      */
-    public function validateSignature($orig,$key, $sig);
+    public function validateSignature(string $orig, string $key, string $sig): bool ;
     
     /**
      * Verifies the original nut's IP matches the current IP
@@ -78,5 +76,5 @@ interface SqrlValidateInterface
      * 
      * @return boolean
      */
-    public function nutIPMatches($nut,$ip);
+    public function nutIPMatches(string $nut, string $ip): bool;
 }

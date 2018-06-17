@@ -1,4 +1,5 @@
 <?php
+declare(strict_types=1);
 /*
  * The MIT License (MIT)
  * 
@@ -21,8 +22,9 @@
  * IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN
  * CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
  */
-
 namespace Trianglman\Sqrl;
+
+use Trianglman\Sqrl\Traits\SqrlUrlGenerator;
 
 /**
  * Validates a nonce/public key pair
@@ -30,11 +32,10 @@ namespace Trianglman\Sqrl;
  * If a database is configured, this will also check to see if the public key
  * matches a previously encountered key. If it does it will load an identifier.
  * If there is no match, it will store the public key and generate an identifier.
- *
- * @author johnj
  */
 class SqrlValidate implements SqrlValidateInterface
 {
+    use SqrlUrlGenerator;
     /**
      * @var SqrlStoreInterface
      */
@@ -57,8 +58,11 @@ class SqrlValidate implements SqrlValidateInterface
      * @param \Trianglman\Sqrl\NonceValidatorInterface $validator
      * @param \Trianglman\Sqrl\SqrlStoreInterface $storage
      */
-    public function __construct(SqrlConfiguration $config, NonceValidatorInterface $validator, SqrlStoreInterface $storage)
-    {
+    public function __construct(
+        SqrlConfiguration $config,
+        NonceValidatorInterface $validator,
+        SqrlStoreInterface $storage
+    ) {
         $this->configuration = $config;
         $this->validator = $validator;
         $this->store = $storage;
@@ -69,31 +73,29 @@ class SqrlValidate implements SqrlValidateInterface
      * 
      * @param string|array $server The returned server value
      * @param string $nut The nut from the request
-     * @param string $secure Whether the request was secure
+     * @param bool $secure Whether the request was secure
      * 
      * @return boolean
      */
-    public function validateServer($server,$nut,$secure)
+    public function validateServer($server, string $nut, bool $secure): bool
     {
         if (is_string($server)) {
-            return $server === $this->getUrl($nut) &&
-                    !!$secure===$this->configuration->getSecure();
+            return $server === $this->generateUrl($this->configuration, $nut) &&
+                    $secure === $this->configuration->getSecure();
         } else {
             if (!isset($server['ver']) ||
-                    !isset($server['nut']) ||
-                    !isset($server['tif']) ||
-                    !isset($server['qry']) ||
-                    !isset($server['sfn']) 
-                    ) {
+                !isset($server['nut']) ||
+                !isset($server['tif']) ||
+                !isset($server['qry'])
+            ) {
                 return false;
             }
             $nutInfo = $this->store->getNutDetails($nut);
-            return $server['ver']===implode(',',$this->configuration->getAcceptedVersions()) &&
-                    $server['nut']===$nut &&
-                    (!is_array($nutInfo) || hexdec($server['tif'])==$nutInfo['tif']) &&
-                    $server['qry'] === $this->generateQry($nut) &&
-                    $server['sfn'] === $this->configuration->getFriendlyName() &&
-                    !!$secure===$this->configuration->getSecure();
+            return $server['ver'] === implode(',', $this->configuration->getAcceptedVersions()) &&
+                    $server['nut'] === $nut &&
+                    (!is_array($nutInfo) || hexdec($server['tif']) === $nutInfo['tif']) &&
+                    $server['qry'] === $this->generateQry($this->configuration->getAuthenticationPath(), $nut) &&
+                    $secure === $this->configuration->getSecure();
         }
     }
     
@@ -105,14 +107,18 @@ class SqrlValidate implements SqrlValidateInterface
      * 
      * @return int One of the nut class constants
      */
-    public function validateNut($nut,$signingKey=null)
+    public function validateNut(string $nut, string $signingKey = null): int
     {
         $nutInfo = $this->store->getNutDetails($nut);
+        $maxAge = '-'.$this->configuration->getNonceMaxAge().' minutes';
         if (!is_array($nutInfo)) {
             return self::INVALID_NUT;
-        } elseif ($nutInfo['createdDate']->format('U') < strtotime('-'.$this->configuration->getNonceMaxAge().' minutes')) {
+        } elseif ($nutInfo['createdDate']->format('U') < strtotime($maxAge)) {
             return self::EXPIRED_NUT;
-        } elseif (!is_null($signingKey) && !empty($nutInfo['originalKey']) && $nutInfo['originalKey']!==$signingKey) {
+        } elseif (!is_null($signingKey) &&
+            !empty($nutInfo['originalKey']) &&
+            $nutInfo['originalKey'] !== $signingKey
+        ) {
             return self::KEY_MISMATCH;
         } else {
             return self::VALID_NUT;
@@ -120,7 +126,7 @@ class SqrlValidate implements SqrlValidateInterface
     }
 
     /**
-     * Validates a secondary request signature (Unlock Request or New Key)
+     * Validates the message signature
      *
      * @param string $orig
      * @param string $key 
@@ -128,7 +134,7 @@ class SqrlValidate implements SqrlValidateInterface
      *
      * @return boolean
      */
-    public function validateSignature($orig,$key, $sig)
+    public function validateSignature(string $orig, string $key, string $sig): bool
     {
         return $this->validator->validateSignature($orig, $sig, $key);
     }
@@ -141,41 +147,9 @@ class SqrlValidate implements SqrlValidateInterface
      * 
      * @return boolean
      */
-    public function nutIPMatches($nut,$ip)
+    public function nutIPMatches(string $nut, string $ip): bool
     {
         $nutInfo = $this->store->getNutDetails($nut);
         return is_array($nutInfo) && $nutInfo['nutIP'] === $ip;
-    }
-    
-    /**
-     * This should eventually become a trait and share the functionality with SqrlGenerate
-     * instead of being duplicate code
-     * 
-     * @return string
-     */
-    protected function generateQry($nut)
-    {
-        $currentPathParts = parse_url($this->configuration->getAuthenticationPath());
-        $pathAppend = (empty($currentPathParts['query'])?'?':'&').'nut=';
-
-        return $this->configuration->getAuthenticationPath().$pathAppend.$nut;
-    }
-
-    /**
-     * This should eventually become a trait and share the functionality with SqrlGenerate
-     * instead of being duplicate code
-     * 
-     * @return string
-     */
-    protected function getUrl($nut)
-    {
-        $url = ($this->configuration->getSecure() ? 's' : '').'qrl://'.$this->configuration->getDomain();
-        if (strpos($this->configuration->getDomain(), '/') !== false) {
-            $extension = strlen($this->configuration->getDomain())-strpos($this->configuration->getDomain(), '/');
-            $url.= substr($this->generateQry($nut),$extension).'&d='.$extension;
-        } else {
-            $url.= $this->generateQry($nut);
-        }
-        return $url;
     }
 }
