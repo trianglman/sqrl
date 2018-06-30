@@ -24,19 +24,25 @@
 namespace Trianglman\Sqrl;
 
 use Endroid\QrCode\QrCode;
+use Trianglman\Sqrl\Traits\SqrlUrlGenerator;
 
 /**
  * Generates a SQRL QR image, URL and nonce.
- *
- * @author johnj
  */
 class SqrlGenerate implements SqrlGenerateInterface
 {
+    use SqrlUrlGenerator {
+        generateQry as protected traitGenerateQry;
+    }
+
     /**
-     * @var SqrlStore
+     * @var SqrlStoreInterface
      */
     protected $store = null;
 
+    /**
+     * @var string
+     */
     protected $nonce = '';
 
     /**
@@ -60,7 +66,7 @@ class SqrlGenerate implements SqrlGenerateInterface
      *
      * @return string The one time use string for the QR link
      */
-    public function getNonce($action = 0, $key = '', $previousNonce='')
+    public function getNonce(int $action = 0, string $key = '', string $previousNonce = ''): string
     {
         if (empty($this->nonce)) {
             if ($this->store instanceof SqrlStoreStatelessAbstract) {
@@ -80,27 +86,17 @@ class SqrlGenerate implements SqrlGenerateInterface
         return $this->nonce;
     }
 
-    public function generateQry()
+    public function generateQry(): string
     {
-        $currentPathParts = parse_url($this->configuration->getAuthenticationPath());
-        $pathAppend = (empty($currentPathParts['query'])?'?':'&').'nut=';
-
-        return $this->configuration->getAuthenticationPath().$pathAppend.$this->getNonce();
+        return $this->traitGenerateQry($this->configuration->getAuthenticationPath(), $this->getNonce());
     }
 
-    public function getUrl()
+    public function getUrl(): string
     {
-        $url = ($this->configuration->getSecure() ? 's' : '').'qrl://'.$this->configuration->getDomain();
-        if (strpos($this->configuration->getDomain(), '/') !== false) {
-            $extension = strlen($this->configuration->getDomain())-strpos($this->configuration->getDomain(), '/');
-            $url.= substr($this->generateQry(),$extension).'&d='.$extension;
-        } else {
-            $url.= $this->generateQry();
-        }
-        return $url;
+        return $this->generateUrl($this->configuration, $this->getNonce());
     }
 
-    public function render($outputFile)
+    public function render(?string $outputFile)
     {
         $qrCode = new QrCode();
         $qrCode->setText($this->getUrl());

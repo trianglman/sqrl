@@ -37,7 +37,7 @@ interface SqrlGenerateInterface
      *
      * @return void
      */
-    public function render($outputFile);
+    public function render(?string $outputFile);
 
     /**
      * Returns the generated nonce
@@ -48,19 +48,19 @@ interface SqrlGenerateInterface
      *
      * @return string The one time use string for the QR link
      */
-    public function getNonce($action = 0, $key = '', $previousNonce='');
+    public function getNonce(int $action = 0, string $key = '', string $previousNonce = ''): string;
 
     /**
      * Gets the validation URL including the nonce
      *
      * @return string
      */
-    public function getUrl();
+    public function getUrl(): string;
     
     /**
      * Generates the qry parameter to send in server responses
      * 
      * @return string
      */
-    public function generateQry();
+    public function generateQry(): string;
 }

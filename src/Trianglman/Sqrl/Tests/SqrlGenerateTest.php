@@ -228,7 +228,7 @@ class SqrlGenerateTest extends TestCase
                 ->will($this->returnValue(true));
         
         $obj = new SqrlGenerate($this->config,$this->storage);
-        $this->assertEquals('sqrl://example.com/~user/sqrl?nut=storednut&d=6', $obj->getUrl());
+        $this->assertEquals('sqrl://example.com/~user/sqrl?nut=storednut&x=6', $obj->getUrl());
     }
 
 

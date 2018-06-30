@@ -42,7 +42,7 @@ abstract class SqrlStoreStatelessAbstract implements SqrlStoreInterface
      * @var string
      */
     private $nonceSalt = '';
-    private $iv = 'fdjlask;aowifjnv';
+    protected $iv = 'fdjlask;aowifjnv';
     
     /**
      * Sets the password for nonce encryption
@@ -74,7 +74,6 @@ abstract class SqrlStoreStatelessAbstract implements SqrlStoreInterface
      */
     public function generateNut($tif=0, $key='', $oldnut='')
     {
-        $nut = '';
         $created = dechex(time());//8 char
         $rnd = openssl_random_pseudo_bytes(4);//4 char
         $ip = dechex(ip2long($this->getIp()));//8 char
@@ -219,7 +218,7 @@ abstract class SqrlStoreStatelessAbstract implements SqrlStoreInterface
      * Optionally removes trailing "=" padding characters.
      * 
      * @param string $string The string to encode
-     * @param type $stripEquals [Optional] Whether to strip the "=" off of the end
+     * @param bool $stripEquals [Optional] Whether to strip the "=" off of the end
      * 
      * @return string
      */
@@ -240,8 +239,8 @@ abstract class SqrlStoreStatelessAbstract implements SqrlStoreInterface
      * and "_" with "/". Automatically detects if the trailing "=" padding has
      * been removed.
      * 
-     * @param type $string
-     * @return type
+     * @param string $string
+     * @return string
      */
     protected function base64URLDecode($string)
     {
