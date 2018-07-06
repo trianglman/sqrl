@@ -66,7 +66,7 @@ class SqrlRequestHandler implements SqrlRequestHandlerInterface
     protected $clientVUK = '';
     protected $requestNut = '';
     protected $previousIdKey = '';
-    
+
     public function __construct(
         SqrlConfiguration $config,
         SqrlValidateInterface $val,
@@ -101,7 +101,7 @@ class SqrlRequestHandler implements SqrlRequestHandlerInterface
             $serverInfo = $this->parseServer($post['server']);
             $clientInfo = $this->parseClient($post['client']);
             $this->requestNut = $get['nut'];
-            if (empty($serverInfo) || empty($clientInfo)) {
+            if (empty($serverInfo) || empty($clientInfo) || !isset($clientInfo['ver'])) {
                 $this->tif|= (self::COMMAND_FAILED|self::CLIENT_FAILURE);
                 return;
             }
@@ -109,10 +109,10 @@ class SqrlRequestHandler implements SqrlRequestHandlerInterface
                 $this->tif|= (self::COMMAND_FAILED|self::CLIENT_FAILURE);
                 return;
             }
-            $this->tif|= $this->validator->nutIPMatches($get['nut'],$server['REMOTE_ADDR'])?self::IP_MATCH:0;
             $nutStatus = $this->validator->validateNut($this->requestNut,isset($clientInfo['idk'])?$clientInfo['idk']:null);
             if ($nutStatus !== \Trianglman\Sqrl\SqrlValidateInterface::VALID_NUT) {
                 if ($nutStatus === \Trianglman\Sqrl\SqrlValidateInterface::EXPIRED_NUT) {
+                    $this->authenticationKey = $clientInfo['idk'];
                     $this->tif|= (self::COMMAND_FAILED|self::TRANSIENT_ERROR);
                 } elseif ($nutStatus === SqrlValidateInterface::KEY_MISMATCH) {
                     $this->tif|= (self::COMMAND_FAILED|self::CLIENT_FAILURE|self::BAD_ID_ASSOCIATION);
@@ -120,6 +120,8 @@ class SqrlRequestHandler implements SqrlRequestHandlerInterface
                     $this->tif|= (self::COMMAND_FAILED|self::CLIENT_FAILURE);
                 }
                 return;
+            } else {
+                $this->tif|= $this->validator->nutIPMatches($get['nut'],$server['REMOTE_ADDR'])?self::IP_MATCH:0;
             }
             if (!$this->validateSignatures($post, $clientInfo)) {
                 $this->tif|= (self::COMMAND_FAILED|self::CLIENT_FAILURE);
@@ -358,10 +360,9 @@ class SqrlRequestHandler implements SqrlRequestHandlerInterface
     protected function formatResponse($code)
     {
         $resp = 'ver='.implode(',',$this->config->getAcceptedVersions())."\r\n"
-                ."nut=".$this->sqrlGenerator->getNonce($code, $this->authenticationKey,$this->requestNut)."\r\n"
+                ."nut=".$this->sqrlGenerator->getNonce($code, $this->authenticationKey, $this->requestNut)."\r\n"
                 .'tif='.  strtoupper(dechex($code))."\r\n"
-                ."qry=".$this->sqrlGenerator->generateQry()."\r\n"
-                .'sfn='.$this->config->getFriendlyName();
+                ."qry=".$this->sqrlGenerator->generateQry();
         if (!empty($this->ask)) {
             $resp.= "\r\nask=".$this->ask;
         }

@@ -38,4 +38,23 @@ trait Base64Url
         return trim($urlencode, '=');
     }
 
+    /**
+     * Base 64 URL decodes a string
+     *
+     * Basically the same as base64 decoding, but replacing URL safe "-" with "+"
+     * and "_" with "/". Automatically detects if the trailing "=" padding has
+     * been removed.
+     *
+     * @param string $string
+     * @return string
+     */
+    protected function base64UrlDecode(string $string): string
+    {
+        $len = strlen($string);
+        if($len%4 > 0){
+            $string = str_pad($string, 4-($len%4), '=');
+        }
+        $base64 = str_replace(array('-','_'), array('+','/'), $string);
+        return base64_decode($base64);
+    }
 }

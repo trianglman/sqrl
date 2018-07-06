@@ -172,11 +172,11 @@ interface SqrlRequestHandlerInterface
     /**
      * Initializes the Request Handler
      *
-     * @param SqrlValidateInterface $val   Sets the validator that will check the response
-     * @param SqrlStoreInterface    $store [Optional] Sets storage for submitted authorization keys
-     * @param SqrlGenerateInterface $gen   [Optional] Sets the nonce generator for loop two
+     * @param SqrlConfiguration $config
+     * @param SqrlValidateInterface $val Sets the validator that will check the response
+     * @param SqrlStoreInterface $store [Optional] Sets storage for submitted authorization keys
+     * @param SqrlGenerateInterface $gen [Optional] Sets the nonce generator for loop two
      *
-     * @return SqrlRequestHandlerInterface
      */
     public function __construct(
         SqrlConfiguration $config,

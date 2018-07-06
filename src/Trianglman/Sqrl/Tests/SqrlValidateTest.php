@@ -279,8 +279,6 @@ class SqrlValidateTest extends TestCase
     {
         $this->config->expects($this->any())->method('getAcceptedVersions')
             ->will($this->returnValue([1]));
-        $this->config->expects($this->any())->method('getFriendlyName')
-            ->will($this->returnValue('Example Server'));
         $this->config->expects($this->any())->method('getAuthenticationPath')
             ->will($this->returnValue('/sqrl'));
         $this->config->expects($this->any())->method('getSecure')
