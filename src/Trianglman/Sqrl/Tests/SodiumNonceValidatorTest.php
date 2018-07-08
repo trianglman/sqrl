@@ -37,6 +37,9 @@ class SodiumNonceValidatorTest extends TestCase
     public function setUp()/* The :void return type declaration that should be here would cause a BC issue */
     {
         parent::setUp();
+        if (!function_exists('sodium_crypto_sign_open')) {
+            $this->markTestSkipped('sodium_crypto_sign_open not supported');
+        }
         $this->validator = new SodiumNonceValidator();
     }
 
