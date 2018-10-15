@@ -26,7 +26,7 @@ public key for connection to a site account.
 Installation
 ====
 
-###Composer
+### Composer
 
 1. Download the [`composer.phar`](https://getcomposer.org/composer.phar) executable or use the installer.
 
