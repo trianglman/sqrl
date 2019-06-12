@@ -52,7 +52,7 @@ Configuration
 
 If you want to have the library automatically store generated nonces and validated
 public keys, first generate the database tables based on the supplied 
-sqrl/sample.sql, then create a JSON config file based on the sample
+[ExampleStatefulStorage.php](examples/server/includes/ExampleStatefulStorage.php), then create a JSON config file based on the sample
 provided in sqrl/config.sample.json. You can then configure the
 generator or validator by calling the appropriate `configure($filepath);`
 method.
