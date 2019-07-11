@@ -64,7 +64,7 @@ class ExampleStatefulStorage implements SqrlStoreInterface
 
     public function createIdentity($key, $suk, $vuk) 
     {
-        $sql = "INSERT INTO sqrl_pubkey (public_key,vuk,suk) VALUES (?,?,?)";
+        $sql = "INSERT INTO sqrl_pubkey (public_key,suk,vuk) VALUES (?,?,?)";
         $stmt = $this->conn->prepare($sql);
         $stmt->execute(array($key,$suk,$vuk));
     }
