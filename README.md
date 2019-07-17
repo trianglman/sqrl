@@ -1,30 +1,32 @@
-sqrl
-====
+<p align="center"><img src="assets/sqrl_php_logo_150px.png"></p>
+
+<p align="center">
+<a href="https://travis-ci.org/trianglman/sqrl"><img src="https://travis-ci.org/trianglman/sqrl.svg" alt="Build Status"></a>
+</p>
+
+# sqrl
 
 PHP Server side implementation of a SQRL generator/listener
 
-This project is in pre-alpha until there is a defined reference implementation.
+This project is in *pre-alpha* until there is a defined reference implementation.
 
-Follow the conversation at https://www.grc.com/groups/sqrl for updates on the 
+Follow the conversation at [grc sqrl newsgroup](https://www.grc.com/groups/sqrl) for updates on the 
 standard.
 
 
-Software Requirements
-====
+## Software Requirements
 
   - Composer - http://getcomposer.org
   - Endroid/qrcode Loaded automatically by Composer - https://github.com/endroid/QrCode
 
-Purpose
-====
+## Purpose
 
 The goal of this software is to provide a simple PHP implementation of Steve
 Gibson's SQRL authentication proposal. This library will allow any site using it
 to generate the QR code with a nonce, validate a signed nonce, and store the 
 public key for connection to a site account. 
 
-Installation
-====
+## Installation
 
 ### Composer
 
@@ -47,8 +49,7 @@ themselves. To create libraries/packages please read the
 
 3. Run Composer: `php composer.phar update`
 
-Configuration
-====
+### Configuration
 
 If you want to have the library automatically store generated nonces and validated
 public keys, first generate the database tables based on the supplied 
@@ -80,16 +81,13 @@ your own salt for the nonce:
 
 ```php
 //...
-
 $generator->setHeight(300);
 $generator->setPadding(10);
 $generator->setSalt('foo');
-
 //...
 ```
 
-Usage
-====
+### Usage
 
 **Generate a nonce**
 ```php
@@ -124,3 +122,9 @@ $requestResponseCode = $obj->getResponseCode();
 //Let the request handler also handle the response
 $reqHandler->sendResponse();
 ```
+
+# Resources
+
+* [GRC.com - SQRL Explainted](https://www.grc.com/sqrl/SQRL_Explained.pdf) (pdf)
+* [GRC.com - SQRL Semantincs](https://www.grc.com/sqrl/semantics.htm)
+* [GRC.com - SQRL Protocol](https://www.grc.com/sqrl/protocol.htm)
